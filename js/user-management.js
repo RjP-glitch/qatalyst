@@ -8,7 +8,10 @@ const API_URL = typeof CONFIG !== 'undefined'
         }
     })();
 let allUsers = [];
-let currentTab = 'sdo'; // 'sdo' or 'portal'
+const userManagementParams = new URLSearchParams(window.location.search);
+let notificationUserId = Math.max(0, parseInt(userManagementParams.get('user_id'), 10) || 0);
+let approvalReviewUserId = 0;
+let currentTab = userManagementParams.get('tab') === 'portal' || notificationUserId ? 'portal' : 'sdo';
 let currentPage = 1;
 const perPage = 10;
 let expandedMenus = {};
@@ -342,6 +345,15 @@ async function loadUsers(type = currentTab) {
             allUsers = json.data;
             updateStats();
             await loadRoles();
+            if (type === 'portal' && notificationUserId) {
+                const target = allUsers.find(user => Number(user.id) === notificationUserId);
+                notificationUserId = 0;
+                if (target) {
+                    approvalReviewUserId = Number(target.id);
+                    document.getElementById('searchInput').value = target.email;
+                }
+                else showToast('The school account is no longer available.', 'error');
+            }
             filterUsers();
         } else {
             showToast(json.message || 'Failed to load users', 'error');
@@ -371,11 +383,16 @@ function updateStats() {
 // ==================== FILTER & RENDER ====================
 function filterUsers() {
     const search = document.getElementById('searchInput').value.toLowerCase();
+    if (approvalReviewUserId) {
+        const target = allUsers.find(user => Number(user.id) === approvalReviewUserId);
+        if (currentTab !== 'portal' || !target || search !== target.email.toLowerCase()) approvalReviewUserId = 0;
+    }
     const role = document.getElementById('roleFilter').value;
     const status = document.getElementById('statusFilter').value;
 
     let filtered = allUsers.filter(u => {
-        const matchSearch = !search || u.full_name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search);
+        const matchSearch = approvalReviewUserId ? Number(u.id) === approvalReviewUserId
+            : !search || u.full_name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search);
         const matchRole = role === 'all' || u.role === role;
         const matchStatus = status === 'all' || u.status === status;
         return matchSearch && matchRole && matchStatus;
@@ -490,6 +507,7 @@ async function setSchoolApproval(id, approved) {
         if (!data.success) throw new Error(data.message || 'Could not update school approval.');
         showToast(data.message, 'success');
         await loadUsers('portal');
+        if (typeof NotificationSystem !== 'undefined') await NotificationSystem.fetchNotifications();
     } catch (err) {
         showToast(err.message || 'Could not update school approval.', 'error');
     }

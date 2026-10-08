@@ -7,6 +7,7 @@ handlePreflight();
 header('Content-Type: application/json; charset=utf-8');
 require_once dirname(__DIR__) . '/config/database.php';
 require_once dirname(__DIR__) . '/helpers/SchoolVerification.php';
+require_once dirname(__DIR__) . '/config/audit_log.php';
 
 function jsonError(string $message, int $code = 400): void {
     http_response_code($code);
@@ -89,6 +90,11 @@ try {
     $stmt->execute([$userId]);
     $profile = $stmt->fetch(PDO::FETCH_ASSOC);
     $db->commit();
+    auditLog([
+        'pdo' => $db, 'user_id' => $userId, 'role' => 'teacher',
+        'action' => 'verify_email', 'module' => 'school_portal', 'status' => 'success',
+        'description' => 'Verified school account email; school affiliation awaits SDO approval.',
+    ]);
 
     $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
     setcookie('school_session_token', $sessionToken, [

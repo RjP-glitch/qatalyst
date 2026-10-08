@@ -41,6 +41,10 @@ function request(string $path, string $method = 'GET', ?array $body = null, stri
 function expectStatus(array $response, int $status, string $label): void {
     check($response['status'] === $status, $label . ' (HTTP ' . $response['status'] . ': ' . ($response['json']['message'] ?? '') . ')');
 }
+function approvalItems(array $response): array {
+    return array_column(array_filter($response['json']['data']['recent'],
+        fn($item) => $item['notification_type'] === 'school_approval'), null, 'id');
+}
 function schoolCookie(array $response): string {
     foreach ($response['headers'] as $header) {
         if (preg_match('/^Set-Cookie: (school_session_token=[^;]+)/i', $header, $match)) return $match[1];
@@ -139,6 +143,13 @@ PHP);
     check(scalar('SELECT role FROM users WHERE id = ?', [$newId]) === 'teacher', 'Requested admin role cannot grant admin privileges');
     check(scalar('SELECT permissions FROM users WHERE id = ?', [$newId]) === '["dashboard"]', 'New school accounts require SDO approval');
     check(scalar('SELECT levels FROM private_schools WHERE id = 1') === '["elem"]', 'Registration cannot overwrite school levels');
+    $alerts = request('notifications.php', 'GET', null, $sdo);
+    expectStatus($alerts, 200, 'SDO notifications load pending school approvals');
+    $pendingAlerts = approvalItems($alerts);
+    check(isset($pendingAlerts[3]) && $pendingAlerts[3]['school_name'] === 'Public Test School', 'Existing verified public account awaiting approval appears');
+    check(!isset($pendingAlerts[$newId]) && !isset($pendingAlerts[2]) && !isset($pendingAlerts[4]), 'Unverified, approved, and orphaned accounts have no approval alerts');
+    $testDb->prepare('UPDATE users SET created_at = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE id = ?')->execute([$newId]);
+    $testDb->exec("UPDATE users SET last_notification_check = DATE_SUB(NOW(), INTERVAL 1 MINUTE) WHERE id = 1");
     $token = $res['json']['data']['verify_token'];
     $testDb->prepare('INSERT INTO login_sessions (user_id, session_token, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 DAY))')->execute([$newId, 'unverified-fixture']);
     expectStatus(request('school-portal-dashboard.php', 'GET', null, 'school_session_token=unverified-fixture'), 401, 'Old sessions cannot bypass email verification');
@@ -160,7 +171,24 @@ PHP);
     $private = schoolCookie($res);
     check(!array_filter($res['headers'], fn($header) => preg_match('/^Set-Cookie: session_token=/i', $header)), 'Verification does not overwrite the SDO cookie');
     check($res['json']['data']['school_name'] === 'Private Test School' && (int)$res['json']['data']['private_school_id'] === 1, 'Verification returns the correct private school');
+    $alerts = request('notifications.php', 'GET', null, $sdo);
+    $pendingAlerts = approvalItems($alerts);
+    check(isset($pendingAlerts[$newId]) && $pendingAlerts[$newId]['is_new']
+        && $pendingAlerts[$newId]['school_name'] === 'Private Test School', 'Email verification creates an unread private school approval alert, even after earlier registration');
+    $approvalCount = count($pendingAlerts);
+    check((int)scalar("SELECT COUNT(*) FROM audit_logs WHERE user_id = ? AND action = 'verify_email'", [$newId]) === 1, 'Successful email verification records one notification event');
     expectStatus(request('school-portal-verify.php', 'POST', ['token' => $token, 'code' => $code]), 410, 'Verification challenge cannot be reused');
+    check(count(approvalItems(request('notifications.php', 'GET', null, $sdo))) === $approvalCount, 'Repeated verification cannot duplicate approval alerts');
+    expectStatus(request('notifications.php', 'GET', null, $private), 401, 'School account cannot read SDO approval alerts');
+    $testDb->exec("UPDATE users SET permissions = '[\"dashboard\"]', role = 'viewer' WHERE id = 1");
+    check(approvalItems(request('notifications.php', 'GET', null, $sdo)) === [], 'SDO user without User Management permission cannot see approval alerts');
+    $testDb->exec("UPDATE users SET permissions = '[]', role = 'admin' WHERE id = 1");
+    expectStatus(request('notifications.php', 'POST', ['action' => 'mark_read'], $sdo), 200, 'SDO can mark approval alerts as read');
+    $readAlerts = request('notifications.php', 'GET', null, $sdo);
+    check($readAlerts['json']['data']['unread_count'] === 0 && !approvalItems($readAlerts)[$newId]['is_new'], 'Mark read clears unread badge without approving school access');
+    $testDb->prepare("UPDATE users SET status = 'inactive' WHERE id = ?")->execute([$newId]);
+    check(!isset(approvalItems(request('notifications.php', 'GET', null, $sdo))[$newId]), 'Deactivated accounts disappear from approval alerts');
+    $testDb->prepare("UPDATE users SET status = 'active' WHERE id = ?")->execute([$newId]);
     $res = request('school-portal-dashboard.php', 'GET', null, $private);
     expectStatus($res, 200, 'Verified account can view its pending dashboard');
     check($res['json']['data']['user']['school_approved'] === false, 'Email verification does not approve school affiliation');
@@ -175,6 +203,7 @@ PHP);
     expectStatus(request('user_management.php?action=approve_school&id=' . $newId, 'POST', ['approved' => true], $private), 401, 'School user cannot approve their own affiliation');
 
     expectStatus(request('user_management.php?action=approve_school&id=' . $newId, 'POST', ['approved' => true], $sdo), 200, 'SDO can approve school affiliation');
+    check(!isset(approvalItems(request('notifications.php', 'GET', null, $sdo))[$newId]), 'SDO approval removes the pending notification immediately');
     $res = request('school-portal-profile-update.php', 'POST', ['name' => 'Private Renamed', 'street_address' => 'Test Street', 'barangay' => 'Test Barangay', 'city' => 'Baliwag', 'levels' => ['elem', 'jhs'], 'elem_admin' => 'New Principal', 'elem_contact' => '09000000001', 'registrar_name' => 'Test Registrar', 'status' => ''], $private);
     expectStatus($res, 200, 'Approved private school settings save');
     $res = request('private_schools.php', 'GET', null, $sdo . '; ' . $private);

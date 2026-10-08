@@ -175,6 +175,23 @@ const NotificationSystem = {
         list.innerHTML = notifications.map(n => {
             const type = n.notification_type;
 
+            if (type === 'school_approval') {
+                const userId = parseInt(n.participant_id || n.id, 10) || 0;
+                const schoolName = this.escapeHtml(n.school_name || 'A school');
+                const accountName = this.escapeHtml(n.participant_name || 'A school user');
+                return `
+                    <a class="notification-item ${n.is_new ? 'unread' : ''}"
+                       href="user-management.html?tab=portal&user_id=${userId}"
+                       style="text-decoration:none;color:inherit;">
+                        <div class="notification-icon"><i class="fa-solid fa-user-check"></i></div>
+                        <div class="notification-content">
+                            <p class="notification-text"><strong>${accountName}</strong> — School account awaiting approval</p>
+                            <span class="notification-meta">${schoolName} · ${this.escapeHtml(n.time_ago || '')}</span>
+                        </div>
+                        ${n.is_new ? '<span class="notification-dot"></span>' : ''}
+                    </a>`;
+            }
+
             if (type === 'calendar') {
                 // ── Calendar submission notification ──────────────────────
                 const schoolName  = this.escapeHtml(n.school_name  || 'A school');

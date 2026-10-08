@@ -51,3 +51,11 @@ Actual SMTP delivery remains unverified: the integration suite uses a fake email
 Run `php tests/school-portal-integration.php` or `npm run test:school-portal` from the project directory. PHP needs PDO MySQL and access to the configured local database. The database user needs permission to create/drop the suite's guarded random test database. The suite copies schema only, uses synthetic records and a fake mailer, and cleans up after completion.
 
 Browser proof images are in `tests/proof/`: `school-profile-pending.png`, `school-profile-approved.png`, and `sdo-directory-synced.png`. All show disposable test records.
+
+## School approval notifications
+
+SDO personnel with User Management permission now receive a **School account awaiting approval** notification for active, email-verified users linked to an active school. Existing verified accounts awaiting approval are included. A successful verification records its event time in the existing audit log; no schema migration is required.
+
+The notification opens the School Portal Users tab and isolates the exact account for review. Clearing the search restores the normal user list. Approval removes the pending notification and refreshes the notification bell. Marking an alert as read does not approve the account.
+
+The expanded integration suite passed **92 checks**, including verification-triggered alerts, existing accounts, unread status, access restrictions, duplicate prevention, deactivated accounts, and notification removal after approval. Browser checks confirmed the notification dropdown, the exact account link, and normal search after clearing the filter. No real accounts were approved or edited.

@@ -205,6 +205,48 @@ try {
         ]);
         $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Approval alerts are actionable only for SDO users who can manage users.
+        // Read pending accounts directly, including verified accounts that existed
+        // before this notification was added. Verification audit time supplies the
+        // event timestamp for new accounts without requiring a schema migration.
+        if (hasPermission('users', $user)) {
+            $approvalSource = <<<'SQL'
+                FROM users su
+                LEFT JOIN public_schools ps ON ps.id = su.school_id
+                    AND su.school_type IN ('public', 'public school') AND ps.active = 1
+                LEFT JOIN private_schools pvs ON pvs.id = su.private_school_id
+                    AND su.school_type IN ('private', 'private school') AND pvs.active = 1
+                LEFT JOIN (
+                    SELECT user_id, MAX(created_at) AS verified_at FROM audit_logs
+                    WHERE action = 'verify_email' AND module = 'school_portal' AND status = 'success'
+                    GROUP BY user_id
+                ) verification ON verification.user_id = su.id
+                WHERE su.account_type = 'portal_user' AND su.status = 'active'
+                    AND su.email_verified = 1 AND (ps.id IS NOT NULL OR pvs.id IS NOT NULL)
+                    AND JSON_CONTAINS(
+                        CASE WHEN JSON_VALID(su.permissions) THEN su.permissions ELSE '[]' END,
+                        '"school_profile_edit"'
+                    ) = 0
+SQL;
+            $approvalTime = 'COALESCE(verification.verified_at, su.created_at)';
+            $stmt = $db->prepare("SELECT COUNT(*) $approvalSource AND $approvalTime > ?");
+            $stmt->execute([$lastCheck]);
+            $newCount += (int)$stmt->fetchColumn();
+
+            $stmt = $db->prepare("SELECT su.id, $approvalTime AS submitted_at,
+                TIMESTAMPDIFF(SECOND, $approvalTime, NOW()) AS seconds_ago,
+                su.full_name AS participant_name, su.id AS participant_id,
+                COALESCE(pvs.name, ps.school_name, 'A school') AS school_name,
+                'School account awaiting approval' AS submission_title,
+                'school_approval' AS notification_type,
+                CASE WHEN $approvalTime > ? THEN 1 ELSE 0 END AS is_new
+                $approvalSource ORDER BY submitted_at DESC, su.id DESC LIMIT 20");
+            $stmt->execute([$lastCheck]);
+            $recent = array_merge($recent, $stmt->fetchAll(PDO::FETCH_ASSOC));
+            usort($recent, static fn($a, $b) => strcmp($b['submitted_at'], $a['submitted_at']));
+            $recent = array_slice($recent, 0, 20);
+        }
+
         // Format each item for the frontend
         foreach ($recent as &$item) {
             $item['time_ago'] = timeAgoFromSeconds((int)$item['seconds_ago']);
