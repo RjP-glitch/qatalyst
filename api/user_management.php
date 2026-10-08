@@ -180,7 +180,11 @@ try {
         jsonError('Method not allowed', 405);
     }
 
-    $input = json_decode(file_get_contents('php://input'), true);
+    $rawInput = file_get_contents('php://input');
+    // Older Delete buttons send no body; delete needs only the ID in the URL.
+    $input = $action === 'delete' && trim($rawInput) === ''
+        ? []
+        : json_decode($rawInput, true);
     if (!is_array($input)) jsonError('Invalid JSON request.', 422);
 
     // Approval grants only school access, never an SDO role or permission.
@@ -417,6 +421,8 @@ try {
         if ($targetRoleRow) {
             $targetRole = $targetRoleRow['role'];
         }
+
+        enforceRoleHierarchy($authUser, $targetRole, $targetId);
 
         // Delete sessions first
         $db->prepare("DELETE FROM login_sessions WHERE user_id = :id")->execute([':id' => $targetId]);

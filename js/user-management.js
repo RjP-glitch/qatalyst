@@ -851,16 +851,18 @@ function closeDeleteModal() { document.getElementById('deleteModal').classList.r
 async function confirmDeleteUser() {
     const id = document.getElementById('deleteUserId').value;
     try {
-        const res = await fetch(`${API_URL}/user_management.php?action=delete&id=${id}`, {
+        const res = await fetch(`${API_URL}/user_management.php?action=delete&id=${encodeURIComponent(id)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include'
+            credentials: 'include',
+            body: JSON.stringify({})
         });
         const json = await res.json();
         if (json.success) {
             showToast('User deleted', 'success');
             closeDeleteModal();
-            loadUsers();
+            await loadUsers();
+            if (typeof NotificationSystem !== 'undefined') await NotificationSystem.fetchNotifications();
         } else {
             showToast(json.message || 'Delete failed', 'error');
         }

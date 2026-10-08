@@ -24,12 +24,12 @@ function check(bool $ok, string $label): void {
     $passed++;
     echo 'PASS: ' . $label . PHP_EOL;
 }
-function request(string $path, string $method = 'GET', ?array $body = null, string $cookies = '', array $extraHeaders = []): array {
+function request(string $path, string $method = 'GET', ?array $body = null, string $cookies = '', array $extraHeaders = [], ?string $rawBody = null): array {
     global $base;
     $headers = ['Content-Type: application/json', 'Cookie: ' . $cookies, ...$extraHeaders];
     $context = stream_context_create(['http' => [
         'method' => $method, 'header' => implode("\r\n", $headers),
-        'content' => $body === null ? '' : json_encode($body), 'ignore_errors' => true, 'timeout' => 20,
+        'content' => $rawBody ?? ($body === null ? '' : json_encode($body)), 'ignore_errors' => true, 'timeout' => 20,
     ]]);
     $raw = file_get_contents($base . '/api/' . $path, false, $context);
     $responseHeaders = $http_response_header ?? [];
@@ -285,6 +285,32 @@ PHP);
     $testDb->exec('UPDATE public_schools SET active = 0 WHERE id = 1');
     expectStatus(request('school-portal-profile-update.php', 'POST', ['name' => 'Inactive Edit'], $public), 403, 'Inactive linked school blocks canonical edits');
     $testDb->exec('UPDATE public_schools SET active = 1 WHERE id = 1');
+
+    // Exercise both cached (empty-body) and updated Delete buttons using disposable accounts.
+    $deleteFixture = $testDb->prepare("INSERT INTO users (email, password, full_name, status, email_verified, role, account_type, permissions, school_type, private_school_id) VALUES (?, ?, 'Delete Fixture', 'active', 1, ?, ?, '[\"dashboard\"]', ?, ?)");
+    $deleteFixture->execute(['delete@example.test', $hash, 'teacher', 'portal_user', 'private', 1]);
+    $deleteId = (int)$testDb->lastInsertId();
+    $testDb->prepare('INSERT INTO login_sessions (user_id, session_token, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 DAY))')->execute([$deleteId, 'delete-fixture']);
+    $deletePath = 'user_management.php?action=delete&id=' . $deleteId;
+    expectStatus(request($deletePath, 'POST', null, $sdo, [], '{bad json'), 422, 'Malformed delete JSON is rejected');
+    expectStatus(request($deletePath, 'POST', null, $public), 401, 'School account cannot delete users');
+    $testDb->exec("UPDATE users SET permissions = '[\"dashboard\"]', role = 'viewer' WHERE id = 1");
+    expectStatus(request($deletePath, 'POST', null, $sdo), 403, 'SDO user without user-management permission cannot delete');
+    $testDb->exec("UPDATE users SET permissions = '[]', role = 'admin' WHERE id = 1");
+    check((int)scalar('SELECT COUNT(*) FROM users WHERE id = ?', [$deleteId]) === 1, 'Rejected requests preserve the target account');
+    expectStatus(request('user_management.php?action=delete&id=1', 'POST', null, $sdo), 400, 'Self-deletion remains blocked');
+    expectStatus(request('user_management.php?action=approve_school&id=' . $deleteId, 'POST', null, $sdo), 422, 'Approval still requires a JSON body');
+    expectStatus(request($deletePath, 'POST', null, $sdo), 200, 'Cached Delete button with empty body succeeds');
+    check((int)scalar('SELECT COUNT(*) FROM users WHERE id = ?', [$deleteId]) === 0 && (int)scalar('SELECT COUNT(*) FROM login_sessions WHERE user_id = ?', [$deleteId]) === 0, 'Deletion removes the account and revokes its sessions');
+    check((int)scalar('SELECT active FROM private_schools WHERE id = 1') === 1, 'Account deletion preserves the linked school');
+    expectStatus(request($deletePath, 'POST', [], $sdo, [], '{}'), 404, 'Deleting an already deleted account reports not found');
+    $deleteFixture->execute(['delete-admin@example.test', $hash, 'admin', 'sdo_personnel', null, null]);
+    $deleteAdminId = (int)$testDb->lastInsertId();
+    $testDb->exec("UPDATE users SET permissions = '[\"users\"]', role = 'viewer' WHERE id = 1");
+    expectStatus(request('user_management.php?action=delete&id=' . $deleteAdminId, 'POST', [], $sdo, [], '{}'), 403, 'Non-admin user manager cannot delete an administrator');
+    check((int)scalar('SELECT COUNT(*) FROM users WHERE id = ?', [$deleteAdminId]) === 1, 'Role hierarchy rejection preserves the administrator');
+    $testDb->exec("UPDATE users SET permissions = '[]', role = 'admin' WHERE id = 1");
+    expectStatus(request('user_management.php?action=delete&id=' . $deleteAdminId, 'POST', [], $sdo, [], '{}'), 200, 'Updated Delete button with JSON object succeeds');
 
     echo PHP_EOL . $passed . ' checks passed. Real school data and email delivery were not changed.' . PHP_EOL;
 

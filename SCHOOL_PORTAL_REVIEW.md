@@ -59,3 +59,11 @@ SDO personnel with User Management permission now receive a **School account awa
 The notification opens the School Portal Users tab and isolates the exact account for review. Clearing the search restores the normal user list. Approval removes the pending notification and refreshes the notification bell. Marking an alert as read does not approve the account.
 
 The expanded integration suite passed **92 checks**, including verification-triggered alerts, existing accounts, unread status, access restrictions, duplicate prevention, deactivated accounts, and notification removal after approval. Browser checks confirmed the notification dropdown, the exact account link, and normal search after clearing the filter. No real accounts were approved or edited.
+
+## Account deletion request fix
+
+The Delete button sent an empty POST while the API required JSON, causing `Invalid JSON request.` before deletion ran. The button now sends `{}`; the API also accepts an empty body specifically for deletion so cached pages remain compatible. Other actions still require JSON, and malformed deletion JSON is rejected. Successful deletion refreshes the user list and notification bell. The deletion handler now also applies the existing role hierarchy, preventing non-admin user managers from deleting administrators.
+
+The integration suite passed **105 checks**, including both request formats, session revocation, preservation of the linked school, authorization, self-deletion, role hierarchy, and rejected-request behavior. Run `node tests/user-management-delete.test.cjs` for three additional page-handler checks covering the outgoing JSON, success refreshes, server rejection, and connection failure. All deletion tests use disposable accounts.
+
+Deploy `api/user_management.php` and `js/user-management.js` together, then refresh the browser. No database migration is needed.
