@@ -1,5 +1,7 @@
 # School portal fixes
 
+The October 8 audit coverage review, deployment file list and conflict-review workflow are documented in [AUDIT_LOG_REVIEW.md](AUDIT_LOG_REVIEW.md).
+
 Completed October 8, 2026 (Asia/Manila).
 
 ## Outcome

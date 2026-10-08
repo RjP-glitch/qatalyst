@@ -181,6 +181,11 @@ if ($method === 'GET') {
     try {
         $pdo->beginTransaction();
 
+        $auditBefore = $pdo->prepare('SELECT * FROM public_schools WHERE id = ? FOR UPDATE');
+        $auditBefore->execute([$id]);
+        $auditSchool = $auditBefore->fetch(PDO::FETCH_ASSOC);
+        if ($auditSchool) auditOperationBefore('public_schools', $auditSchool);
+
         $stmt = $pdo->prepare("
             UPDATE public_schools
             SET name              = ?,

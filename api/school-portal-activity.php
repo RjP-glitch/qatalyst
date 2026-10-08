@@ -104,12 +104,22 @@ try {
     $pdo = getDB();
     auditEnsureTable($pdo);
 
-    $where = ['user_id = :user_id'];
-    $params = [':user_id' => (int)$user['id']];
+    $where = ['(user_id = :user_id OR target_user_id = :target_user_id)'];
+    $params = [':user_id' => (int)$user['id'], ':target_user_id' => (int)$user['id']];
+    $link = portalSchoolLink($user);
+    if (portalSchoolIsApproved($user) && $link) {
+        // Shared school/document decisions are visible; other people's account changes are private.
+        $where = ["(user_id = :user_id OR target_user_id = :target_user_id OR (school_id = :linked_school_id AND school_type = :school_type AND (entity_type IN ('public_schools', 'private_schools', 'school_signatories', 'calendar_legends') OR module = 'school-portal-profile-update')))"];
+        $params[':linked_school_id'] = $link['id'];
+        $params[':school_type'] = $link['table'] === 'private_schools' ? 'private' : 'public';
+    }
 
     if ($search !== '') {
-        $where[] = '(action LIKE :search OR module LIKE :search OR status LIKE :search OR description LIKE :search OR document_type LIKE :search OR file_name LIKE :search)';
-        $params[':search'] = '%' . $search . '%';
+        $parts = [];
+        foreach (['action', 'module', 'status', 'description', 'document_type', 'file_name', 'actor_name', 'request_id'] as $index => $field) {
+            $key = ':search' . $index; $parts[] = "$field LIKE $key"; $params[$key] = '%' . $search . '%';
+        }
+        $where[] = '(' . implode(' OR ', $parts) . ')';
     }
     if ($action !== '') {
         addOrLikeFilter('action', $action, 'action', $where, $params);
@@ -137,7 +147,8 @@ try {
     $total = (int)$countStmt->fetchColumn();
 
     $stmt = $pdo->prepare(
-        "SELECT id, action, module, status, description, document_type, file_name, created_at
+        "SELECT id, user_id, actor_name, account_type, action, module, status, description, document_type, file_name, created_at,
+            entity_type, entity_id, request_id, details_json
          FROM audit_logs
          $whereSql
          ORDER BY id DESC
@@ -151,6 +162,14 @@ try {
     $stmt->execute();
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as &$row) {
+        $row['details'] = json_decode($row['details_json'] ?? 'null', true);
+        if ((int)$row['user_id'] !== (int)$user['id'] && $row['module'] === 'school-portal-profile-update' && isset($row['details']['records'])) {
+            $row['details']['records'] = array_values(array_filter($row['details']['records'], fn($record) => $record['table'] !== 'users'));
+        }
+        unset($row['details_json']);
+    }
+    unset($row);
     jsonSuccess($rows, 'Success', 200, [
         'pagination' => [
             'page' => $page,

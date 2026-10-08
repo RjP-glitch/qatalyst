@@ -262,6 +262,9 @@
     flex: 1 1 260px;
 }
 
+.detail-item.audit-change-detail { flex: 1 0 100%; min-width: 0; }
+.audit-change-detail th { position: static; }
+
 .detail-label {
     display: block;
     font-size: 10px;

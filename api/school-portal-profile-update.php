@@ -288,6 +288,8 @@ try {
     $user = $lockUser->fetch(PDO::FETCH_ASSOC);
     if (!$user || $user['status'] !== 'active' || empty($user['email_verified']) || $user['account_type'] !== 'portal_user') jsonError('Unauthorized.', 401);
     $schoolInfo = portalResolveSchool($pdo, $user, true);
+    auditOperationBefore('users', $user);
+    if ($schoolInfo) auditOperationBefore($schoolInfo['table'], $schoolInfo['row']);
     if ($schoolChanges && (!portalSchoolIsApproved($user) || !$schoolInfo)) jsonError('SDO approval and an active school link are required to save school settings.', 403);
     $allowedFields = $personalKeys;
     if ($schoolInfo && $schoolInfo['table'] === 'public_schools') {

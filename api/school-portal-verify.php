@@ -10,6 +10,10 @@ require_once dirname(__DIR__) . '/helpers/SchoolVerification.php';
 require_once dirname(__DIR__) . '/config/audit_log.php';
 
 function jsonError(string $message, int $code = 400): void {
+    global $db, $user, $action;
+    if ($db instanceof PDO && is_array($user)) auditLog(['pdo' => $db, 'actor' => $user, 'user_id' => $user['id'], 'role' => 'teacher',
+        'action' => $action === 'resend' ? 'resend_verification_failed' : 'verify_email_failed', 'module' => 'school_portal', 'status' => 'failed',
+        'description' => $message, 'entity_type' => 'users', 'entity_id' => (string)$user['id'], 'target_user_id' => $user['id']]);
     http_response_code($code);
     echo json_encode(['success' => false, 'message' => $message]);
     exit;
@@ -20,6 +24,7 @@ function jsonSuccess($data, string $message): void {
 }
 
 $db = null;
+$user = null;
 try {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') jsonError('Method not allowed', 405);
     $input = json_decode(file_get_contents('php://input'), true);
@@ -35,6 +40,7 @@ try {
     if ($action !== 'resend' && !preg_match('/^\d{6}$/D', $code)) jsonError('Please enter a valid 6-digit code.', 422);
 
     $db = getDB();
+    auditEnsureTable($db);
     $db->beginTransaction();
     $stmt = $db->prepare("SELECT * FROM users WHERE verify_token = ? AND status = 'active' AND account_type = 'portal_user' LIMIT 1 FOR UPDATE");
     $stmt->execute([$token]);
@@ -54,6 +60,8 @@ try {
         $db->prepare('UPDATE users SET verify_token_expires = DATE_ADD(NOW(), INTERVAL 24 HOUR) WHERE id = ?')->execute([$userId]);
         $db->commit();
         if (!schoolDeliverVerificationCode($user, $newCode)) jsonError('The email could not be sent. Please try again later.', 503);
+        auditLog(['pdo' => $db, 'actor' => $user, 'user_id' => $userId, 'role' => 'teacher', 'action' => 'resend_verification',
+            'module' => 'school_portal', 'status' => 'success', 'description' => 'Verification email resent.', 'entity_type' => 'users', 'entity_id' => (string)$userId]);
         jsonSuccess(null, 'A new verification code has been sent. It expires in 10 minutes.');
     }
 

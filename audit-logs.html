@@ -7,7 +7,7 @@
     <title>QATALYST - Audit Logs</title>
     <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="css/user-management.css?v3">
-    <link rel="stylesheet" href="css/audit-logs.css?v2">
+    <link rel="stylesheet" href="css/audit-logs.css?v3">
     <link rel="stylesheet" href="css/notifications.css?v2">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
@@ -132,7 +132,7 @@
 
                 <div class="audit-note">
                     <i class="fa-solid fa-shield-halved"></i>
-                    Audit logs are immutable and only viewable by admins. Use CSV export for external review.
+                    Review actions from both sides. Expand an entry to compare changes, or export a copy for review.
                 </div>
 
                 <div class="audit-filters">
@@ -152,6 +152,10 @@
                                 <option value="portal_user">portal_user</option>
                                 <option value="teacher">teacher</option>
                             </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="accountTypeFilter">Account side</label>
+                            <select id="accountTypeFilter"><option value="">Both sides</option><option value="sdo_personnel">SDO</option><option value="portal_user">School portal</option></select>
                         </div>
                         <div class="filter-field">
                             <label for="schoolFilter">School</label>
@@ -236,6 +240,7 @@
                     <div class="pagination" id="pagination"></div>
                 </div>
                 <p class="table-hint"><i class="fa-solid fa-circle-info"></i> Click any row to see full details.</p>
+                <p id="auditIntegrityNotice" class="table-hint" role="status"></p>
 
             </div><!-- /#auditContent -->
         </div><!-- /.main-content -->
@@ -243,7 +248,8 @@
 
     <script src="js/config.js?v3"></script>
     <script src="js/permissions.js?v6"></script>
-    <script src="js/audit-logs.js?v12"></script>
+    <script src="js/audit-details.js?v1"></script>
+    <script src="js/audit-logs.js?v13"></script>
 </body>
 
 </html>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/school_portal.php';
+require_once __DIR__ . '/audit_log.php';
 /**
  * Authenticate the current request.
  *
@@ -90,6 +91,7 @@ function authenticate($requiredAccountType = null) {
             // Legacy school administrator records never inherit an SDO role.
             $user['role'] = 'teacher';
         }
+        auditTrackOperation($pdo, $user);
         return $user;
         
     } catch (Exception $e) {

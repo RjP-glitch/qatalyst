@@ -24,7 +24,7 @@ function check(bool $ok, string $label): void {
     $passed++;
     echo 'PASS: ' . $label . PHP_EOL;
 }
-function request(string $path, string $method = 'GET', ?array $body = null, string $cookies = '', array $extraHeaders = [], ?string $rawBody = null): array {
+function request(string $path, string $method = 'GET', ?array $body = null, string $cookies = '', array $extraHeaders = [], ?string $rawBody = null, bool $rawResponse = false): array {
     global $base;
     $headers = ['Content-Type: application/json', 'Cookie: ' . $cookies, ...$extraHeaders];
     $context = stream_context_create(['http' => [
@@ -35,8 +35,8 @@ function request(string $path, string $method = 'GET', ?array $body = null, stri
     $responseHeaders = $http_response_header ?? [];
     preg_match('/\s(\d{3})\s/', $responseHeaders[0] ?? '', $match);
     $json = json_decode($raw ?: '', true);
-    if (!is_array($json)) throw new RuntimeException('Invalid response from ' . $path . ': ' . substr($raw ?: '', 0, 600));
-    return ['status' => (int)($match[1] ?? 0), 'json' => $json, 'headers' => $responseHeaders];
+    if (!$rawResponse && !is_array($json)) throw new RuntimeException('Invalid response from ' . $path . ': ' . substr($raw ?: '', 0, 600));
+    return ['status' => (int)($match[1] ?? 0), 'json' => $json, 'headers' => $responseHeaders, 'raw' => $raw];
 }
 function expectStatus(array $response, int $status, string $label): void {
     check($response['status'] === $status, $label . ' (HTTP ' . $response['status'] . ': ' . ($response['json']['message'] ?? '') . ')');
@@ -73,7 +73,7 @@ try {
     $created = true;
     $testDb = new PDO(sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', DB_HOST, DB_PORT, $testName), DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_EMULATE_PREPARES => false]);
     $testDb->exec("SET time_zone = '+08:00'");
-    foreach (['users', 'public_schools', 'private_schools', 'districts', 'login_sessions', 'login_attempts', 'email_verification_codes', 'school_submissions', 'school_calendar_documents', 'user_roles', 'workshops', 'evaluation_programs', 'respondents', 'program_imports', 'workshop_dropdown_options'] as $table) {
+    foreach (['users', 'public_schools', 'private_schools', 'districts', 'login_sessions', 'login_attempts', 'email_verification_codes', 'school_submissions', 'school_calendar_documents', 'user_roles', 'workshops', 'evaluation_programs', 'respondents', 'program_imports', 'workshop_dropdown_options', 'eval_settings', 'speaker_display_settings'] as $table) {
         $testDb->exec("CREATE TABLE `$table` LIKE `" . str_replace('`', '``', DB_NAME) . "`.`$table`");
     }
     $testDb->exec("INSERT INTO districts (id, name) VALUES (1, 'DISTRICT 1'), (2, 'DISTRICT 2')");
@@ -91,7 +91,7 @@ try {
     $testDb->exec("INSERT INTO school_submissions (id, user_id, school_id, district_id, type, title, file_name, file_path) VALUES (1, 2, 1, 1, 'calendar', 'Old Submission Title', 'fixture.pdf', 'fixture.pdf')");
 
     foreach (['api', 'config', 'helpers', 'models'] as $folder) mkdir($runtime . '/' . $folder, 0700, true);
-    foreach (['config/security.php', 'config/auth_middleware.php', 'config/school_portal.php', 'config/audit_log.php', 'helpers/SchoolVerification.php', 'helpers/FileEncryption.php', 'models/User.php', 'api/Response.php'] as $file) copy($root . '/' . $file, $runtime . '/' . $file);
+    foreach (['config/security.php', 'config/auth_middleware.php', 'config/school_portal.php', 'config/audit_log.php', 'config/audit_operations.php', 'helpers/SchoolVerification.php', 'helpers/FileEncryption.php', 'models/User.php', 'api/Response.php'] as $file) copy($root . '/' . $file, $runtime . '/' . $file);
     foreach (glob($root . '/api/*.php') as $file) copy($file, $runtime . '/api/' . basename($file));
     file_put_contents($runtime . '/config/database.php', <<<'PHP'
 <?php
@@ -338,6 +338,89 @@ PHP);
     $testDb->exec("UPDATE users SET permissions = '[]', role = 'admin' WHERE id = 1");
     expectStatus(request('user_management.php?action=delete&id=' . $deleteAdminId, 'POST', [], $sdo, [], '{}'), 200, 'Updated Delete button with JSON object succeeds');
 
+    $programInput = ['title' => 'Audit Program', 'division_memo' => 'Test Memo', 'start_date' => '2026-10-08', 'end_date' => '2026-10-08', 'venue' => 'Fixture Venue', 'program_type' => 'container', 'page' => 'qatame'];
+    $programCreate = request('programs.php', 'POST', $programInput, $sdo);
+    expectStatus($programCreate, 200, 'Program creation is compatible with operation auditing');
+    $auditProgramId = (int)$programCreate['json']['data']['id'];
+    expectStatus(request('programs.php', 'PUT', ['program_id' => $auditProgramId, ...$programInput, 'title' => 'Audit Program Updated'], $sdo), 200, 'Program update accepts its normal program-id field');
+    $programEvidence = json_decode(scalar("SELECT details_json FROM audit_logs WHERE entity_type = 'workshops' AND entity_id = ? AND action = 'operation_put'", [(string)$auditProgramId]), true);
+    check(($programEvidence['records'][0]['changes']['title']['before'] ?? '') === 'Audit Program' && ($programEvidence['records'][0]['changes']['title']['after'] ?? '') === 'Audit Program Updated', 'Program title edits have before/after evidence');
+    expectStatus(request('school-portal-calendar.php', 'POST', ['title' => 'Audit Calendar', 'payload' => ['school_year' => '2026-2027'], 'status' => 'draft'], $public), 201, 'Draft calendar save is logged before submission');
+    $calendarId = (int)scalar("SELECT id FROM school_calendar_documents WHERE title = 'Audit Calendar'");
+    expectStatus(request('school-portal-calendar.php', 'POST', ['document_id' => $calendarId, 'title' => 'Audit Calendar Updated', 'payload' => ['school_year' => '2026-2027', 'note' => 'Corrected dates'], 'status' => 'draft'], $public), 200, 'Draft calendar updates remain compatible with audit capture');
+    $calendarEvidence = json_decode(scalar("SELECT details_json FROM audit_logs WHERE entity_type = 'school_calendar_documents' AND entity_id = ? AND status = 'success' ORDER BY id DESC LIMIT 1", [(string)$calendarId]), true);
+    check(($calendarEvidence['records'][0]['changes']['title']['after'] ?? '') === 'Audit Calendar Updated', 'Draft calendar changes are available for conflict review');
+    $testDb->exec("INSERT INTO eval_settings (setting_key, setting_value) VALUES ('excluded_keywords', '[\"old\"]')");
+    expectStatus(request('settings_api.php', 'POST', ['excluded_keywords' => ['new']], $sdo), 200, 'Report settings still save with audit capture');
+    $settingsEvidence = json_decode(scalar("SELECT details_json FROM audit_logs WHERE module = 'settings_api' ORDER BY id DESC LIMIT 1"), true);
+    check(($settingsEvidence['records'][0]['changes']['excluded_keywords'] ?? []) === ['before' => ['old'], 'after' => ['new']], 'Keyed report settings preserve old and new values');
+    expectStatus(request('speaker_display_settings.php', 'POST', ['show_rating' => 0], $sdo), 200, 'Global speaker display settings save with audit capture');
+    expectStatus(request('speaker_display_settings.php', 'POST', ['show_rating' => 1], $sdo), 200, 'Global speaker display settings update succeeds');
+    $speakerEvidence = json_decode(scalar("SELECT details_json FROM audit_logs WHERE module = 'speaker_display_settings' ORDER BY id DESC LIMIT 1"), true);
+    check((int)($speakerEvidence['records'][0]['changes']['show_rating']['before'] ?? -1) === 0 && (int)($speakerEvidence['records'][0]['changes']['show_rating']['after'] ?? -1) === 1, 'Speaker display changes preserve both settings values');
+    expectStatus(request('evaluation_monitoring.php?action=remind', 'POST', [], $sdo), 400, 'Reminder validation uses shared SDO authentication');
+    check((int)scalar("SELECT COUNT(*) FROM audit_logs WHERE module = 'evaluation_monitoring' AND status = 'failed'") === 1, 'Failed reminder attempt is recorded without sending mail');
+    expectStatus(request('evaluation_monitoring.php?action=remind', 'POST', [], $public), 401, 'School session cannot send SDO reminders');
+
+    // Audit evidence must remain useful after renames/deletion and respect both account boundaries.
+    $logs = request('audit_logs.php?limit=200', 'GET', null, $sdo);
+    expectStatus($logs, 200, 'SDO can review audit evidence');
+    $auditRows = $logs['json']['data'];
+    $profileLogs = array_values(array_filter($auditRows, fn($row) => $row['module'] === 'school-portal-profile-update' && $row['status'] === 'success' && $row['details']));
+    $publicChanges = [];
+    foreach ($profileLogs as $entry) foreach ($entry['details']['records'] as $record) if ($record['table'] === 'public_schools') $publicChanges = array_merge($publicChanges, $record['changes']);
+    check(($publicChanges['school_name']['before'] ?? '') === 'Public Test School' && ($publicChanges['school_name']['after'] ?? '') === 'Public Renamed', 'School edit records exact old and new school names');
+    check(count(array_filter($auditRows, fn($row) => $row['module'] === 'public_schools' && $row['account_type'] === 'sdo_personnel' && $row['school_type'] === 'public' && (int)$row['school_id'] === 1 && $row['details'])) > 0, 'SDO directory edits identify their affected school');
+    check(count(array_filter($auditRows, fn($row) => $row['action'] === 'operation_approve_school' && (int)$row['target_user_id'] === $newId && $row['details'])) > 0, 'Approval evidence identifies the SDO actor and target account');
+    check(count(array_filter($auditRows, fn($row) => $row['action'] === 'operation_delete' && $row['status'] === 'failed')) > 0, 'Rejected delete actions are recorded as failures');
+    check(count(array_filter($auditRows, fn($row) => $row['action'] === 'register_school_account')) === 3, 'Every successful school registration is logged');
+    check(count(array_filter($auditRows, fn($row) => $row['action'] === 'verify_email_failed')) >= 6, 'Incorrect and expired verification attempts are logged without codes');
+    check(!str_contains($logs['raw'], $hash) && !str_contains($logs['raw'], $attemptToken) && !str_contains($logs['raw'], 'FixturePassword!42'), 'Audit evidence excludes passwords, hashes, and verification tokens');
+    $portalHistory = request('school-portal-activity.php?search=public_schools', 'GET', null, $public);
+    expectStatus($portalHistory, 200, 'School activity search works with native PDO parameters');
+    check(count(array_filter($portalHistory['json']['data'], fn($row) => $row['account_type'] === 'sdo_personnel' && $row['entity_type'] === 'public_schools')) > 0, 'School can review relevant SDO school-directory edits');
+    $foreignHistory = request('school-portal-activity.php?school_id=1&school_type=private&user_id=' . $newId, 'GET', null, $public);
+    check(!array_filter($foreignHistory['json']['data'], fn($row) => $row['entity_type'] === 'private_schools' || (int)$row['user_id'] === $newId), 'Client filters cannot expose another school or its account activity');
+    $pendingHistory = request('school-portal-activity.php?limit=200', 'GET', null, $pending);
+    check(!array_filter($pendingHistory['json']['data'], fn($row) => $row['entity_type'] === 'public_schools'), 'Unapproved school account cannot read shared school history');
+    $privateLogs = request('audit_logs.php?school_type=private&school_id=1&limit=200', 'GET', null, $sdo);
+    check(count($privateLogs['json']['data']) > 0 && !array_filter($privateLogs['json']['data'], fn($row) => $row['school_type'] !== 'private'), 'Public/private school ID collisions do not mix audit histories');
+    expectStatus(request('audit_logs.php', 'GET', null, $public), 401, 'School account cannot read the full SDO audit trail');
+    expectStatus(request('audit_logs.php', 'POST', [], $sdo), 405, 'Audit API is read-only');
+    $testDb->exec("UPDATE users SET role = 'viewer', permissions = '[\"dashboard\"]' WHERE id = 1");
+    expectStatus(request('audit_logs.php', 'GET', null, $sdo), 403, 'SDO audit review still requires permission');
+    $testDb->exec("UPDATE users SET role = 'admin', permissions = '[]' WHERE id = 1");
+
+    expectStatus(request('documents-submitted.php?action=update', 'POST', ['id' => 1, 'status' => 'Returned for Correction', 'remarks' => 'Check dates'], $sdo), 200, 'SDO submission decision succeeds with audit capture');
+    $decision = request('school-portal-activity.php?search=documents-submitted', 'GET', null, $public);
+    check(count(array_filter($decision['json']['data'], fn($row) => $row['entity_type'] === 'school_submissions' && $row['account_type'] === 'sdo_personnel' && ($row['details']['records'][0]['changes']['remarks']['after'] ?? '') === 'Check dates')) > 0, 'School sees the SDO submission decision and its changed remarks');
+
+    require $root . '/config/audit_log.php';
+    $deleteFixture->execute(['audit-identity@example.test', $hash, 'teacher', 'portal_user', 'private', 1]);
+    $identityId = (int)$testDb->lastInsertId();
+    auditLog(['pdo' => $testDb, 'user_id' => $identityId, 'role' => 'teacher', 'action' => 'identity_preservation', 'module' => 'school_portal', 'status' => 'success', 'description' => 'Identity history fixture']);
+    $testDb->prepare("UPDATE users SET full_name = 'Renamed Fixture', private_school_id = 777 WHERE id = ?")->execute([$identityId]);
+    expectStatus(request('user_management.php?action=delete&id=' . $identityId, 'POST', [], $sdo), 200, 'Disposable history actor can be deleted');
+    $preserved = request('audit_logs.php?search=identity_preservation', 'GET', null, $sdo)['json']['data'][0];
+    check($preserved['actor_name'] === 'Delete Fixture' && $preserved['school_name'] === 'Private Renamed' && (int)$preserved['school_id'] === 1, 'Actor and school snapshots survive account rename, reassignment, and deletion');
+    $health = request('audit_logs.php?list=health', 'GET', null, $sdo);
+    check($health['json']['data']['history_protected'] === true, 'Audit history update/delete protection is installed');
+    foreach (['UPDATE audit_logs SET description = \'Tampered\' WHERE id = 1', 'DELETE FROM audit_logs WHERE id = 1'] as $sql) {
+        try { $testDb->exec($sql); check(false, 'Audit history mutation must be blocked'); }
+        catch (PDOException $e) { check($e->getCode() === '45000', 'Database rejects audit history mutation'); }
+    }
+    $testDb->beginTransaction();
+    auditEnsureTable($testDb);
+    auditLog(['pdo' => $testDb, 'user_id' => 1, 'role' => 'admin', 'action' => 'rollback_probe', 'module' => 'test', 'status' => 'success']);
+    check($testDb->inTransaction(), 'Audit initialization does not implicitly commit a business transaction');
+    $testDb->rollBack();
+    check((int)scalar("SELECT COUNT(*) FROM audit_logs WHERE action = 'rollback_probe'") === 0, 'Rolled-back audit writes do not claim a successful committed change');
+    $testDb->exec('ALTER TABLE audit_logs DROP COLUMN file_name');
+    expectStatus(request('audit_logs.php?list=health', 'GET', null, $sdo), 200, 'Partial legacy audit schema repairs missing file-name column');
+    $csv = request('audit_logs.php?export=csv&school_type=private&school_id=1', 'GET', null, $sdo, [], null, true);
+    check($csv['status'] === 200 && str_contains($csv['raw'], 'actor_name') && str_contains($csv['raw'], 'request_id') && str_contains($csv['raw'], 'Delete Fixture'), 'CSV export preserves the evidence needed for review');
+    check((int)scalar("SELECT COUNT(*) FROM audit_logs WHERE action = 'export'") === 1, 'Exporting audit evidence is itself logged');
+
     echo PHP_EOL . $passed . ' checks passed. Real school data and email delivery were not changed.' . PHP_EOL;
 
     if (in_array('--browser', $argv, true)) {
@@ -346,6 +429,11 @@ PHP);
             foreach (glob($root . '/' . $folder . '/*') as $file) if (is_file($file)) copy($file, $runtime . '/' . $folder . '/' . basename($file));
         }
         foreach (glob($root . '/*.html') as $file) copy($file, $runtime . '/' . basename($file));
+        // Loopback fixture only: never copied to the application or deployment package.
+        file_put_contents($runtime . '/fixture-audit-login.php', "<?php\n" .
+            "\$portal = (\$_GET['side'] ?? '') === 'school';\n" .
+            "setcookie(\$portal ? 'school_session_token' : 'session_token', \$portal ? 'public-fixture' : 'sdo-fixture', ['path' => '/', 'httponly' => true]);\n" .
+            "header('Location: ' . (\$portal ? 'school-portal-audit.html' : 'audit-logs.html'));\n");
         echo 'BROWSER TEST URL: ' . $base . '/school-portal.html' . PHP_EOL;
         echo 'BROWSER TEST STOP FILE: ' . $runtime . '/stop' . PHP_EOL;
         flush();

@@ -68,6 +68,9 @@ async function checkAuthentication() {
         }
 
         await loadSchools();
+        const health = await fetch(`${API_URL}/audit_logs.php?list=health`, { credentials: 'include' }).then(response => response.json()).catch(() => ({ success: false }));
+        const notice = document.getElementById('auditIntegrityNotice');
+        if (notice) notice.textContent = health.success ? (health.data.history_protected ? 'History protection is active.' : 'History protection needs database setup. Existing history can still be reviewed.') : 'History protection status is unavailable.';
         loadUserInfo(fullName, email, json.data.profile_picture);
         hasAccess = true;
         return true;
@@ -138,7 +141,7 @@ function applyQuickRange(range) {
     const toEl = document.getElementById('toDate');
     if (!fromEl || !toEl) return;
 
-    const fmt = d => d.toISOString().slice(0, 10);
+    const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const today = new Date();
 
     if (range === 'clear') {
@@ -176,6 +179,7 @@ function getFilters() {
     return {
         search: document.getElementById('searchInput')?.value.trim() || '',
         role: document.getElementById('roleFilter')?.value.trim() || '',
+        account_type: document.getElementById('accountTypeFilter')?.value || '',
         school_id: schoolId,
         school_type: schoolType,
         action: document.getElementById('actionFilter')?.value.trim() || '',
@@ -250,7 +254,7 @@ function renderTable(rows) {
     }
 
     tbody.innerHTML = rows.map(row => {
-        const statusClass = (row.status || '').toLowerCase();
+        const statusClass = (row.status || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
         const statusIcon = STATUS_ICONS[statusClass] || 'fa-circle';
         const rawIp = String(row.ip_address || '-');
         const displayIp = formatIp(rawIp);
@@ -271,6 +275,8 @@ function renderTable(rows) {
                 <td>
                     <div class="user-cell">
                         <span class="mono">#${row.user_id ?? '-'}</span>
+                        <span>${escapeHtml(row.actor_name || 'Historical user')}</span>
+                        <span>${row.account_type === 'portal_user' ? 'School portal' : row.account_type === 'sdo_personnel' ? 'SDO' : 'Historical account'}</span>
                         <span class="role-badge">${escapeHtml(row.role || '-')}</span>
                     </div>
                 </td>
@@ -302,6 +308,14 @@ function renderTable(rows) {
                         <div class="detail-item detail-desc-full">
                             <span class="detail-label">Description</span>
                             <span class="detail-value">${escapeHtml(description)}</span>
+                        </div>
+                        <div class="detail-item detail-desc-full">
+                            <span class="detail-label">Request reference</span>
+                            <span class="detail-value mono">${escapeHtml(row.request_id || 'Not recorded in older logs')}</span>
+                        </div>
+                        <div class="detail-item audit-change-detail">
+                            <span class="detail-label">Record changes</span>
+                            <div class="detail-value">${renderAuditChanges(row.details) || 'No field changes recorded for this entry.'}</div>
                         </div>
                     </div>
                 </td>
@@ -405,7 +419,7 @@ function goPage(page) {
 }
 
 function resetFilters() {
-    const ids = ['searchInput', 'roleFilter', 'schoolFilter', 'actionFilter', 'moduleFilter', 'statusFilter', 'fromDate', 'toDate'];
+    const ids = ['searchInput', 'roleFilter', 'accountTypeFilter', 'schoolFilter', 'actionFilter', 'moduleFilter', 'statusFilter', 'fromDate', 'toDate'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;

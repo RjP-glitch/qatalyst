@@ -44,27 +44,7 @@ function jsonError($msg, $code = 400) {
 
 // ---------- auth ----------
 function getAuthUser($db) {
-    // SECURITY: Check HttpOnly cookies first (primary auth mechanism)
-    $token = '';
-    if (!empty($_COOKIE['session_token'])) {
-        $token = $_COOKIE['session_token'];
-    } elseif (!empty($_COOKIE['school_session_token'])) {
-        $token = $_COOKIE['school_session_token'];
-    } else {
-        // Fallback to Authorization header
-        $headers = getallheaders();
-        $token = isset($headers['Authorization']) ? $headers['Authorization'] : '';
-    }
-    if (empty($token)) jsonError('Unauthorized', 401);
-
-    $stmt = $db->prepare("
-        SELECT u.* FROM users u
-        INNER JOIN login_sessions ls ON u.id = ls.user_id
-        WHERE ls.session_token = :token AND ls.expires_at > NOW() AND u.status = 'active'
-        LIMIT 1
-    ");
-    $stmt->execute([':token' => $token]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $user = authenticate('sdo_personnel');
     if (!$user) jsonError('Unauthorized', 401);
     return $user;
 }

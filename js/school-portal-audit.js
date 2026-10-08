@@ -115,8 +115,12 @@ function renderAuditRows(rows) {
                 <td><span class="portal-audit-status ${statusClass}">${escapeHtml(status)}</span></td>
                 <td class="portal-audit-cell" title="${escapeHtml(docType)}">${escapeHtml(docType)}</td>
                 <td class="portal-audit-cell" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</td>
-                <td class="portal-audit-desc" title="${escapeHtml(desc)}">${escapeHtml(desc)}</td>
+                <td class="portal-audit-desc">
+                    <div>${escapeHtml(desc)}</div>
+                    <div>${escapeHtml(row.actor_name || 'Historical user')} · ${row.account_type === 'sdo_personnel' ? 'SDO' : 'School portal'}</div>
+                </td>
             </tr>
+            ${row.details ? `<tr><td colspan="7"><details><summary>Review changes</summary>${renderAuditChanges(row.details) || 'No field changes recorded.'}<p>Request reference: ${escapeHtml(row.request_id || '-')}</p></details></td></tr>` : ''}
         `;
     }).join('');
 }

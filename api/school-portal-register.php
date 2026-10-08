@@ -249,6 +249,12 @@ try {
     exit;
 }
 
+require_once dirname(__DIR__) . '/config/audit_log.php';
+auditLog(['pdo' => $pdo, 'user_id' => $userId, 'role' => $role,
+    'action' => 'register_school_account', 'module' => 'school_portal', 'status' => 'success',
+    'description' => 'School account registered; email verification and SDO approval required.',
+    'target_user_id' => $userId, 'entity_type' => 'users', 'entity_id' => (string)$userId]);
+
 // ── Send verification email ───────────────────────────────────────────────────
 $emailSent = false;
 try {

@@ -112,6 +112,7 @@ try {
             'module' => 'user_management',
             'status' => (string)$status,
             'description' => (string)$description . $suffix,
+            'target_user_id' => $targetUserId,
         ]);
     };
 
@@ -196,6 +197,7 @@ try {
             $stmt->execute([$targetId]);
             $target = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$target) throw new DomainException('School user not found.');
+            auditOperationBefore('users', $target);
             $approved = $input['approved'];
             if ($approved && ($target['status'] !== 'active' || empty($target['email_verified']) || !portalResolveSchool($db, $target, true))) {
                 throw new DomainException('Approval requires a verified, active account linked to an active school.');
