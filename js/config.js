@@ -190,7 +190,8 @@ Object.freeze(CONFIG);
 
     async function initAnnouncementsBanner() {
         // Only on SDO pages, only for logged-in users, never on the portal side
-        const isPortalPage = document.querySelector('.school-pill-sidebar');
+        const isPortalPage = document.querySelector('.school-pill-sidebar')
+            || /^school-portal(?:-|\.html$)/.test(window.location.pathname.split('/').pop());
         if (isPortalPage) return;
         if (!localStorage.getItem('user_id')) return;
         if (localStorage.getItem('account_type') === 'portal_user') return;

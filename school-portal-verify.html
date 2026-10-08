@@ -385,7 +385,7 @@
                 <i class="fa-solid fa-envelope-open-text"></i>
             </div>
             <h1>Verify Your Email</h1>
-            <p>We sent a 6-digit code to<br><strong id="displayEmail">your email address</strong></p>
+            <p><span id="deliverySummary">Enter the 6-digit code sent to</span><br><strong id="displayEmail">your email address</strong></p>
         </div>
 
         <!-- Form body -->
@@ -612,6 +612,8 @@
             const data = await res.json();
 
             if (data.success) {
+                document.getElementById('emailDeliveryNotice')?.remove();
+                document.getElementById('deliverySummary').textContent = 'Enter the 6-digit code sent to';
                 showSuccess('A new code has been sent to your email.');
                 inputs.forEach(i => { i.value = ''; i.classList.remove('filled', 'error'); });
                 inputs[0].focus();
@@ -636,6 +638,7 @@
             inputs[0].focus();
             startCountdown(60);
             if (params.get('email_sent') === '0') {
+                document.getElementById('deliverySummary').textContent = 'Email delivery is currently unavailable for';
                 const notice = document.createElement('p');
                 notice.id = 'emailDeliveryNotice';
                 notice.textContent = 'The verification email could not be sent. Use Resend code when available, or sign in again later.';
