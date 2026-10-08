@@ -24,43 +24,12 @@ if (!$pdo || !($pdo instanceof PDO)) {
 }
 
 // ── Auth ────────────────────────────────────────────────────────────────────
-function checkAuthentication($pdo) {
-    // SECURITY: Check HttpOnly cookie first (primary auth mechanism)
-    $authHeader = '';
-    if (!empty($_COOKIE['session_token'])) {
-        $authHeader = $_COOKIE['session_token'];
-    } else {
-        // Fallback to Authorization header
-        $headers = getallheaders();
-        $authHeader = $headers['Authorization'] ?? '';
-    }
-
-    if (!$authHeader) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-        exit();
-    }
-
-    // Get user data with role and permissions
-    $stmt = $pdo->prepare("
-        SELECT u.id, u.role, u.permissions 
-        FROM users u
-        INNER JOIN login_sessions ls ON u.id = ls.user_id 
-        WHERE ls.session_token = ? AND ls.expires_at > NOW()
-    ");
-    $stmt->execute([$authHeader]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$user) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Invalid or expired session']);
-        exit();
-    }
-
-    return $user;
+$user = authenticate('sdo_personnel');
+if (!$user) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit();
 }
-
-$user = checkAuthentication($pdo);
 $userId = $user['id'];
 $method = $_SERVER['REQUEST_METHOD'];
 

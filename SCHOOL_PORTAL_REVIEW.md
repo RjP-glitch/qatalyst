@@ -67,3 +67,11 @@ The Delete button sent an empty POST while the API required JSON, causing `Inval
 The integration suite passed **105 checks**, including both request formats, session revocation, preservation of the linked school, authorization, self-deletion, role hierarchy, and rejected-request behavior. Run `node tests/user-management-delete.test.cjs` for three additional page-handler checks covering the outgoing JSON, success refreshes, server rejection, and connection failure. All deletion tests use disposable accounts.
 
 Deploy `api/user_management.php` and `js/user-management.js` together, then refresh the browser. No database migration is needed.
+
+## Program page access fix
+
+The legacy authentication query in `api/programs.php` selected only ID, role, and permissions. It omitted `account_type`, which the shared permission check now requires. This denied every program request, including SDO administrators, across QATAME, QMS, SBM, SGC, SDO PIR, and School PIR. The failure was reproduced with a disposable administrator before the fix.
+
+Programs now use `authenticate('sdo_personnel')`, preserving the full server-side identity, active-account checks, cookie isolation, and bearer-token support. Program permissions still apply. No stored roles, permissions, programs, or imports are modified.
+
+The expanded integration suite passed **126 checks**, including container and standalone import results for all six page filters, SDO administrator and explicit permission access, mixed cookies, anonymous and school-account rejection, and inactive accounts. Each test uses copied schema and synthetic records in a disposable database. Deploy only `api/programs.php` for this fix; no database migration is needed.

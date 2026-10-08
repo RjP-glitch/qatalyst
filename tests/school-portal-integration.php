@@ -73,7 +73,7 @@ try {
     $created = true;
     $testDb = new PDO(sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', DB_HOST, DB_PORT, $testName), DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_EMULATE_PREPARES => false]);
     $testDb->exec("SET time_zone = '+08:00'");
-    foreach (['users', 'public_schools', 'private_schools', 'districts', 'login_sessions', 'login_attempts', 'email_verification_codes', 'school_submissions', 'school_calendar_documents', 'user_roles'] as $table) {
+    foreach (['users', 'public_schools', 'private_schools', 'districts', 'login_sessions', 'login_attempts', 'email_verification_codes', 'school_submissions', 'school_calendar_documents', 'user_roles', 'workshops', 'evaluation_programs', 'respondents', 'program_imports', 'workshop_dropdown_options'] as $table) {
         $testDb->exec("CREATE TABLE `$table` LIKE `" . str_replace('`', '``', DB_NAME) . "`.`$table`");
     }
     $testDb->exec("INSERT INTO districts (id, name) VALUES (1, 'DISTRICT 1'), (2, 'DISTRICT 2')");
@@ -132,6 +132,32 @@ PHP);
     $public = 'school_session_token=public-fixture';
     $pending = 'school_session_token=pending-fixture';
     $orphan = 'school_session_token=orphan-fixture';
+    // Every program page shares this API. Seed only synthetic container/import records.
+    $programPages = ['qatame', 'qms', 'sbm', 'sgc', 'sdopir', 'spir'];
+    foreach ($programPages as $page) {
+        $testDb->prepare("INSERT INTO workshops (title, start_date, end_date, program_type, page, created_by) VALUES (?, '2026-10-08', '2026-10-08', 'container', ?, 1)")->execute(['Container ' . $page, $page]);
+        $testDb->prepare('INSERT INTO evaluation_programs (title, page) VALUES (?, ?)')->execute(['Import ' . $page, $page]);
+    }
+    foreach ($programPages as $page) {
+        $programs = request('programs.php?page=' . $page, 'GET', null, $sdo);
+        expectStatus($programs, 200, 'SDO admin can load ' . $page . ' programs');
+        $titles = array_column($programs['json']['data'], 'title');
+        sort($titles);
+        check($titles === ['Container ' . $page, 'Import ' . $page], $page . ' returns its container and import without mixing other pages');
+    }
+    expectStatus(request('programs.php?page=qatame', 'GET', null, $sdo . '; ' . $public), 200, 'Program pages use the SDO identity when both cookies exist');
+    expectStatus(request('programs.php?page=qatame', 'GET', null, '', ['Authorization: Bearer sdo-fixture']), 200, 'Programs accept a valid SDO bearer token');
+    expectStatus(request('programs.php?page=qatame'), 401, 'Anonymous users cannot read programs');
+    expectStatus(request('programs.php?page=qatame', 'GET', null, $public), 401, 'School cookie cannot access SDO programs');
+    expectStatus(request('programs.php?page=qatame', 'GET', null, 'session_token=orphan-fixture'), 401, 'School token cannot impersonate an SDO administrator');
+    expectStatus(request('programs.php?page=qatame', 'GET', null, '', ['Authorization: Bearer orphan-fixture']), 401, 'Legacy school admin bearer token cannot read SDO programs');
+    $testDb->exec("UPDATE users SET role = 'viewer', permissions = '[\"dashboard\"]' WHERE id = 1");
+    expectStatus(request('programs.php?page=qatame', 'GET', null, $sdo), 403, 'SDO without programs permission remains denied');
+    $testDb->exec("UPDATE users SET permissions = '[\"programs\"]' WHERE id = 1");
+    expectStatus(request('programs.php?page=qatame', 'GET', null, $sdo), 200, 'Explicit programs permission grants SDO access');
+    $testDb->exec("UPDATE users SET status = 'inactive' WHERE id = 1");
+    expectStatus(request('programs.php?page=qatame', 'GET', null, $sdo), 401, 'Inactive SDO cannot access programs');
+    $testDb->exec("UPDATE users SET role = 'admin', permissions = '[]', status = 'active' WHERE id = 1");
     $registration = ['first_name' => 'Private', 'last_name' => 'Fixture', 'email' => 'new@example.test', 'password' => 'FixturePassword!42', 'role' => 'admin', 'school_type' => 'private', 'school_id' => 1, 'school' => 'Tampered Name', 'grade' => '["shs"]'];
 
     expectStatus(request('school-portal-register.php', 'POST', [...$registration, 'school_id' => null]), 422, 'Custom school registration is rejected');
