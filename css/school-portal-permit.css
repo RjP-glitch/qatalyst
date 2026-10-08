@@ -286,6 +286,8 @@ body {
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    background: #f0f4f8;
+    min-width: 0;
 }
 
 /* ── Page header ── */
@@ -298,6 +300,8 @@ body {
     justify-content: space-between;
     border-bottom: 3px solid #f5d800;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+    gap: 16px;
 }
 
 .page-header-left h1 {
@@ -338,9 +342,37 @@ body {
 
 /* ── Content area ── */
 .submissions-content {
-    padding: 24px 28px;
+    padding: 22px 24px;
     flex: 1;
     overflow-y: auto;
+    min-height: 0;
+}
+
+.saved-docs-header-main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.saved-docs-header h2 {
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.saved-docs-header p {
+    margin-top: 5px;
+    color: #64748b;
+    font-size: 12.5px;
+}
+
+.saved-docs-create-btn {
+    flex-shrink: 0;
+    padding: 9px 16px;
 }
 
 /* ── Buttons ── */
@@ -381,25 +413,13 @@ body {
     background: #EEF2FF;
 }
 
-.btn-upload-permit {
-    background: var(--gold);
-    color: var(--navy);
-    border: none !important;
-    box-shadow: 0 3px 12px rgba(245, 216, 0, 0.35);
-}
-
-.btn-upload-permit:hover {
-    background: #fde047;
-    box-shadow: 0 5px 16px rgba(245, 216, 0, 0.45);
-    transform: translateY(-1px);
-}
-
 /* ── Filter row ── */
 .filter-row {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
-    margin-bottom: 16px;
+    align-items: center;
+    margin-top: 12px;
 }
 
 .filter-btn {
@@ -509,7 +529,7 @@ body {
 }
 
 /* ── Mobile ── */
-@media (max-width: 800px) {
+@media (max-width: 900px) {
     .mobile-menu-btn {
         display: flex;
     }
@@ -528,10 +548,24 @@ body {
         transform: translateX(0);
         box-shadow: 4px 0 32px rgba(0, 0, 0, .25);
     }
+
+    .saved-docs-header-main {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .saved-docs-create-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 @media (max-width: 500px) {
     .submissions-content {
+        padding: 16px;
+    }
+
+    .page-header {
         padding: 16px;
     }
 }
@@ -568,6 +602,7 @@ body {
     outline: none;
     background: transparent;
     width: 100%;
+    min-width: 0;
     font-size: 12px;
     font-family: var(--font);
     color: #1f2937;
@@ -583,25 +618,52 @@ body {
 
 .saved-docs-content {
     min-height: 120px;
+    margin-top: 14px;
 }
 
 .saved-docs-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
     gap: 14px;
+    padding: 4px 0;
+}
+
+@media (max-width: 900px) {
+    .saved-docs-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+.btn:focus-visible,
+.filter-btn:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 3px;
+}
+
+.sub-search-wrap:focus-within {
+    border-color: var(--blue-mid);
+    box-shadow: 0 0 0 3px rgba(36, 86, 164, 0.12);
 }
 
 .saved-docs-empty {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
     text-align: center;
-    padding: 48px 20px;
-    color: #9ca3af;
+    padding: 24px 20px;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
 }
 
 .saved-docs-empty i {
     font-size: 32px;
-    margin-bottom: 12px;
     display: block;
-    color: #d1d5db;
+    color: #94a3b8;
 }
 
 .saved-docs-empty p {
@@ -613,16 +675,17 @@ body {
 /* ── Application card ── */
 .sdc-enhanced {
     background: #fff;
-    border: 1px solid #eef0f4;
-    border-radius: 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
     padding: 16px 18px;
+    min-width: 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     transition: box-shadow 0.2s, border-color 0.2s;
 }
 
 .sdc-enhanced:hover {
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-    border-color: #e0e4ec;
+    box-shadow: 0 4px 16px rgba(36, 86, 164, 0.1);
+    border-color: var(--blue-mid);
 }
 
 .sdc-header {
@@ -653,7 +716,7 @@ body {
 .sdc-title {
     font-size: 14.5px;
     font-weight: 800;
-    color: #1a1a2e;
+    color: var(--navy);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -735,8 +798,8 @@ body {
 /* ── Wizard card shell ── */
 .wizard-card {
     background: #fff;
-    border: 1px solid #eef0f4;
-    border-radius: 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     max-width: 880px;
@@ -754,7 +817,7 @@ body {
 .wizard-card-header h3 {
     font-size: 16px;
     font-weight: 800;
-    color: #1a1a2e;
+    color: var(--navy);
     display: flex;
     align-items: center;
     gap: 8px;

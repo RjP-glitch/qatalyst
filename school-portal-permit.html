@@ -12,8 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-    <!--<link rel="stylesheet" href="css/school-portal-submissions.css?v5">-->
-    <link rel="stylesheet" href="css/school-portal-permit.css?v5">
+    <link rel="stylesheet" href="css/school-portal-permit.css?v6">
     <link rel="stylesheet" href="css/school-portal-notifications.css" />
 </head>
 <body data-portal-mode="separate" data-default-tab="permit">
@@ -99,7 +98,7 @@
                 <p>DECS Form No. GPR-3 · Government Authority to Operate / Recognition</p>
             </div>
             <div class="page-header-right">
-                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open navigation">
                     <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
@@ -110,29 +109,31 @@
 
             <!-- ══ APPLICATIONS LIST VIEW ═══════════════════════════════════ -->
             <div class="permit-view active" id="appsView">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-                    <div>
-                        <h2 style="font-size:16px;font-weight:800;color:#1a1a2e;">My Permit Applications</h2>
-                        <p style="font-size:12px;color:#6b7280;margin-top:2px;">Submit and track your School Permit (GPR-3) applications</p>
+                <div class="saved-docs-header">
+                    <div class="saved-docs-header-main">
+                        <div>
+                            <h2><i class="fa-solid fa-folder-open" aria-hidden="true"></i> My Permit Applications</h2>
+                            <p>Submit and track your School Permit (GPR-3) applications.</p>
+                        </div>
+                        <button class="btn btn-primary saved-docs-create-btn" id="btnNewApplication" onclick="showWizardView()">
+                            <i class="fa-solid fa-plus"></i> New Permit Application
+                        </button>
                     </div>
-                    <button class="btn btn-upload-permit" id="btnNewApplication" onclick="showWizardView()">
-                        <i class="fa-solid fa-plus"></i> New Permit Application
-                    </button>
+
+                    <div class="filter-row">
+                        <button class="filter-btn active" onclick="filterApps('all')"      id="f-all"><i class="fa-solid fa-border-all"></i> All</button>
+                        <button class="filter-btn" onclick="filterApps('pending')"          id="f-pending"><i class="fa-solid fa-clock"></i> Pending</button>
+                        <button class="filter-btn" onclick="filterApps('review')"           id="f-review"><i class="fa-solid fa-hourglass-half"></i> Under Review</button>
+                        <button class="filter-btn" onclick="filterApps('approved')"         id="f-approved"><i class="fa-solid fa-circle-check"></i> Approved</button>
+                        <button class="filter-btn" onclick="filterApps('returned')"         id="f-returned"><i class="fa-solid fa-rotate-left"></i> Returned</button>
+                        <div class="sub-search-wrap">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="search" aria-label="Search permit applications" placeholder="Search applications…" oninput="handleAppsSearch(this.value)">
+                        </div>
+                    </div>
                 </div>
 
-                <div class="filter-row">
-                    <button class="filter-btn active" onclick="filterApps('all')"      id="f-all"><i class="fa-solid fa-border-all"></i> All</button>
-                    <button class="filter-btn" onclick="filterApps('pending')"          id="f-pending"><i class="fa-solid fa-clock"></i> Pending</button>
-                    <button class="filter-btn" onclick="filterApps('review')"           id="f-review"><i class="fa-solid fa-hourglass-half"></i> Under Review</button>
-                    <button class="filter-btn" onclick="filterApps('approved')"         id="f-approved"><i class="fa-solid fa-circle-check"></i> Approved</button>
-                    <button class="filter-btn" onclick="filterApps('returned')"         id="f-returned"><i class="fa-solid fa-rotate-left"></i> Returned</button>
-                    <div class="sub-search-wrap">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" placeholder="Search by school name, type, or school year…" oninput="handleAppsSearch(this.value)">
-                    </div>
-                </div>
-
-                <div id="appsContent" class="saved-docs-content"></div>
+                <div id="appsContent" class="saved-docs-content" aria-live="polite"></div>
             </div>
 
             <!-- ══ WIZARD VIEW ══════════════════════════════════════════════ -->
