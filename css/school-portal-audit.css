@@ -1,0 +1,226 @@
+:root {
+    --audit-border: #e5e7eb;
+    --audit-muted: #6b7280;
+}
+
+.portal-audit-note {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--audit-border);
+    background: #f8fafc;
+    color: #0f172a;
+    font-size: 12.5px;
+    margin-bottom: 16px;
+}
+
+.portal-audit-filters {
+    background: #ffffff;
+    border: 1px solid var(--audit-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.table-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+    overflow-x: auto;
+}
+
+.portal-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.portal-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--audit-muted);
+}
+
+.portal-filter-field label {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.portal-filter-field input,
+.portal-filter-field select {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--audit-border);
+    font-size: 12.5px;
+    font-family: inherit;
+    background: #f9fafb;
+}
+
+.portal-filter-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+
+.portal-audit-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-scroll {
+    max-height: 50vh;
+    overflow: auto;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+}
+
+.portal-audit-table th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--audit-muted);
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    position: sticky;
+    top: 0;
+    background: #ffffff;
+    z-index: 1;
+}
+
+.portal-audit-table td {
+    padding: 12px;
+    font-size: 12.5px;
+    border-bottom: 1px solid #f8f8f8;
+    vertical-align: top;
+}
+
+.portal-audit-table tr:hover td {
+    background: #f8fafc;
+}
+
+.portal-audit-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.portal-audit-status.success {
+    background: #ECFDF5;
+    color: #059669;
+}
+
+.portal-audit-status.failed {
+    background: #FEF2F2;
+    color: #dc2626;
+}
+
+.portal-audit-status.pending {
+    background: #FFFBEB;
+    color: #d97706;
+}
+
+.portal-audit-status.blocked {
+    background: #F3E8FF;
+    color: #7c3aed;
+}
+
+.portal-audit-desc {
+    color: #374151;
+    max-width: 320px;
+}
+
+.portal-audit-empty {
+    text-align: center;
+    padding: 24px 12px;
+    color: #9ca3af;
+}
+
+.portal-audit-empty i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    display: block;
+    opacity: 0.5;
+}
+
+.portal-audit-meta {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    border-top: 1px solid #f1f5f9;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.portal-audit-pagination-info {
+    white-space: nowrap;
+}
+
+.pagination-buttons,
+.portal-audit-pagination-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.pagination .page-btn {
+    border: 1.5px solid #e2e8f0;
+    background: #ffffff;
+    color: #334155;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.pagination .page-btn:hover {
+    background: #f8fafc;
+}
+
+.pagination .page-btn.active {
+    background: #1e3a8a;
+    color: #ffffff;
+    border-color: #1e3a8a;
+}
+
+.pagination .page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 1100px) {
+    .portal-filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .portal-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pagination {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

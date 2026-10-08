@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - Certificates & Files</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <!-- Splitter PDF dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="css/certificates.css?v4">
+    <!--<link rel="stylesheet" href="css/certificates-splitter.css">-->
+    <link rel="stylesheet" href="css/notifications.css?v2">
+    <link rel="stylesheet" href="css/manual-help-btn.css">
+
+    <style>
+        /* ── Page-level tab switcher ─────────────────────────────────────── */
+        .cert-page-tabs {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #f1f5f9;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        .cert-page-tab {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 16px;
+            border: none;
+            border-radius: 7px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            color: #6b7280;
+            background: transparent;
+            cursor: pointer;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+        .cert-page-tab:hover { background: #e0e7ff; color: #3730a3; }
+        .cert-page-tab.active {
+            background: #fff;
+            color: #1e3a8a;
+            box-shadow: 0 1px 4px rgba(0,0,0,.10);
+        }
+
+        /* ── Workshops Grid ──────────────────────────────────────────────── */
+        .wg-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+        .wg-section-title { font-size: 22px; font-weight: 800; color: #111827; }
+        .wg-section-subtitle { font-size: 13px; color: #6b7280; margin-top: 2px; }
+        .wg-search-wrap { position: relative; width: 260px; }
+        .wg-search-wrap input {
+            width: 100%;
+            padding: 9px 14px 9px 36px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            background: #f9fafb;
+        }
+        .wg-search-wrap input:focus { outline: none; border-color: #1e3a8a; background: #fff; }
+        .wg-search-wrap .si {
+            position: absolute; left: 12px; top: 50%;
+            transform: translateY(-50%); color: #9ca3af; font-size: 13px;
+        }
+        .wg-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 18px;
+        }
+        .wg-loading, .wg-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 64px 24px;
+            color: #9ca3af;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .wg-loading i, .wg-empty i { font-size: 36px; opacity: .5; }
+        .wg-card {
+            background: #fff;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all .2s;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.05);
+        }
+        .wg-card:hover {
+            border-color: #1e40af;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(30,64,175,.13);
+        }
+        .wg-card-top { display: flex; align-items: center; justify-content: space-between; }
+        .wg-status { font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 20px; letter-spacing: .3px; }
+        .wg-status--completed { background: #dcfce7; color: #15803d; }
+        .wg-status--ongoing   { background: #dbeafe; color: #1d4ed8; }
+        .wg-status--upcoming  { background: #fef3c7; color: #92400e; }
+        .wg-status--cancelled { background: #fee2e2; color: #dc2626; }
+        .wg-days {
+            font-size: 11px; font-weight: 700; color: #6b7280;
+            background: #f3f4f6; padding: 2px 8px; border-radius: 6px;
+        }
+        .wg-card-memo { font-size: 11px; font-weight: 700; color: #7c3aed; letter-spacing: .3px; text-transform: uppercase; }
+        .wg-card-title { font-size: 14px; font-weight: 700; color: #111827; line-height: 1.4; }
+        .wg-card-meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #6b7280; }
+        .wg-card-meta span { display: flex; align-items: center; gap: 5px; }
+        .wg-card-footer {
+            display: flex; align-items: center; justify-content: space-between;
+            padding-top: 10px; border-top: 1px solid #f1f5f9; margin-top: auto;
+        }
+        .wg-card-participants { font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 5px; }
+        .wg-day-counts { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
+        .wg-day-chip {
+            font-size: 11px; background: #eff6ff; color: #1d4ed8;
+            border: 1px solid #bfdbfe; border-radius: 6px; padding: 2px 8px; white-space: nowrap;
+        }
+        .wg-day-chip strong { font-weight: 700; }
+        .wg-card-arrow {
+            font-size: 12px; font-weight: 700; color: #1e40af;
+            display: flex; align-items: center; gap: 5px; opacity: 0; transition: opacity .15s;
+        }
+        .wg-card:hover .wg-card-arrow { opacity: 1; }
+
+        /* ── Workshop breadcrumb header ───────────────────────────────────── */
+        .ws-header-row { display: flex; align-items: stretch; margin-bottom: 20px; }
+        .ws-back-btn {
+            display: flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px; flex-shrink: 0; padding: 0;
+            background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 10px;
+            font-size: 15px; font-weight: 700; color: #fff; cursor: pointer;
+            transition: all .15s; font-family: inherit;
+        }
+        .ws-back-btn:hover { background: rgba(255,255,255,0.20); border-color: rgba(255,255,255,0.32); }
+        .ws-header-row .workshop-banner-card { flex: 1; min-width: 0; margin-bottom: 0; }
+
+        /* ── Recipients table: fixed height, frozen header ──────────────────
+           Previous approach used position:sticky on <th>, but that combo
+           (sticky + table cells) is buggy across browsers — in testing it
+           either failed to stick (Chromium + border-collapse:collapse) or
+           rendered with invisible header text once pinned. To sidestep all
+           of that entirely, the header and body are now two separate
+           <table> elements: the header table never scrolls, and only the
+           body table (in its own max-height/overflow-y:auto container)
+           scrolls. Column widths are kept in sync with matching <colgroup>
+           widths + table-layout:fixed, and a tiny script compensates for
+           the body's scrollbar width so columns still line up. ────────── */
+        .recipients-table-wrap {
+            display: flex;
+            flex-direction: column;
+        }
+        .recipients-table {
+            width: 100%;
+            min-width: 920px;
+            table-layout: fixed;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .recipients-thead-wrap {
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .recipients-tbody-scroll {
+            max-height: 520px;
+            overflow-y: auto;
+            overflow-x: auto;
+            border-radius: 0 0 14px 14px;
+        }
+
+        /* ── Panel toolbar: inline title + collapsed actions menu ──────────── */
+        .panel-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .panel-title .title-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+        .actions-menu-wrap { position: relative; flex-shrink: 0; }
+        .actions-menu-btn { white-space: nowrap; }
+        .actions-menu-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            box-shadow: 0 12px 32px rgba(0,0,0,.14);
+            padding: 6px;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 195px;
+            z-index: 20;
+        }
+        .actions-menu-dropdown.open { display: flex; }
+        .actions-menu-dropdown button {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            width: 100%;
+            padding: 9px 10px;
+            border: none;
+            background: transparent;
+            border-radius: 7px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            cursor: pointer;
+            text-align: left;
+            transition: background .12s;
+        }
+        .actions-menu-dropdown button:hover { background: #f1f5f9; }
+        .actions-menu-dropdown button i { width: 15px; text-align: center; color: #6b7280; }
+        .actions-menu-dropdown .files-count-badge { margin-left: auto; }
+
+        /* Resend button */
+        .action-btn.resend { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+        .action-btn.resend:hover { background: #fde68a; color: #92400e; }
+
+        @media (max-width: 640px) {
+            .wg-grid { grid-template-columns: 1fr; }
+            .wg-section-header { flex-direction: column; align-items: flex-start; }
+            .wg-search-wrap { width: 100%; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- PROGRESS OVERLAY (Generator — email sending) -->
+    <div class="progress-overlay" id="progressOverlay">
+        <div class="progress-box">
+            <div class="progress-box-title">
+                <i class="fa-solid fa-paper-plane" style="margin-right:8px;color:#1e3a8a;"></i>
+                <span id="progressTitle">Sending Certificates...</span>
+            </div>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Preparing...</div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay (used by Splitter auth only, hidden by default) -->
+    <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="dashboard-toast" id="toast"></div>
+
+    <!-- ════════════════════════════════════════════════════════
+         GENERATOR MODALS
+         ════════════════════════════════════════════════════════ -->
+
+    <!-- MODAL: SEND EMAIL (single) -->
+    <div class="modal-overlay" id="sendEmailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fa-solid fa-envelope" style="color:#16a34a;"></i> Send Certificate</div>
+                <button class="modal-close" onclick="closeModal('sendEmailModal')">&#x2715;</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('tab-compose', this, 'sendEmailModal')">Compose</button>
+                    <button class="tab-btn" onclick="switchTab('tab-preview', this, 'sendEmailModal'); buildPreview()">Preview</button>
+                </div>
+                <div class="tab-pane active" id="tab-compose">
+                    <div class="form-group">
+                        <label class="form-label">Recipient</label>
+                        <input type="text" class="form-control" id="se-recipientName" readonly style="background:#f3f4f6;color:#6b7280;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Send To (Gmail)</label>
+                        <input type="email" class="form-control" id="se-email" placeholder="recipient@gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="se-subject" value="Your Certificate of Participation">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" id="se-body" style="min-height:120px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Attachment <span style="font-weight:400;color:#9ca3af;">(from program files)</span></label>
+                        <input type="hidden" id="se-file-id" value="">
+                        <div id="se-file-display" class="file-selection-display">
+                            <span class="file-selection-none"><i class="fa-solid fa-paperclip"></i> No file attached</span>
+                        </div>
+                        <button type="button" class="btn btn-outline" style="margin-top:8px;width:100%;" onclick="openFilePicker()">
+                            <i class="fa-solid fa-folder-open"></i> Browse Program Files
+                        </button>
+                    </div>
+                </div>
+                <div class="tab-pane" id="tab-preview">
+                    <div class="email-template-preview" id="se-preview"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('sendEmailModal')">Cancel</button>
+                <button class="btn btn-green" onclick="sendSingleEmail()"><i class="fa-solid fa-paper-plane"></i> Send via Gmail</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: BULK SEND -->
+    <div class="modal-overlay" id="bulkSendModal">
+        <div class="modal" style="width:600px;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fa-solid fa-envelopes-bulk" style="color:#7c3aed;"></i> Bulk Send Certificates</div>
+                <button class="modal-close" onclick="closeModal('bulkSendModal')">&#x2715;</button>
+            </div>
+            <div class="modal-body">
+                <div class="info-callout">
+                    <span style="font-size:16px;"><i class="fa-solid fa-circle-info"></i></span>
+                    <div>Certificates will be sent to all recipients with a Gmail address that haven't been sent yet. Recipients without an email will be skipped.</div>
+                </div>
+                <div id="bulk-cert-warning" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;"></div>
+                <div class="form-group">
+                    <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
+                        <span>Fallback Certificate <span style="font-weight:400;color:#9ca3af;">(for recipients without a linked cert)</span></span>
+                        <button type="button" onclick="openBulkFilePicker()" style="border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;">
+                            <i class="fa-solid fa-paperclip"></i> Choose File
+                        </button>
+                    </label>
+                    <div id="bulk-file-display" style="padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;margin-top:6px;">
+                        <span style="color:#9ca3af;font-size:12px;"><i class="fa-solid fa-paperclip"></i> No fallback file — each person gets their own cert</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Subject</label>
+                    <input type="text" class="form-control" id="bulk-subject" value="Your Certificate of Participation">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Message Template <span style="font-weight:400;color:#9ca3af;">(use {name}, {designation})</span></label>
+                    <textarea class="form-control" id="bulk-body" style="min-height:100px;">Dear {name},
+
+Congratulations! Please find attached your Certificate of Participation.
+
+Thank you for your active participation and dedication.
+
+Best regards,
+SDO Baliwag SMME</textarea>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <div style="font-size:13px;font-weight:700;color:#111827;">Queue Preview</div>
+                    <div style="font-size:12px;color:#6b7280;" id="bulk-count-label">—</div>
+                </div>
+                <div class="send-log" id="bulkLog">
+                    <div class="log-line log-info">Click "Send to All" to begin...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('bulkSendModal')">Cancel</button>
+                <button class="btn btn-purple" onclick="executeBulkSend()"><i class="fa-solid fa-rocket"></i> Send to All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD/EDIT RECIPIENT -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Add Recipient</div>
+                <button class="modal-close" onclick="closeModal('addModal')">&#x2715;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="newName" placeholder="e.g. LUCIA B. PASCUAL">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Designation</label>
+                        <input type="text" class="form-control" id="newPos" placeholder="e.g. Teacher I">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sex</label>
+                        <select class="form-control" id="newGender">
+                            <option value="Female">Female</option>
+                            <option value="Male">Male</option>
+                            <option value="Other">Prefer not to say</option>
+                            <option value="Other">Prefer not to say</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Gmail Address</label>
+                    <input type="email" class="form-control" id="newEmail" placeholder="e.g. lucia@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">School / Office</label>
+                    <input type="text" class="form-control" id="newSchool" placeholder="e.g. BSU">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('addModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveRecipient()">Save Recipient</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: UPLOAD FILE (with integrated PDF Splitter) -->
+    <div class="modal-overlay" id="uploadFileModal">
+        <div class="modal" style="width:640px;max-width:96vw;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fa-solid fa-cloud-arrow-up" style="color:#1e40af;"></i> Upload File</div>
+                <button class="modal-close" onclick="closeModal('uploadFileModal')">&#x2715;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">File Type</label>
+                        <select class="form-control" id="uf-type" onchange="onUploadTypeChange()">
+                            <option value="cert">Certificate (PDF)</option>
+                            <option value="qame">QAME Report (Excel)</option>
+                            <option value="eval">Evaluation Report (Word)</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Day / Session</label>
+                        <select class="form-control" id="uf-day">
+                            <option>Day 1</option>
+                            <option>Day 2</option>
+                            <option>Day 3</option>
+                            <option>All Days</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description (optional)</label>
+                    <input type="text" class="form-control" id="uf-desc" placeholder="e.g. QAME Excel – Day 1 Results">
+                </div>
+                <div class="upload-zone" id="uploadZone"
+                    onclick="document.getElementById('genFileInput').click()"
+                    ondragover="handleDragOver(event)"
+                    ondragleave="handleDragLeave(event)"
+                    ondrop="handleDrop(event)">
+                    <div class="uz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                    <p>Drag &amp; drop or <strong>click to browse</strong></p>
+                    <span id="uploadZoneHint">Accepts: PDF, Excel (.xlsx), Word (.docx), or any file</span>
+                </div>
+                <input type="file" id="genFileInput" style="display:none" multiple onchange="handleFileSelect(event)">
+                <div id="selectedFilesPreview" style="margin-top:10px;"></div>
+
+                <!-- Inline PDF Splitter Panel -->
+                <div id="inlineSplitterPanel" style="display:none;margin-top:14px;border:1.5px solid #bfdbfe;border-radius:12px;overflow:hidden;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#eff6ff;border-bottom:1px solid #bfdbfe;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <i class="fa-solid fa-scissors" style="color:#1d4ed8;font-size:15px;"></i>
+                            <span style="font-size:13px;font-weight:700;color:#1e3a8a;">Merged PDF Detected</span>
+                            <span id="inlineSplitterPageCount" style="font-size:11px;font-weight:700;background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:2px 9px;"></span>
+                        </div>
+                        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600;color:#374151;">
+                            <input type="checkbox" id="inlineSplitterToggle" onchange="toggleInlineSplitter()" style="width:15px;height:15px;accent-color:#1d4ed8;cursor:pointer;">
+                            Auto-split &amp; upload individually
+                        </label>
+                    </div>
+                    <div id="inlineSplitterBody" style="display:none;padding:14px 16px;background:#f8faff;">
+                        <p style="font-size:12px;color:#6b7280;margin:0 0 10px;">
+                            Each page will be split into a separate certificate PDF, named automatically from the text inside, then uploaded to this program's files.
+                        </p>
+                        <div id="inlineSplitProgress" style="display:none;margin-bottom:10px;">
+                            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">
+                                <span id="inlineSplitProgressLabel">Splitting…</span>
+                                <span id="inlineSplitProgressPct">0%</span>
+                            </div>
+                            <div style="height:6px;background:#e0e7ff;border-radius:99px;overflow:hidden;">
+                                <div id="inlineSplitProgressFill" style="height:100%;background:linear-gradient(90deg,#3b82f6,#1d4ed8);border-radius:99px;width:0%;transition:width .3s;"></div>
+                            </div>
+                            <div id="inlineSplitProgressMsg" style="font-size:11px;color:#6b7280;margin-top:4px;"></div>
+                        </div>
+                        <div id="inlineSplitPreviewList" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;"></div>
+                        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+                            <button id="inlineSplitRunBtn" class="btn btn-primary" onclick="runInlineSplit()" style="flex:1;min-width:120px;">
+                                <i class="fa-solid fa-scissors"></i> Split &amp; Preview
+                            </button>
+                            <button id="inlineSplitUploadBtn" class="btn btn-green" onclick="uploadSplitFiles()" style="flex:1;min-width:120px;display:none;">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Upload Split Files
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- /Inline PDF Splitter Panel -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('uploadFileModal')">Cancel</button>
+                <button class="btn btn-primary" id="uploadBtn" onclick="confirmUpload()"><i class="fa-solid fa-upload"></i> Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PROGRAM FILES -->
+    <div class="modal-overlay" id="filesModal">
+        <div class="modal" style="width:820px;max-width:96vw;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-solid fa-folder-open" style="color:#16a34a;"></i> Program Files
+                    <span style="font-size:12px;font-weight:500;color:#6b7280;margin-left:6px;">— Certificates, QAME Excel &amp; Evaluation Reports</span>
+                </div>
+                <button class="modal-close" onclick="closeModal('filesModal')">&#x2715;</button>
+            </div>
+            <div class="modal-body" style="padding:16px 24px 20px;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+                    <div class="search-wrap" style="flex:1;min-width:180px;">
+                        <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" class="search-input" id="fileSearchInput" placeholder="Search files..." oninput="filterFiles()">
+                    </div>
+                    <select class="filter-select" id="fileTypeFilter" onchange="filterFiles()">
+                        <option value="">All File Types</option>
+                        <option value="cert">Certificates (PDF)</option>
+                        <option value="qame">QAME Reports (Excel)</option>
+                        <option value="eval">Evaluation Reports (Word)</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="closeModal('filesModal'); openModal('uploadFileModal');">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload File
+                    </button>
+                </div>
+                <div id="bulkDeleteBar" style="display:none;align-items:center;gap:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 14px;margin-bottom:10px;">
+                    <i class="fa-solid fa-circle-check" style="color:#dc2626;"></i>
+                    <span id="bulkDeleteCount" style="font-size:13px;font-weight:600;color:#dc2626;flex:1;"></span>
+                    <button onclick="deleteSelectedFiles()" style="background:#dc2626;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                        <i class="fa-solid fa-trash"></i> Delete Selected
+                    </button>
+                    <button onclick="toggleSelectAllFiles(false)" style="background:none;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;">Clear</button>
+                </div>
+                <div class="table-wrap" style="max-height:420px;overflow-y:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:36px;text-align:center;">
+                                    <input type="checkbox" id="selectAllFilesCheckbox" onchange="toggleSelectAllFiles(this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#1e3a8a;" title="Select all">
+                                </th>
+                                <th style="width:36px;">#</th>
+                                <th>File Name</th>
+                                <th>Type</th>
+                                <th>Day / Session</th>
+                                <th>Description</th>
+                                <th>Size</th>
+                                <th>Uploaded</th>
+                                <th style="width:90px;text-align:center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="filesTableBody"></tbody>
+                    </table>
+                    <div class="empty-state" id="filesEmptyState" style="display:none;">
+                        <div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+                        <p>No files uploaded yet. Click <strong>Upload File</strong> to add certificates, QAME Excel, or Evaluation Reports.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('filesModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SELECT PROGRAM FILE (attachment picker) -->
+    <div class="modal-overlay" id="filePickerModal">
+        <div class="modal" style="width:620px;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fa-solid fa-folder-open" style="color:#1e40af;"></i> Select Program File</div>
+                <button class="modal-close" onclick="closeModal('filePickerModal')">&#x2715;</button>
+            </div>
+            <div class="modal-body" style="padding:16px 24px 20px;">
+                <div class="search-wrap" style="margin-bottom:12px;">
+                    <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" class="search-input" id="filePickerSearch" placeholder="Search files..." oninput="filterFilePicker()">
+                </div>
+                <div class="file-picker-list" id="filePickerList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="clearFileSelection()"><i class="fa-solid fa-xmark"></i> No Attachment</button>
+                <button class="btn btn-outline" onclick="closeModal('filePickerModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════
+         LAYOUT
+         ════════════════════════════════════════════════════════ -->
+    <div class="main-container">
+
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left"><i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span></span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn" onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn" onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn" onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle" onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu" id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn" onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn active" id="navGenerator" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                    <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i><span>Logout</span>
+            </button>
+        </aside>
+
+        <!-- Mobile sidebar backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <div class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1 id="pageHeaderTitle"><i class="fa-solid fa-award"></i> Certificates &amp; Files</h1>
+                    <p id="pageHeaderSub">Select a program to manage recipients and send certificates</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="manual-help-btn" type="button" onclick="window.location.href='user-manual.html'">
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" aria-label="Open menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-area">
+
+                <!-- ══════════════════════════════════════════════════════
+                     GENERATOR SECTION
+                     ══════════════════════════════════════════════════════ -->
+                <div id="sectionGenerator">
+
+                    <!-- VIEW A: WORKSHOPS GRID -->
+                    <div id="viewWorkshops">
+                        <div class="wg-section-header">
+                            <div>
+                                <div class="wg-section-title">&#x1F4CB; Programs &amp; Workshops</div>
+                                <div class="wg-section-subtitle">Click on a program to manage its certificate recipients and files.</div>
+                            </div>
+                            <div class="wg-search-wrap">
+                                <span class="si"><i class="fa-solid fa-magnifying-glass"></i></span>
+                                <input type="text" placeholder="Search programs&#x2026;" id="wgSearch" oninput="filterWorkshopsGrid()">
+                            </div>
+                        </div>
+                        <div class="wg-grid" id="workshopsGrid">
+                            <div class="wg-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading programs&#x2026;</div>
+                        </div>
+                        <div class="wg-pagination" id="wgPagination"></div>
+                    </div>
+
+                    <!-- VIEW B: PARTICIPANTS -->
+                    <div id="viewParticipants" style="display:none;">
+
+                        <div class="ws-header-row">
+                            <div class="workshop-banner-card">
+                                <button class="ws-back-btn" onclick="goBackToWorkshops()" title="Back to All Programs">
+                                    <i class="fa-solid fa-arrow-left"></i>
+                                </button>
+                                <div class="workshop-banner-icon"><i class="fa-solid fa-award"></i></div>
+                                <div class="workshop-banner-meta">
+                                    <div class="workshop-banner-organizer" id="wsMemo"></div>
+                                    <div class="workshop-banner-title" id="wsTitle"></div>
+                                    <div class="workshop-banner-info" id="wsDates"></div>
+                                </div>
+                                <span class="workshop-banner-badge" id="wsStatus"></span>
+                            </div>
+                        </div>
+
+                        <!-- STATS -->
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="stat-card-top">
+                                    <div class="stat-label">Total<br>Recipients</div>
+                                    <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+                                </div>
+                                <div class="stat-card-bottom"><div class="stat-value" id="statTotal">&#x2014;</div></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-top">
+                                    <div class="stat-label">Emails<br>Sent</div>
+                                    <div class="stat-icon green"><i class="fa-solid fa-paper-plane"></i></div>
+                                </div>
+                                <div class="stat-card-bottom"><div class="stat-value" id="statSent">&#x2014;</div></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-top">
+                                    <div class="stat-label">Emails<br>Pending</div>
+                                    <div class="stat-icon orange"><i class="fa-solid fa-clock"></i></div>
+                                </div>
+                                <div class="stat-card-bottom"><div class="stat-value" id="statPending">&#x2014;</div></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-top">
+                                    <div class="stat-label">Files<br>Stored</div>
+                                    <div class="stat-icon purple"><i class="fa-solid fa-folder"></i></div>
+                                </div>
+                                <div class="stat-card-bottom"><div class="stat-value" id="statFiles">&#x2014;</div></div>
+                            </div>
+                            <div class="stat-card stat-success">
+                                <div class="stat-card-top">
+                                    <div class="stat-label">Ready<br>to Send</div>
+                                    <div class="stat-icon emerald"><i class="fa-solid fa-circle-check"></i></div>
+                                </div>
+                                <div class="stat-card-bottom">
+                                    <div class="stat-value" id="statReady">&#x2014;</div>
+                                    <div class="stat-hint" id="statReadySub"></div>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-alert">
+                                <div class="stat-card-top">
+                                    <div class="stat-label">Missing<br>Certificate</div>
+                                    <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                                </div>
+                                <div class="stat-card-bottom">
+                                    <div class="stat-value" id="statMissing">&#x2014;</div>
+                                    <div class="stat-hint" id="statMissingSub"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RECIPIENTS TABLE -->
+                        <div>
+                            <div class="panel recipients-panel">
+                                <div class="panel-toolbar">
+                                    <div class="panel-title">
+                                        <div class="title-icon blue"><i class="fa-solid fa-award"></i></div>
+                                        Certificate Recipients
+                                    </div>
+                                    <div class="search-wrap">
+                                        <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                                        <input type="text" class="search-input" id="searchInput"
+                                            placeholder="Search by name, email, or designation..."
+                                            oninput="filterTable()">
+                                    </div>
+                                    <select class="filter-select" id="genderFilter" onchange="filterTable()">
+                                        <option value="">All Gender</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Other">Prefer not to say</option>
+                                    </select>
+                                    <select class="filter-select" id="statusFilter" onchange="filterTable()">
+                                        <option value="">All Status</option>
+                                        <option value="sent">Sent</option>
+                                        <option value="pending">Pending</option>
+                                    </select>
+                                    <div class="actions-menu-wrap">
+                                        <button class="btn btn-outline actions-menu-btn" onclick="toggleActionsMenu(event)">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i> Actions
+                                        </button>
+                                        <div class="actions-menu-dropdown" id="recipientsActionsMenu">
+                                            <button onclick="closeActionsMenu(); exportCSV();"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+                                            <button onclick="closeActionsMenu(); openAddModal();"><i class="fa-solid fa-plus"></i> Add Recipient</button>
+                                            <button onclick="closeActionsMenu(); openBulkSend();"><i class="fa-solid fa-envelopes-bulk"></i> Bulk Send Gmail</button>
+                                            <button onclick="closeActionsMenu(); openModal('filesModal');">
+                                                <i class="fa-solid fa-folder-open"></i> Files
+                                                <span class="files-count-badge" id="filesCountBadge" style="display:none;"></span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="recipients-table-wrap">
+                                    <div class="recipients-thead-wrap" id="recipientsTheadWrap">
+                                        <table class="recipients-table">
+                                            <colgroup>
+                                                <col style="width:44px;">
+                                                <col style="width:13%;">
+                                                <col style="width:20%;">
+                                                <col style="width:7%;">
+                                                <col style="width:10%;">
+                                                <col style="width:11%;">
+                                                <col style="width:15%;">
+                                                <col style="width:7%;">
+                                                <col style="width:8%;">
+                                                <col style="width:110px;">
+                                            </colgroup>
+                                            <thead>
+                                                <tr>
+                                                    <th style="width:44px;">#</th>
+                                                    <th>Name</th>
+                                                    <th>Gmail</th>
+                                                    <th>Sex</th>
+                                                    <th>Type</th>
+                                                    <th>Designation</th>
+                                                    <th>School/Office</th>
+                                                    <th>File Type</th>
+                                                    <th>Email Status</th>
+                                                    <th style="width:110px;text-align:center;">Actions</th>
+                                                </tr>
+                                            </thead>
+                                        </table>
+                                    </div>
+                                    <div class="recipients-tbody-scroll" id="recipientsTbodyScroll">
+                                        <table class="recipients-table">
+                                            <colgroup>
+                                                <col style="width:44px;">
+                                                <col style="width:13%;">
+                                                <col style="width:20%;">
+                                                <col style="width:7%;">
+                                                <col style="width:10%;">
+                                                <col style="width:11%;">
+                                                <col style="width:15%;">
+                                                <col style="width:7%;">
+                                                <col style="width:8%;">
+                                                <col style="width:110px;">
+                                            </colgroup>
+                                            <tbody id="tableBody"></tbody>
+                                        </table>
+                                        <div class="empty-state" id="emptyState" style="display:none;">
+                                            <div class="empty-icon"><i class="fa-solid fa-award"></i></div>
+                                            <p id="emptyStateMsg">No recipients found.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /viewParticipants -->
+                </div><!-- /sectionGenerator -->
+            </div><!-- /content-area -->
+        </div><!-- /main-content -->
+    </div><!-- /main-container -->
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v6"></script>
+    <script src="js/certificates.js?v14"></script>
+    <!--<script src="js/certificates-splitter.js?v4"></script>-->
+
+    <script>
+    // ══════════════════════════════════════════════════════════════════════
+    // PAGE CONTROLLER
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Simple stub kept so navigate() in certificates.js doesn't break
+    function switchPageTab(tab) { /* no-op: splitter is now inside upload modal */ }
+
+    // ── Recipients toolbar: collapsed "Actions" menu (Export/Add/Bulk Send/Files) ──
+    function toggleActionsMenu(evt) {
+        if (evt) evt.stopPropagation();
+        document.getElementById('recipientsActionsMenu')?.classList.toggle('open');
+    }
+    function closeActionsMenu() {
+        document.getElementById('recipientsActionsMenu')?.classList.remove('open');
+    }
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('recipientsActionsMenu');
+        if (!menu || !menu.classList.contains('open')) return;
+        if (!menu.contains(e.target) && !e.target.closest('.actions-menu-btn')) closeActionsMenu();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeActionsMenu(); });
+
+    // ── Recipients table: keep the frozen header table's columns aligned
+    //    with the scrolling body table (compensate for the body's vertical
+    //    scrollbar width) and keep horizontal scroll in sync between them. ──
+    function syncRecipientsTableHeader() {
+        const headWrap = document.getElementById('recipientsTheadWrap');
+        const bodyScroll = document.getElementById('recipientsTbodyScroll');
+        if (!headWrap || !bodyScroll) return;
+        const scrollbarWidth = bodyScroll.offsetWidth - bodyScroll.clientWidth;
+        headWrap.style.paddingRight = scrollbarWidth + 'px';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const headWrap = document.getElementById('recipientsTheadWrap');
+        const bodyScroll = document.getElementById('recipientsTbodyScroll');
+        const tbodyEl = document.getElementById('tableBody');
+        if (bodyScroll && headWrap) {
+            bodyScroll.addEventListener('scroll', () => { headWrap.scrollLeft = bodyScroll.scrollLeft; });
+        }
+        if (tbodyEl) {
+            // Rows are re-rendered via tbody.innerHTML = ... elsewhere; watch
+            // for that so the scrollbar-width compensation stays correct
+            // whenever the row count (and thus scrollbar presence) changes.
+            new MutationObserver(syncRecipientsTableHeader).observe(tbodyEl, { childList: true });
+        }
+        window.addEventListener('resize', syncRecipientsTableHeader);
+        syncRecipientsTableHeader();
+    });
+
+    // ── Filter: workshops grid search ────────────────────────────────────────
+    function filterWorkshopsGrid() {
+        wgCurrentPage = 1; // new search results — always start back at page 1
+        renderWorkshopsGridPage();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // INLINE PDF SPLITTER — integrated into the Upload File modal
+    // ══════════════════════════════════════════════════════════════════════
+    let _inlineSplitFiles = [];   // { bytes: Uint8Array, name: string }[]
+    let _inlineSplitMeta  = [];   // { file_name, participant_id, respondent_id }[]
+
+    /** Called when the file-type dropdown changes */
+    function onUploadTypeChange() {
+        const isCert = document.getElementById('uf-type').value === 'cert';
+        const hint = document.getElementById('uploadZoneHint');
+        if (hint) hint.textContent = isCert
+            ? 'PDF — single or merged (multi-page) certificate file'
+            : 'Accepts: PDF, Excel (.xlsx), Word (.docx), or any file';
+        // If non-cert type selected, hide the splitter panel
+        if (!isCert) {
+            document.getElementById('inlineSplitterPanel').style.display = 'none';
+            _inlineSplitFiles = [];
+            _inlineSplitMeta  = [];
+        } else if (pendingFiles.length === 1 && pendingFiles[0].type === 'application/pdf') {
+            // Re-check the queued file
+            _checkInlineSplitter(pendingFiles[0]);
+        }
+    }
+
+    /**
+     * Check if a PDF has more than 1 page and show the splitter panel.
+     * Called from handleFileSelect / handleDrop when file type is cert.
+     */
+    async function _checkInlineSplitter(file) {
+        const panel = document.getElementById('inlineSplitterPanel');
+        if (!panel) return;
+        // Only trigger for Certificate type
+        if (document.getElementById('uf-type').value !== 'cert') return;
+        if (!file || file.type !== 'application/pdf') return;
+
+        try {
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            const pdf = await PDFLib.PDFDocument.load(bytes.slice());
+            const pageCount = pdf.getPageCount();
+            if (pageCount > 1) {
+                document.getElementById('inlineSplitterPageCount').textContent = pageCount + ' pages';
+                panel.style.display = '';
+                // Reset state for new file
+                document.getElementById('inlineSplitterToggle').checked = false;
+                document.getElementById('inlineSplitterBody').style.display = 'none';
+                document.getElementById('inlineSplitPreviewList').innerHTML = '';
+                document.getElementById('inlineSplitUploadBtn').style.display = 'none';
+                document.getElementById('inlineSplitRunBtn').style.display = '';
+                document.getElementById('inlineSplitProgress').style.display = 'none';
+                _inlineSplitFiles = [];
+                _inlineSplitMeta  = [];
+            } else {
+                panel.style.display = 'none';
+            }
+        } catch (e) {
+            panel.style.display = 'none';
+        }
+    }
+
+    /** Toggle the splitter body on/off */
+    function toggleInlineSplitter() {
+        const on = document.getElementById('inlineSplitterToggle').checked;
+        document.getElementById('inlineSplitterBody').style.display = on ? '' : 'none';
+        // Update main Upload button label
+        const uploadBtn = document.getElementById('uploadBtn');
+        if (on) {
+            uploadBtn.innerHTML = '<i class="fa-solid fa-scissors"></i> Split &amp; Upload';
+        } else {
+            uploadBtn.innerHTML = '<i class="fa-solid fa-upload"></i> Upload';
+        }
+    }
+
+    /** Run the inline split — extract each page and name it */
+    async function runInlineSplit() {
+        if (!pendingFiles.length || pendingFiles[0].type !== 'application/pdf') {
+            showToast('Please select a PDF file first', 'warning'); return;
+        }
+        const file = pendingFiles[0];
+        const runBtn    = document.getElementById('inlineSplitRunBtn');
+        const uploadBtn = document.getElementById('inlineSplitUploadBtn');
+        const progress  = document.getElementById('inlineSplitProgress');
+        const previewList = document.getElementById('inlineSplitPreviewList');
+
+        runBtn.disabled = true;
+        runBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Splitting…';
+        progress.style.display = '';
+        previewList.innerHTML = '';
+        _inlineSplitFiles = [];
+        _inlineSplitMeta  = [];
+
+        const setPct = (pct, label, msg) => {
+            document.getElementById('inlineSplitProgressFill').style.width = pct + '%';
+            document.getElementById('inlineSplitProgressLabel').textContent = label;
+            document.getElementById('inlineSplitProgressPct').textContent = pct + '%';
+            document.getElementById('inlineSplitProgressMsg').textContent = msg || '';
+        };
+
+        try {
+            const masterBytes = new Uint8Array(await file.arrayBuffer());
+            const src = await PDFLib.PDFDocument.load(masterBytes.slice());
+            const total = src.getPageCount();
+
+            // Prefer the Certificates page roster (supports both workshops + standalone imports).
+            // Fall back to the splitter roster only if needed.
+            const roster = (typeof allParticipants !== 'undefined' && Array.isArray(allParticipants) && allParticipants.length)
+                ? allParticipants
+                : ((typeof workshopParticipants !== 'undefined' && Array.isArray(workshopParticipants)) ? workshopParticipants : []);
+            const isRecord = !!(currentWorkshop && (currentWorkshop.source_type === 'record' || currentWorkshop._isRecord));
+
+            for (let i = 0; i < total; i++) {
+                setPct(Math.round((i / total) * 95), `Processing ${i+1} of ${total}`, `Page ${i+1}`);
+
+                // Extract name using splitter's existing function (from certificates-splitter.js)
+                let name = '';
+                try {
+                    const result = await extractCertificateName(masterBytes.slice(), i);
+                    name = result.name || '';
+                } catch(e) { /* fall through */ }
+
+                // Try to match participant by name
+                let matchedParticipant = null;
+                if (name && roster.length > 0) {
+                    const norm = (typeof normaliseName === 'function') ? normaliseName(name) : name.trim().toUpperCase();
+                    matchedParticipant = roster.find(p => {
+                        const pn = (typeof normaliseName === 'function') ? normaliseName(p.full_name || '') : (p.full_name || '').trim().toUpperCase();
+                        return (typeof namesMatch === 'function') ? namesMatch(pn, norm) : pn === norm;
+                    }) || null;
+                }
+                if (!name && roster.length > i) {
+                    const p = roster[i];
+                    name = (typeof sanitizeFilename === 'function' && typeof normaliseName === 'function')
+                        ? sanitizeFilename(normaliseName(p.full_name || ''))
+                        : (p.full_name || '').replace(/[^a-zA-Z0-9_\- .]/g, '').trim();
+                    matchedParticipant = p;
+                }
+
+                const doc = await PDFLib.PDFDocument.create();
+                const [pg] = await doc.copyPages(src, [i]);
+                doc.addPage(pg);
+                const out = await doc.save();
+                const filename = (name || `certificate_${i+1}`) + '.pdf';
+
+                _inlineSplitFiles.push({ bytes: out, name: filename });
+                _inlineSplitMeta.push({
+                    file_name: filename,
+                    participant_id: isRecord ? 0 : (matchedParticipant?.id || 0),
+                    respondent_id:  isRecord ? (matchedParticipant?.id || 0) : 0,
+                });
+            }
+
+            setPct(100, 'Done!', `${total} pages split`);
+
+            // Render preview
+            previewList.innerHTML = _inlineSplitFiles.map((f, i) => `
+                <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#fff;border:1px solid #e0e7ff;border-radius:7px;font-size:12px;">
+                    <i class="fa-solid fa-file-pdf" style="color:#ef4444;font-size:14px;flex-shrink:0;"></i>
+                    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</span>
+                    <span style="color:#9ca3af;flex-shrink:0;">${Math.round(f.bytes.length/1024)} KB</span>
+                    ${(_inlineSplitMeta[i]?.participant_id || _inlineSplitMeta[i]?.respondent_id) ? '<span style="font-size:10px;background:#dcfce7;color:#15803d;border-radius:4px;padding:1px 6px;flex-shrink:0;"><i class="fa-solid fa-link"></i> linked</span>' : ''}
+                </div>
+            `).join('');
+
+            uploadBtn.style.display = '';
+            runBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Re-split';
+            runBtn.disabled = false;
+            showToast(`✓ ${total} certificates ready — click "Upload Split Files"`, 'success');
+
+        } catch(e) {
+            setPct(0, 'Error', e.message);
+            runBtn.disabled = false;
+            runBtn.innerHTML = '<i class="fa-solid fa-scissors"></i> Split &amp; Preview';
+            showToast('Error splitting PDF: ' + e.message, 'error');
+        }
+    }
+
+    /** Upload each split file individually to the server */
+    async function uploadSplitFiles() {
+        if (!_inlineSplitFiles.length) { showToast('Run split first', 'warning'); return; }
+        if (!currentWorkshop) { showToast('Select a program first', 'warning'); return; }
+
+        const uploadBtn = document.getElementById('inlineSplitUploadBtn');
+        const runBtn    = document.getElementById('inlineSplitRunBtn');
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading…';
+        runBtn.disabled = true;
+
+        const type = document.getElementById('uf-type').value;
+        const day  = document.getElementById('uf-day').value;
+        const desc = document.getElementById('uf-desc').value.trim();
+        let uploaded = 0;
+
+        const setPct = (pct, label, msg) => {
+            document.getElementById('inlineSplitProgressFill').style.width = pct + '%';
+            document.getElementById('inlineSplitProgressLabel').textContent = label;
+            document.getElementById('inlineSplitProgressPct').textContent = pct + '%';
+            document.getElementById('inlineSplitProgressMsg').textContent = msg || '';
+        };
+
+        try {
+            for (let i = 0; i < _inlineSplitFiles.length; i++) {
+                const f = _inlineSplitFiles[i];
+                setPct(Math.round((i / _inlineSplitFiles.length) * 90), `Uploading ${i+1} of ${_inlineSplitFiles.length}…`, f.name);
+
+                const blob = new Blob([f.bytes], { type: 'application/pdf' });
+                const fd = new FormData();
+                fd.append('workshop_id', currentWorkshop.id);
+                fd.append('file_type', type);
+                fd.append('day_session', day);
+                fd.append('description', desc || f.name.replace(/\.pdf$/i, ''));
+                fd.append('file', blob, f.name);
+
+                const res = await fetch(`${API}?action=upload_file`, { method: 'POST', body: fd, credentials: 'include' });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Upload failed for ' + f.name);
+                uploaded++;
+            }
+
+            // FIX: link split certs using currentWorkshop (always set on Certificates page).
+            // Old code used selectedWorkshop (splitter tab var) which is null here,
+            // so cert_file_id was never written and Bulk Send showed "no linked certificate".
+            if (currentWorkshop) {
+                try {
+                    const _wid = currentWorkshop.id;
+                    const linkRes = await fetch(`${CONFIG.API_URL}/certificates_api.php?action=save_split_results`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                        body: JSON.stringify({
+                            workshop_id: _wid, program_id: 0, cert_page_workshop_id: _wid,
+                            results: _inlineSplitMeta.map(m => ({
+                                file_name: m.file_name, participant_id: m.participant_id || 0,
+                                respondent_id: m.respondent_id || 0, data: '',
+                            })),
+                        }),
+                    });
+                    const linkJson = await linkRes.json().catch(() => null);
+                    if (linkJson && linkJson.success === false) {
+                        console.warn('cert link failed:', linkJson.error || linkJson.message);
+                    }
+                } catch(e) { console.warn('cert link non-fatal:', e); }
+            }
+
+            setPct(100, 'Done!', `${uploaded} files uploaded`);
+            showToast(`✓ ${uploaded} split certificate(s) uploaded`, 'success');
+
+            // Reset and close
+            pendingFiles = [];
+            renderPendingFiles();
+            _inlineSplitFiles = [];
+            _inlineSplitMeta  = [];
+            closeModal('uploadFileModal');
+            closeModal('filesModal');
+            await loadFiles();
+            // Refresh participants so Bulk Send sees the new cert_file_id values immediately.
+            try {
+                await loadParticipants();
+                if (typeof updateStats === 'function') updateStats();
+            } catch (e) {
+                console.warn('Post-upload participant refresh failed:', e);
+            }
+            openModal('filesModal');
+
+        } catch(e) {
+            showToast('Upload error: ' + e.message, 'error');
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Upload Split Files';
+            runBtn.disabled = false;
+        }
+    }
+
+    // Hook into handleFileSelect / addPendingFiles to trigger splitter detection
+    document.addEventListener('DOMContentLoaded', function () {
+        const _origAddPendingFiles = window.addPendingFiles;
+        // Wrap addPendingFiles to check for multi-page PDF after files are added
+        window.addPendingFiles = function(files) {
+            if (typeof _origAddPendingFiles === 'function') _origAddPendingFiles(files);
+            // Check only when exactly 1 PDF is in queue and type is cert
+            if (pendingFiles.length === 1 && pendingFiles[0].type === 'application/pdf'
+                && document.getElementById('uf-type').value === 'cert') {
+                _checkInlineSplitter(pendingFiles[0]);
+            } else {
+                // Hide splitter panel if multiple files or non-PDF
+                const panel = document.getElementById('inlineSplitterPanel');
+                if (panel) panel.style.display = 'none';
+            }
+        };
+    });
+
+    // Override confirmUpload to intercept when split mode is active
+    document.addEventListener('DOMContentLoaded', function () {
+        const _origConfirmUpload = window.confirmUpload;
+        window.confirmUpload = async function() {
+            const splitterOn = document.getElementById('inlineSplitterToggle')?.checked;
+            if (splitterOn) {
+                // If split files already previewed, upload them
+                if (_inlineSplitFiles.length > 0) {
+                    await uploadSplitFiles();
+                } else {
+                    // Run split first, then upload
+                    await runInlineSplit();
+                    if (_inlineSplitFiles.length > 0) await uploadSplitFiles();
+                }
+                return;
+            }
+            if (typeof _origConfirmUpload === 'function') _origConfirmUpload();
+        };
+    });
+    </script>
+</body>
+
+</html>

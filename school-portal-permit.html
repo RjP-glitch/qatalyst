@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <!-- Prevent browser from caching this page so back-button always re-validates -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>QATALYST - School Permit Submission</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <!--<link rel="stylesheet" href="css/school-portal-submissions.css?v5">-->
+    <link rel="stylesheet" href="css/school-portal-permit.css?v5">
+    <link rel="stylesheet" href="css/school-portal-notifications.css" />
+</head>
+<body data-portal-mode="separate" data-default-tab="permit">
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<div class="main-container">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo-section">
+            <div class="logo-icon">Q</div>
+            <div class="logo-text">
+                <h1>QATALYST</h1>
+                <p>School Portal</p>
+            </div>
+        </div>
+
+        <div class="school-pill-sidebar">
+            <div class="school-pill-label">Your School</div>
+            <div class="school-pill-name" id="sidebarSchoolName">Loading...</div>
+            <div class="school-pill-dist" id="sidebarDistrict">—</div>
+        </div>
+
+        <nav class="nav-menu">
+            <div class="nav-section-label">Main</div>
+            <button class="nav-btn" onclick="window.location.href='school-portal-dashboard.html'">
+                <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='school-portal-submissions.html'">
+                <i class="fa-solid fa-folder-open nav-icon"></i><span>My Submissions</span>
+                <span class="nav-badge" id="pendingBadge" style="display:none;"></span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='school-portal-tracker.html'">
+                <i class="fa-solid fa-chart-gantt nav-icon"></i><span>Document Tracker</span>
+            </button>
+
+            <div class="nav-section-label">Tools</div>
+            <button class="nav-btn" onclick="window.location.href='school-portal-calendar.html'">
+                <i class="fa-solid fa-calendar-days nav-icon"></i><span>School Calendar</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='school-portal-tuition.html'">
+                <i class="fa-solid fa-file-invoice-dollar nav-icon"></i><span>School Tuition Fee</span>
+            </button>
+            <button class="nav-btn active" data-portal-nav="permit" onclick="window.location.href='school-portal-permit.html'">
+                <i class="fa-solid fa-file-shield nav-icon"></i><span>School Permit</span>
+            </button>
+
+            <div class="nav-section-label">Account</div>
+            <button class="nav-btn" onclick="window.location.href='school-portal-audit.html'">
+                <i class="fa-solid fa-clipboard-list nav-icon"></i>
+                <span>Audit Logs</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='school-portal-profile.html'">
+                <i class="fa-solid fa-user-circle nav-icon"></i><span>Profile</span>
+            </button>
+        </nav>
+
+        <div class="user-info-sidebar">
+            <div class="user-avatar-sidebar" id="sidebarAvatar">?</div>
+            <div class="user-details">
+                <h3 id="sidebarName">Loading...</h3>
+                <p id="sidebarRole">—</p>
+            </div>
+        </div>
+        <button class="sidebar-logout-btn" onclick="handleLogout()">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Logout</span>
+        </button>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+    <!-- ── Main Content ───────────────────────────────────────────────────── -->
+    <div class="main-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-left">
+                <h1><i class="fa-solid fa-file-shield"></i> School Permit</h1>
+                <p>DECS Form No. GPR-3 · Government Authority to Operate / Recognition</p>
+            </div>
+            <div class="page-header-right">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="submissions-content">
+
+            <!-- ══ APPLICATIONS LIST VIEW ═══════════════════════════════════ -->
+            <div class="permit-view active" id="appsView">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+                    <div>
+                        <h2 style="font-size:16px;font-weight:800;color:#1a1a2e;">My Permit Applications</h2>
+                        <p style="font-size:12px;color:#6b7280;margin-top:2px;">Submit and track your School Permit (GPR-3) applications</p>
+                    </div>
+                    <button class="btn btn-upload-permit" id="btnNewApplication" onclick="showWizardView()">
+                        <i class="fa-solid fa-plus"></i> New Permit Application
+                    </button>
+                </div>
+
+                <div class="filter-row">
+                    <button class="filter-btn active" onclick="filterApps('all')"      id="f-all"><i class="fa-solid fa-border-all"></i> All</button>
+                    <button class="filter-btn" onclick="filterApps('pending')"          id="f-pending"><i class="fa-solid fa-clock"></i> Pending</button>
+                    <button class="filter-btn" onclick="filterApps('review')"           id="f-review"><i class="fa-solid fa-hourglass-half"></i> Under Review</button>
+                    <button class="filter-btn" onclick="filterApps('approved')"         id="f-approved"><i class="fa-solid fa-circle-check"></i> Approved</button>
+                    <button class="filter-btn" onclick="filterApps('returned')"         id="f-returned"><i class="fa-solid fa-rotate-left"></i> Returned</button>
+                    <div class="sub-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" placeholder="Search by school name, type, or school year…" oninput="handleAppsSearch(this.value)">
+                    </div>
+                </div>
+
+                <div id="appsContent" class="saved-docs-content"></div>
+            </div>
+
+            <!-- ══ WIZARD VIEW ══════════════════════════════════════════════ -->
+            <div class="permit-view" id="wizardView">
+                <div class="wizard-card">
+
+                    <!-- Header -->
+                    <div class="wizard-card-header">
+                        <div>
+                            <h3><i class="fa-solid fa-file-shield"></i> School Permit Submission</h3>
+                            <div class="wizard-subtitle">DECS Form No. GPR-3 · Government Authority to Operate / Recognition</div>
+                        </div>
+                        <button class="upload-modal-close" onclick="resetWizard(); showAppsView();" title="Back to applications">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Step indicator -->
+                    <div class="wizard-steps">
+                        <div class="wstep active" id="wstep-1">
+                            <div class="wstep-num">1</div>
+                            <div class="wstep-label">School Info</div>
+                        </div>
+                        <div class="wstep-line"></div>
+                        <div class="wstep inactive" id="wstep-2">
+                            <div class="wstep-num">2</div>
+                            <div class="wstep-label">Checklist</div>
+                        </div>
+                        <div class="wstep-line"></div>
+                        <div class="wstep inactive" id="wstep-3">
+                            <div class="wstep-num">3</div>
+                            <div class="wstep-label">Upload Files</div>
+                        </div>
+                        <div class="wstep-line"></div>
+                        <div class="wstep inactive" id="wstep-4">
+                            <div class="wstep-num">4</div>
+                            <div class="wstep-label">Review</div>
+                        </div>
+                    </div>
+
+                    <div id="wizardMsg" style="display:none;margin:0 24px;"></div>
+
+                    <!-- ── Step 1: School Info ── -->
+                    <div class="wizard-panel active" id="wpanel-1">
+                        <div class="upload-modal-body">
+                            <div class="wizard-section-title"><i class="fa-solid fa-school"></i> School &amp; Application Details</div>
+
+                            <div class="wform-row">
+                                <div class="wform-group">
+                                    <label>Name of School <span class="req">*</span></label>
+                                    <input type="text" id="w-school-name" placeholder="e.g. St. Mary's Academy">
+                                </div>
+                                <div class="wform-group">
+                                    <label>Address of School <span class="req">*</span></label>
+                                    <input type="text" id="w-school-address" placeholder="Complete address">
+                                </div>
+                            </div>
+                            <div class="wform-row">
+                                <div class="wform-group">
+                                    <label>Course / Program <span class="req">*</span></label>
+                                    <input type="text" id="w-course" placeholder="e.g. Basic Education – Senior High School">
+                                </div>
+                                <div class="wform-group">
+                                    <label>Curriculum Year(s) <span class="req">*</span></label>
+                                    <input type="text" id="w-curriculum-year" placeholder="e.g. Grade 11 – Grade 12">
+                                </div>
+                            </div>
+                            <div class="wform-row">
+                                <div class="wform-group">
+                                    <label>Application Type <span class="req">*</span></label>
+                                    <select id="w-app-type">
+                                        <option value="">— Select —</option>
+                                        <option value="new_school">New School (Government Authority to Operate)</option>
+                                        <option value="recognition">Existing School (Government Recognition)</option>
+                                        <option value="new_course">New Course / Program</option>
+                                    </select>
+                                </div>
+                                <div class="wform-group">
+                                    <label>School Year <span class="req">*</span></label>
+                                    <select id="w-school-year"></select>
+                                </div>
+                            </div>
+                            <div class="wform-group" style="margin-top:4px;">
+                                <label>Government Authority Already Granted (if any)</label>
+                                <input type="text" id="w-gov-authority" placeholder="e.g. Govt. Authority No. 123, s. 2020">
+                            </div>
+                        </div>
+                        <div class="upload-modal-footer">
+                            <button class="btn btn-outline" onclick="resetWizard(); showAppsView();">Cancel</button>
+                            <button class="btn btn-primary" onclick="wizardNext(1)">Next <i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ── Step 2: Checklist ── -->
+                    <div class="wizard-panel" id="wpanel-2">
+                        <div class="upload-modal-body checklist-body">
+                            <div class="wizard-section-title"><i class="fa-solid fa-list-check"></i> Requirements Checklist</div>
+                            <p class="checklist-intro">Check all items you have prepared. Unchecked items will be noted in your submission for the SDO evaluator's attention.</p>
+                            <div id="gpr3-checklist"></div>
+                        </div>
+                        <div class="upload-modal-footer">
+                            <button class="btn btn-outline" onclick="wizardBack(2)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span id="checklist-progress" class="checklist-progress-label"></span>
+                                <button class="btn btn-primary" onclick="wizardNext(2)">Next <i class="fa-solid fa-arrow-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Step 3: Upload Files ── -->
+                    <div class="wizard-panel" id="wpanel-3">
+                        <div class="upload-modal-body">
+                            <div class="wizard-section-title"><i class="fa-solid fa-cloud-upload-alt"></i> Upload Your Requirements</div>
+
+                            <div class="mode-toggle-row">
+                                <button class="mode-toggle-btn mode-active" id="modeMultipleBtn" onclick="setSubmissionMode('multiple')">
+                                    <i class="fa-solid fa-layer-group"></i>
+                                    <span>Multiple Files</span>
+                                    <small>Upload each requirement as a separate file</small>
+                                </button>
+                                <button class="mode-toggle-btn" id="modeSingleBtn" onclick="setSubmissionMode('single')">
+                                    <i class="fa-solid fa-file-zipper"></i>
+                                    <span>One Combined File</span>
+                                    <small>Upload a single file with everything merged</small>
+                                </button>
+                            </div>
+
+                            <div id="existingFilesBox" class="existing-files-box hidden"></div>
+
+                            <!-- Multiple files zone -->
+                            <div id="multiFileZone">
+                                <div class="upload-drop-zone" onclick="document.getElementById('file-permit-multi').click()">
+                                    <div class="upload-drop-icon"><i class="fa-solid fa-file-arrow-up"></i></div>
+                                    <div class="upload-drop-text">Click to browse or drag &amp; drop your files here</div>
+                                    <div class="upload-drop-hint">Accepted: PDF, DOC, DOCX, JPG, PNG · Max 10MB per file · Up to 20 files</div>
+                                    <input type="file" id="file-permit-multi" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" multiple
+                                        onchange="handleMultiFileSelect(this)" style="display:none;">
+                                </div>
+                            </div>
+
+                            <!-- Single combined file zone -->
+                            <div id="singleFileZone" class="hidden">
+                                <div class="upload-drop-zone" onclick="document.getElementById('file-permit-single').click()">
+                                    <div class="upload-drop-icon"><i class="fa-solid fa-file-arrow-up"></i></div>
+                                    <div class="upload-drop-text">Click to browse or drag &amp; drop your combined file here</div>
+                                    <div class="upload-drop-hint">Accepted: PDF, DOC, DOCX, JPG, PNG · Max 10MB · One file with all requirements merged</div>
+                                    <input type="file" id="file-permit-single" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                        onchange="handleSingleFileSelect(this)" style="display:none;">
+                                </div>
+                            </div>
+
+                            <div id="selected-files-list" class="selected-files-list hidden"></div>
+                        </div>
+                        <div class="upload-modal-footer">
+                            <button class="btn btn-outline" onclick="wizardBack(3)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                            <button class="btn btn-primary" onclick="wizardNext(3)">Next <i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ── Step 4: Review & Submit ── -->
+                    <div class="wizard-panel" id="wpanel-4">
+                        <div class="upload-modal-body">
+                            <div class="wizard-section-title"><i class="fa-solid fa-magnifying-glass-check"></i> Review &amp; Submit</div>
+                            <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">Please review your submission before sending it to the SDO.</p>
+
+                            <div class="review-card" id="review-summary"></div>
+
+                            <div class="review-note">
+                                <i class="fa-solid fa-circle-info" style="color:#2456a4;"></i>
+                                By submitting, you confirm that all information provided is accurate and the documents are authentic. This submission will be reviewed by the SDO evaluator in accordance with DepEd Orders.
+                            </div>
+                        </div>
+                        <div class="upload-modal-footer">
+                            <button class="btn btn-outline" onclick="wizardBack(4)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                            <button class="btn btn-primary" id="submitPermitBtn" onclick="submitPermitWizard()">
+                                <i class="fa-solid fa-paper-plane"></i> Submit to SDO
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ── Manage Application Modal ────────────────────────────────────────────── -->
+<div class="upload-modal-overlay" id="manageModalOverlay" onclick="closeManageModal(event)">
+    <div class="upload-modal manage-modal" onclick="event.stopPropagation()">
+        <div class="upload-modal-header">
+            <div>
+                <h3><i class="fa-solid fa-pen-to-square"></i> Manage Application</h3>
+                <div class="wizard-subtitle">Update details, manage files, or review your checklist</div>
+            </div>
+            <button class="upload-modal-close" onclick="closeManageModal()" title="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div id="manageMsg" style="display:none;margin:0 24px;"></div>
+        <div id="manageRemarksBanner" class="hidden" style="margin:0 24px 14px;"></div>
+
+        <div class="upload-modal-body manage-modal-body">
+
+            <div class="wizard-section-title"><i class="fa-solid fa-school"></i> School &amp; Application Details</div>
+            <div class="wform-row">
+                <div class="wform-group">
+                    <label>Name of School <span class="req">*</span></label>
+                    <input type="text" id="m-school-name" placeholder="e.g. St. Mary's Academy">
+                </div>
+                <div class="wform-group">
+                    <label>Address of School <span class="req">*</span></label>
+                    <input type="text" id="m-school-address" placeholder="Complete address">
+                </div>
+            </div>
+            <div class="wform-row">
+                <div class="wform-group">
+                    <label>Course / Program <span class="req">*</span></label>
+                    <input type="text" id="m-course" placeholder="e.g. Basic Education – Senior High School">
+                </div>
+                <div class="wform-group">
+                    <label>Curriculum Year(s) <span class="req">*</span></label>
+                    <input type="text" id="m-curriculum-year" placeholder="e.g. Grade 11 – Grade 12">
+                </div>
+            </div>
+            <div class="wform-row">
+                <div class="wform-group">
+                    <label>Application Type <span class="req">*</span></label>
+                    <select id="m-app-type">
+                        <option value="">— Select —</option>
+                        <option value="new_school">New School (Government Authority to Operate)</option>
+                        <option value="recognition">Existing School (Government Recognition)</option>
+                        <option value="new_course">New Course / Program</option>
+                    </select>
+                </div>
+                <div class="wform-group">
+                    <label>School Year <span class="req">*</span></label>
+                    <select id="m-school-year"></select>
+                </div>
+            </div>
+            <div class="wform-group" style="margin-bottom:18px;">
+                <label>Government Authority Already Granted (if any)</label>
+                <input type="text" id="m-gov-authority" placeholder="e.g. Govt. Authority No. 123, s. 2020">
+            </div>
+
+            <details class="manage-checklist-details">
+                <summary>
+                    <i class="fa-solid fa-list-check"></i> Requirements Checklist
+                    <span id="m-checklist-progress" class="checklist-progress-label" style="margin-left:8px;"></span>
+                </summary>
+                <div id="m-gpr3-checklist" class="manage-checklist-body"></div>
+            </details>
+
+            <div class="wizard-section-title" style="margin-top:20px;">
+                <i class="fa-solid fa-paperclip"></i> Submitted Files
+            </div>
+            <div id="manageExistingFiles" class="existing-files-box"></div>
+
+            <div class="manage-add-files-row">
+                <button class="btn btn-outline" onclick="document.getElementById('manageAddFilesInput').click()">
+                    <i class="fa-solid fa-plus"></i> Add More Files
+                </button>
+                <input type="file" id="manageAddFilesInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" multiple
+                    onchange="handleManageAddFiles(this)" style="display:none;">
+                <span style="font-size:11.5px;color:#9ca3af;">PDF, DOC, DOCX, JPG, PNG · Max 10MB each</span>
+            </div>
+            <div id="manageNewFilesList" class="selected-files-list hidden"></div>
+
+        </div>
+
+        <div class="upload-modal-footer">
+            <button class="btn btn-outline" onclick="closeManageModal()">Cancel</button>
+            <button class="btn btn-primary" id="manageSaveBtn" onclick="saveManageModal()">
+                <i class="fa-solid fa-floppy-disk"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Delete Confirmation Modal ──────────────────────────────────────────── -->
+<div class="upload-modal-overlay" id="deleteModalOverlay" onclick="closeDeleteModal(event)">
+    <div class="upload-modal" onclick="event.stopPropagation()" style="max-width:400px;">
+        <div class="upload-modal-header" style="border-bottom:1px solid #fee2e2;">
+            <h3 style="color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i> Delete Application</h3>
+            <button class="upload-modal-close" onclick="closeDeleteModal()" title="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="upload-modal-body" style="padding:24px;text-align:center;">
+            <div style="font-size:40px;color:#fca5a5;margin-bottom:12px;"><i class="fa-solid fa-file-circle-xmark"></i></div>
+            <p style="font-size:14px;color:#374151;font-weight:600;margin-bottom:6px;">Are you sure you want to delete this application?</p>
+            <p id="deleteAppTitle" style="font-size:13px;color:#6b7280;"></p>
+            <p style="font-size:12px;color:#ef4444;margin-top:8px;">This will remove all files in this application. This action cannot be undone.</p>
+        </div>
+        <div class="upload-modal-footer">
+            <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn" style="background:#dc2626;color:#fff;" onclick="confirmDeleteApp()"><i class="fa-solid fa-trash"></i> Delete</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/config.js?v5"></script>
+<script src="js/school-portal-permissions.js"></script>
+<script src="js/school-portal-permit.js?v6"></script>
+<script src="js/school-portal-notifications.js?v3"></script>
+
+</body>
+</html>

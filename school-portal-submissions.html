@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <!-- Prevent browser from caching this page so back-button always re-validates -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>QATALYST - School Portal Submissions</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="css/school-portal-submissions.css?v7">
+    <link rel="stylesheet" href="css/school-portal-notifications.css" />
+</head>
+<body data-portal-mode="separate" data-default-tab="submissions">
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<div class="main-container">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo-section">
+            <div class="logo-icon">Q</div>
+            <div class="logo-text">
+                <h1>QATALYST</h1>
+                <p>School Portal</p>
+            </div>
+        </div>
+
+        <div class="school-pill-sidebar">
+            <div class="school-pill-label">Your School</div>
+            <div class="school-pill-name" id="sidebarSchoolName">Loading...</div>
+            <div class="school-pill-dist" id="sidebarDistrict">—</div>
+        </div>
+
+        <nav class="nav-menu">
+            <div class="nav-section-label">Main</div>
+            <button class="nav-btn" onclick="window.location.href='school-portal-dashboard.html'">
+                <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+            </button>
+            <button class="nav-btn active" onclick="window.location.href='school-portal-submissions.html'">
+                <i class="fa-solid fa-folder-open nav-icon"></i><span>My Submissions</span>
+                <span class="nav-badge" id="pendingBadge" style="display:none;"></span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='school-portal-tracker.html'">
+                <i class="fa-solid fa-chart-gantt nav-icon"></i><span>Document Tracker</span>
+            </button>
+
+            <div class="nav-section-label">Tools</div>
+            <button class="nav-btn" onclick="window.location.href='school-portal-calendar.html'">
+                <i class="fa-solid fa-calendar-days nav-icon"></i><span>School Calendar</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='school-portal-tuition.html'">
+                <i class="fa-solid fa-file-invoice-dollar nav-icon"></i><span>School Tuition Fee</span>
+			</button>
+			<button class="nav-btn" data-portal-nav="permit" onclick="window.location.href='school-portal-permit.html'">
+                <i class="fa-solid fa-file-shield nav-icon"></i><span>School Permit</span>
+            </button>
+
+            <div class="nav-section-label">Account</div>
+            <button class="nav-btn" onclick="window.location.href='school-portal-audit.html'">
+                <i class="fa-solid fa-clipboard-list nav-icon"></i>
+                <span>Audit Logs</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='school-portal-profile.html'">
+                <i class="fa-solid fa-user-circle nav-icon"></i><span>Profile</span>
+            </button>
+        </nav>
+
+        <div class="user-info-sidebar">
+            <div class="user-avatar-sidebar" id="sidebarAvatar">?</div>
+            <div class="user-details">
+                <h3 id="sidebarName">Loading...</h3>
+                <p id="sidebarRole">—</p>
+            </div>
+        </div>
+        <button class="sidebar-logout-btn" onclick="handleLogout()">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Logout</span>
+        </button>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+    <!-- ── Main Content ───────────────────────────────────────────────────── -->
+    <div class="main-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-left">
+                <h1 id="pageTitle"><i class="fa-solid fa-folder-open"></i> My Submissions</h1>
+                <p id="pageSubtitle">Track the status of all submitted documents</p>
+            </div>
+            <div class="page-header-right">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="submissions-content">
+
+            <!-- ══ SUBMISSIONS ══════════════════════════════════════════════ -->
+            <div class="tab-panel active" id="tab-submissions">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <div>
+                        <h2 style="font-size:16px;font-weight:800;color:#1a1a2e;">My Submissions</h2>
+                        <p style="font-size:12px;color:#6b7280;margin-top:2px;">Track the status of all submitted documents</p>
+                    </div>
+                    <div class="upload-btn-group">
+                        <button class="btn btn-upload-calendar" onclick="window.location.href='school-portal-calendar.html'" title="Upload School Calendar">
+                            <i class="fa-solid fa-calendar-days"></i> Upload Calendar
+                        </button>
+                        <button class="btn btn-upload-tuition" onclick="window.location.href='school-portal-tuition.html'" title="Upload Tuition Fee">
+                            <i class="fa-solid fa-file-invoice-dollar"></i> Upload Tuition Fee
+                        </button>
+                        <a class="btn btn-upload-permit" href="school-portal-permit.html" title="Upload School Permit" style="text-decoration:none;">
+                            <i class="fa-solid fa-file-shield"></i> Upload Permit
+                        </a>
+                    </div>
+                </div>
+
+                <div class="filter-row">
+                    <button class="filter-btn active" onclick="filterSubs('all')"        id="f-all"><i class="fa-solid fa-border-all"></i> All</button>
+                    <button class="filter-btn" onclick="filterSubs('tuition')"           id="f-tuition"><i class="fa-solid fa-money-bill-trend-up"></i> Tuition Fee</button>
+                    <button class="filter-btn" onclick="filterSubs('no_tuition')"        id="f-no_tuition"><i class="fa-solid fa-money-bill"></i> No Tuition</button>
+                    <button class="filter-btn" onclick="filterSubs('calendar')"          id="f-calendar"><i class="fa-solid fa-calendar-alt"></i> School Calendar</button>
+                    <button class="filter-btn" onclick="filterSubs('permit')"            id="f-permit"><i class="fa-solid fa-file-shield"></i> School Permit</button>
+                    <div class="sub-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input id="subSearchInput" type="search" placeholder="Search submissions"
+                            oninput="handleSubSearch(this.value)">
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-card-body" style="padding:0;">
+                        <table class="submissions-table">
+                            <thead>
+                                <tr>
+                                    <th>Document</th>
+                                    <th>Type</th>
+                                    <th>Date Submitted</th>
+                                    <th>Endorsements</th>
+                                    <th>Status</th>
+                                    <th>Remarks</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allSubmissionsBody">
+                                <tr><td colspan="7">
+                                    <div class="empty-state">
+                                        <i class="fa-solid fa-spinner fa-spin"></i>
+                                        <p>Loading...</p>
+                                    </div>
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab-tracker">
+
+                <div class="tracker-header">
+                    <div class="tracker-header-left">
+                        <h2>Document Tracker</h2>
+                        <p>Live status of your school's documents as tracked by the SDO office</p>
+                    </div>
+                    <div class="tracker-year-wrap">
+                        <label for="trackerYearSelect">School Year</label>
+                        <select id="trackerYearSelect" onchange="trackerChangeYear()">
+                            <option>Loading…</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-card-body">
+                        <div id="trackerContent">
+                            <!-- Populated by renderTracker() -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div><!-- /submissions-content -->
+    </div><!-- /main-content -->
+</div><!-- /main-container -->
+
+<!-- ── Delete Confirmation Modal ──────────────────────────────────────────── -->
+<div class="upload-modal-overlay" id="deleteModalOverlay" onclick="closeDeleteModal(event)">
+    <div class="upload-modal" onclick="event.stopPropagation()" style="max-width:400px;">
+        <div class="upload-modal-header" style="border-bottom:1px solid #fee2e2;">
+            <h3 style="color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i> Delete Submission</h3>
+            <button class="upload-modal-close" onclick="closeDeleteModal()" title="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="upload-modal-body" style="padding:24px;text-align:center;">
+            <div style="font-size:40px;color:#fca5a5;margin-bottom:12px;"><i class="fa-solid fa-file-circle-xmark"></i></div>
+            <p style="font-size:14px;color:#374151;font-weight:600;margin-bottom:6px;">Are you sure you want to delete this submission?</p>
+            <p id="deleteSubTitle" style="font-size:13px;color:#6b7280;"></p>
+            <p style="font-size:12px;color:#ef4444;margin-top:8px;">This action cannot be undone.</p>
+        </div>
+        <div class="upload-modal-footer">
+            <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn" style="background:#dc2626;color:#fff;" onclick="confirmDelete()"><i class="fa-solid fa-trash"></i> Delete</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/config.js?v5"></script>
+<script src="js/school-portal-permissions.js"></script>
+<script src="js/school-portal-submissions.js?v11"></script>
+<script src="js/school-portal-notifications.js?v3"></script>
+
+</body>
+</html>

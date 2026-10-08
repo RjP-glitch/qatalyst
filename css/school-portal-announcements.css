@@ -1,0 +1,319 @@
+/**
+ * School Portal Announcements — supplemental styles.
+ * Sidebar, hamburger, mobile responsiveness -> school-portal-dashboard.css
+ */
+
+/* ── Stats bar ─────────────────────────────────────────────────────────── */
+.ann-stats-bar {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    max-width: 800px;
+    margin: 0 auto 18px;
+    padding: 14px 20px;
+    background: linear-gradient(90deg, #12294f, #1a3a6b);
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(26, 58, 107, 0.12);
+}
+
+.ann-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.ann-stat-num {
+    font-size: 20px;
+    font-weight: 800;
+    color: #f5d800;
+    font-family: 'DM Serif Display', serif;
+    line-height: 1;
+}
+
+.ann-stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #cbd9f2;
+}
+
+.ann-stat-updated {
+    margin-left: auto;
+    font-size: 12px;
+    color: #9fb3d6;
+    white-space: nowrap;
+}
+
+/* ── Section labels (bulletin-board style dividers) ───────────────────── */
+.ann-section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 -2px;
+}
+
+.ann-section-label span {
+    font-family: 'DM Serif Display', serif;
+    font-size: 13px;
+    font-style: italic;
+    letter-spacing: 0.03em;
+    color: #1a3a6b;
+    white-space: nowrap;
+}
+
+.ann-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, #e2e8f0, transparent);
+}
+
+.ann-section-label.pinned span {
+    color: #b45309;
+}
+
+.ann-section-label.pinned::after {
+    background: linear-gradient(90deg, #fcd34d, transparent);
+}
+
+.ann-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.ann-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: 0 2px 10px rgba(26, 58, 107, 0.06);
+    position: relative;
+}
+
+.ann-card.pinned {
+    border-left: 4px solid #f5d800;
+    background: linear-gradient(90deg, #fffbeb, #ffffff 12%);
+}
+
+.ann-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.ann-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a2e;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ann-card-title i.fa-thumbtack {
+    color: #d97706;
+    font-size: 13px;
+}
+
+.ann-new-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #ffffff;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-radius: 20px;
+    padding: 2px 8px;
+    line-height: 1.5;
+}
+
+.ann-card-date-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.ann-card-date {
+    font-size: 12px;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+.ann-card-relative {
+    font-size: 11px;
+    color: #b6c2d6;
+    white-space: nowrap;
+}
+
+.ann-card-expiry {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    padding: 3px 8px;
+    margin-top: 10px;
+    width: fit-content;
+}
+
+.ann-card-body {
+    font-size: 14px;
+    color: #374151;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.ann-card-body.truncated {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ann-read-more {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #1a3a6b;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.ann-read-more:hover {
+    color: #f59e0b;
+}
+
+/* ── Empty / loading / error states (bulletin-board style) ────────────── */
+.ann-empty-state {
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    padding: 56px 32px;
+    background: #ffffff;
+    border: 1.5px dashed #d6deeb;
+    border-radius: 14px;
+}
+
+.ann-empty-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #12294f, #1a3a6b);
+    box-shadow: 0 4px 14px rgba(26, 58, 107, 0.18);
+}
+
+.ann-empty-icon i {
+    font-size: 20px;
+    color: #f5d800;
+}
+
+.ann-empty-state h3 {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 18px;
+    font-weight: 400;
+    color: #1a3a6b;
+    margin: 0;
+}
+
+.ann-empty-state p {
+    font-size: 13.5px;
+    color: #8a97ad;
+    line-height: 1.6;
+    max-width: 420px;
+    margin: 0;
+}
+
+/* Loading — calmer, no dashed border, muted icon badge */
+.ann-empty-loading {
+    border-style: solid;
+    border-color: #e2e8f0;
+}
+
+.ann-empty-loading .ann-empty-icon {
+    background: #eef2f9;
+    box-shadow: none;
+}
+
+.ann-empty-loading .ann-empty-icon i {
+    color: #1a3a6b;
+    font-size: 18px;
+}
+
+.ann-empty-loading h3 {
+    color: #4b5768;
+}
+
+/* Error — warm red accent instead of navy/gold */
+.ann-empty-error {
+    border-style: solid;
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.ann-empty-error .ann-empty-icon {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.18);
+}
+
+.ann-empty-error .ann-empty-icon i {
+    color: #ffffff;
+}
+
+.ann-empty-error h3 {
+    color: #b91c1c;
+}
+
+.ann-empty-error p {
+    color: #9b6a6a;
+}
+
+@media (max-width: 800px) {
+    .ann-empty-state {
+        padding: 44px 20px;
+    }
+
+
+    .ann-card-header {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .ann-card-date-block {
+        align-items: flex-start;
+    }
+
+    .ann-stats-bar {
+        flex-wrap: wrap;
+        gap: 14px 24px;
+    }
+
+    .ann-stat-updated {
+        margin-left: 0;
+    }
+}

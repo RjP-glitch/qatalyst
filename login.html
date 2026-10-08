@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>QATALYST - Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        /* ── Variables (mirrors index.html) ── */
+        :root {
+            --bg: linear-gradient(135deg,#060e1f 0%,#0a1f3d 55%,#0f2d5a 100%);
+            --text: #eef2ff;
+            --text2: #aebedd;
+            --text3: #7d93b8;
+            --surf: rgba(255,255,255,0.06);
+            --surfh: rgba(255,255,255,0.1);
+            --bdr: rgba(255,255,255,0.12);
+            --bdrh: rgba(255,255,255,0.22);
+            --grid: rgba(255,255,255,0.03);
+            --blue: #2456a4;
+            --violet: #7c3aed;
+            --blue-light: #4a90d9;
+            --violet-light: #a78bfa;
+            --accent: #4a90d9;
+        }
+
+        body.light {
+            --bg: linear-gradient(135deg,#EEF2FF 0%,#F3E8FF 50%,#FCE7F3 100%);
+            --text: #1a1a2e;
+            --text2: #374151;
+            --text3: #6b7280;
+            --surf: #ffffff;
+            --surfh: #f8fafc;
+            --bdr: rgba(0,0,0,0.06);
+            --bdrh: rgba(0,0,0,0.12);
+            --grid: rgba(0,0,0,0.035);
+            --accent: #2456a4;
+        }
+        body.light .login-card,body.light .feature-pill{box-shadow:0 2px 12px rgba(0,0,0,.06)}
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            transition: background .35s, color .35s;
+            position: relative;
+        }
+
+        /* ── Background orbs (same as index) ── */
+        .bg-orbs {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            animation: orb-float 22s ease-in-out infinite alternate;
+        }
+        .orb1 {
+            width: 60vw; height: 55vw;
+            top: -15%; left: -15%;
+            background: rgba(36,86,164,.12);
+        }
+        .orb2 {
+            width: 55vw; height: 45vw;
+            bottom: -10%; right: -10%;
+            background: rgba(124,58,237,.08);
+            animation-direction: alternate-reverse;
+            animation-duration: 19s;
+        }
+        @keyframes orb-float {
+            0%   { transform: translate(0,0); }
+            100% { transform: translate(3%,5%); }
+        }
+
+        /* ── Grid bg ── */
+        .gridbg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(var(--grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* ── Header (matches index / dashboard page-header) ── */
+        header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            background: linear-gradient(90deg,#0a1f3d 0%,#1a3a6b 50%,#2456a4 100%);
+            border-bottom: 3px solid #f5d800;
+            box-shadow: 0 4px 16px rgba(10,31,61,.3);
+        }
+
+        .hdr {
+            height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+        .lmark {
+            width: 36px; height: 36px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 17px;
+            color: #fff;
+            box-shadow: 0 0 16px rgba(59,130,246,.28);
+            flex-shrink: 0;
+        }
+        .lname {
+            font-size: 1.05rem;
+            font-weight: 600;
+            letter-spacing: .5px;
+            color: #fff;
+            white-space: nowrap;
+        }
+
+        /* toggle */
+        .tgl-w { display: flex; align-items: center; gap: 6px; }
+        .tgl-ic { font-size: .75rem; color: rgba(255,255,255,.7); }
+        .tgl {
+            position: relative;
+            width: 40px; height: 22px;
+            border-radius: 11px;
+            cursor: pointer;
+            background: rgba(255,255,255,.16);
+            border: 1px solid rgba(255,255,255,.3);
+            transition: background .3s;
+            flex-shrink: 0;
+        }
+        .tgl input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .tgl-fill {
+            position: absolute; inset: 0;
+            border-radius: inherit;
+            background: transparent;
+            transition: background .3s;
+            pointer-events: none;
+        }
+        .tgl input:checked + .tgl-fill { background: linear-gradient(90deg,#2456a4,#4a90d9); }
+        .tgl-thumb {
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform .3s;
+            box-shadow: 0 1px 4px rgba(0,0,0,.3);
+            pointer-events: none;
+        }
+        .tgl input:checked ~ .tgl-thumb { transform: translateX(18px); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: .5rem 1.1rem;
+            border-radius: 9px;
+            font-size: .875rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all .22s;
+            cursor: pointer;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            white-space: nowrap;
+            border: 1.5px solid transparent;
+        }
+        .btn-g {
+            background: transparent;
+            border-color: rgba(255,255,255,0.32);
+            color: #fff;
+        }
+        .btn-g:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,.55); }
+
+        /* ── Login card wrapper ── */
+        .login-outer {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 6rem 2rem 3rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* eyebrow pill (matches hero) */
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: .42rem .95rem;
+            border-radius: 50px;
+            background: rgba(36,86,164,.1);
+            border: 1px solid rgba(36,86,164,.22);
+            font-size: .78rem;
+            color: var(--accent);
+            letter-spacing: .6px;
+            text-transform: uppercase;
+            margin-bottom: 1.75rem;
+            animation: fadeUp .5s forwards;
+        }
+        .edot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pdot 2s infinite;
+        }
+        @keyframes pdot { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+
+        /* card */
+        .login-card {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-radius: 22px;
+            overflow: hidden;
+            border: 1px solid var(--bdr);
+            box-shadow: 0 30px 80px rgba(0,0,0,.5);
+            animation: fadeUp .65s .1s both;
+        }
+
+        /* ── Left panel ── */
+        .brand-panel {
+            background: linear-gradient(160deg,rgba(36,86,164,.08) 0%, rgba(124,58,237,.06) 100%);
+            border-right: 1px solid var(--bdr);
+            padding: 3rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+        body.light .brand-panel { background: rgba(36,86,164,.04); }
+
+        /* decorative circles (matches index .pcard::after) */
+        .brand-panel::after {
+            content: '';
+            position: absolute;
+            top: -80px; right: -80px;
+            width: 300px; height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(124,58,237,.12), transparent 70%);
+            pointer-events: none;
+        }
+
+        .brand-top { position: relative; z-index: 1; }
+
+        .brand-logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 2.5rem;
+        }
+        .brand-icon {
+            width: 44px; height: 44px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 20px;
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(59,130,246,.28);
+        }
+        .brand-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: .5px;
+            cursor: pointer;
+            transition: color .35s;
+        }
+        .brand-name span { color: var(--accent); }
+        .brand-tagline {
+            font-size: 10px;
+            color: var(--text3);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 3px;
+            font-weight: 400;
+            transition: color .35s;
+        }
+
+        .brand-headline {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 1.85rem;
+            line-height: 1.2;
+            letter-spacing: -.3px;
+            color: var(--text);
+            margin-bottom: .9rem;
+            transition: color .35s;
+        }
+        .brand-headline span {
+            background: linear-gradient(90deg, #4a90d9, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .brand-desc {
+            font-size: .855rem;
+            color: var(--text2);
+            line-height: 1.7;
+            font-weight: 300;
+            transition: color .35s;
+        }
+
+        .brand-bottom { position: relative; z-index: 1; }
+
+        .feature-pills {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+        .feature-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surf);
+            border: 1px solid var(--bdr);
+            border-radius: 11px;
+            padding: 9px 13px;
+            font-size: 12.5px;
+            color: var(--text2);
+            transition: background .25s, border-color .25s;
+        }
+        .feature-pill:hover { background: var(--surfh); border-color: var(--bdrh); }
+        .pill-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ── Right / form panel ── */
+        .form-panel {
+            background: var(--surf);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 3rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        body.light .form-panel { background: rgba(255,255,255,0.85); }
+
+        .form-eyebrow {
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent);
+            margin-bottom: .75rem;
+            font-weight: 500;
+        }
+        .form-panel h1 {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 2rem;
+            letter-spacing: -.3px;
+            color: var(--text);
+            margin-bottom: .4rem;
+            transition: color .35s;
+        }
+        .form-panel > .subtitle {
+            font-size: .855rem;
+            color: var(--text2);
+            margin-bottom: 1.75rem;
+            font-weight: 300;
+            transition: color .35s;
+        }
+
+        /* portal badge (matches index .eyebrow) */
+        .qatalyst-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: .32rem .8rem;
+            border-radius: 50px;
+            background: rgba(36,86,164,.1);
+            border: 1px solid rgba(36,86,164,.22);
+            font-size: .72rem;
+            color: var(--accent);
+            letter-spacing: .5px;
+            margin-bottom: 1.6rem;
+        }
+        .q-dot {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        }
+
+        /* error */
+        .error-message {
+            background: rgba(239,68,68,.12);
+            border: 1px solid rgba(239,68,68,.3);
+            color: #f87171;
+            padding: .65rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.1rem;
+            font-size: .8rem;
+            display: none;
+        }
+        .error-message.show { display: block; }
+
+        /* form groups */
+        .form-group { margin-bottom: 1.15rem; }
+        .form-group label {
+            display: block;
+            font-size: .77rem;
+            font-weight: 500;
+            color: var(--text2);
+            margin-bottom: .45rem;
+            letter-spacing: .3px;
+            text-transform: uppercase;
+            transition: color .35s;
+        }
+
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+
+        .input-icon {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text3);
+            font-size: 14px;
+            pointer-events: none;
+            transition: color .25s;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: .72rem 1rem .72rem 2.6rem;
+            background: rgba(255,255,255,.04);
+            border: 1px solid var(--bdr);
+            border-radius: 10px;
+            font-size: .88rem;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text);
+            transition: all .25s;
+        }
+        body.light .form-group input {
+            background: rgba(255,255,255,.8);
+            color: #0d1117;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: rgba(36,86,164,.5);
+            background: rgba(36,86,164,.05);
+            box-shadow: 0 0 0 3px rgba(36,86,164,.1);
+        }
+        .form-group input::placeholder { color: var(--text3); }
+
+        /* toggle password */
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text3);
+            cursor: pointer;
+            font-size: 14px;
+            user-select: none;
+            transition: color .2s;
+            z-index: 2;
+        }
+        .toggle-password:hover { color: var(--accent); }
+
+        /* options row */
+        .form-options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.4rem;
+            font-size: .8rem;
+        }
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--text2);
+            cursor: pointer;
+            user-select: none;
+            transition: color .35s;
+        }
+        .remember-me input[type="checkbox"] {
+            width: 15px; height: 15px;
+            accent-color: #2456a4;
+            cursor: pointer;
+        }
+        .forgot-password {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color .2s;
+        }
+        .forgot-password:hover { color: #7c3aed; }
+
+        /* submit button (matches index .btn-p) */
+        .login-btn {
+            width: 100%;
+            padding: .8rem 1.5rem;
+            background: linear-gradient(135deg, #2456a4, #3b7dd8);
+            color: #fff;
+            font-weight: 600;
+            border: none;
+            border-radius: 11px;
+            font-size: .95rem;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            cursor: pointer;
+            transition: all .3s ease;
+            box-shadow: 0 4px 18px rgba(36,86,164,.25);
+            letter-spacing: .3px;
+        }
+        .login-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 28px rgba(36,86,164,.38);
+        }
+        .login-btn:disabled {
+            background: linear-gradient(135deg, #374151, #4b5563);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* divider */
+        .divider {
+            height: 1px;
+            background: var(--bdr);
+            margin: 1.5rem 0;
+        }
+
+        /* footer */
+        .form-footer {
+            margin-top: 1.4rem;
+            text-align: center;
+            font-size: .72rem;
+            color: var(--text3);
+            transition: color .35s;
+        }
+
+        /* loading dots */
+        .loading {
+            display: inline-block;
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: #fff;
+            margin: 0 2px;
+            animation: ldot 1.4s infinite;
+        }
+        .loading:nth-child(2) { animation-delay: .2s; }
+        .loading:nth-child(3) { animation-delay: .4s; }
+        @keyframes ldot {
+            0%,60%,100% { opacity: .4; }
+            30% { opacity: 1; }
+        }
+
+        /* ── Animations ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 720px) {
+            .login-card { grid-template-columns: 1fr; }
+            .brand-panel {
+                padding: 2rem 1.75rem 1.5rem;
+                border-right: none;
+                border-bottom: 1px solid var(--bdr);
+            }
+            .brand-headline { font-size: 1.4rem; }
+            .feature-pills { display: none; }
+            .form-panel { padding: 2rem 1.75rem; }
+            .login-outer { padding: 5rem 1.25rem 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+</div>
+<div class="gridbg"></div>
+
+<!-- Header -->
+<header>
+    <div class="hdr">
+        <a class="logo" href="index.html">
+            <div class="lmark">Q</div>
+            <span class="lname">QATALYST</span>
+        </a>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div class="tgl-w">
+                <i class="fas fa-moon tgl-ic" aria-hidden="true"></i>
+                <label class="tgl" aria-label="Toggle light/dark theme">
+                    <input type="checkbox" id="themeToggle">
+                    <div class="tgl-fill"></div>
+                    <div class="tgl-thumb"></div>
+                </label>
+                <i class="fas fa-sun tgl-ic" aria-hidden="true"></i>
+            </div>
+            <a href="index.html" class="btn btn-g">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>Back</span>
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- Main -->
+<main class="login-outer">
+
+    <div class="eyebrow">
+        <span class="edot"></span>
+        QRES Portal &middot; Secure Access
+    </div>
+
+    <div class="login-card">
+
+        <!-- Left: Brand panel -->
+        <div class="brand-panel">
+            <div class="brand-top">
+                <div class="brand-logo-area">
+                    <div class="brand-icon">Q</div>
+                    <div>
+                        <div class="brand-name" onclick="window.location.href='index.html';">
+                            QATA<span>LYST</span>
+                        </div>
+                        <div class="brand-tagline">Quality Assurance · Tracking · Analytics</div>
+                    </div>
+                </div>
+
+                <h2 class="brand-headline">
+                    Powered by <span>QRES</span> —<br>Real-time Evaluation System
+                </h2>
+                <p class="brand-desc">
+                    Manage training workshops, track participant feedback, and generate insightful evaluation reports — all in one unified platform.
+                </p>
+            </div>
+
+            <div class="brand-bottom">
+                <div class="feature-pills">
+                    <div class="feature-pill">
+                        <div class="pill-dot" style="background:#4a90d9;"></div>
+                        Real-time response tracking
+                    </div>
+                    <div class="feature-pill">
+                        <div class="pill-dot" style="background:#a78bfa;"></div>
+                        Speaker &amp; session evaluation
+                    </div>
+                    <div class="feature-pill">
+                        <div class="pill-dot" style="background:#fb7185;"></div>
+                        Demographic analytics &amp; insights
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Form panel -->
+        <div class="form-panel">
+            <div class="form-eyebrow">Welcome back</div>
+            <h1>Sign In</h1>
+            <p class="subtitle">Access your dashboard to manage workshops</p>
+
+            <div class="qatalyst-badge">
+                <div class="q-dot"></div>
+                Qatalyst · QRES Portal
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon"><i class="fa-solid fa-envelope"></i></span>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            autocomplete="username"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon"><i class="fa-solid fa-lock"></i></span>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                        >
+                        <span class="toggle-password" id="togglePassword" title="Show/Hide Password">
+                            <i class="fa-solid fa-eye-slash"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="rememberMe">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="forgot-password.html" class="forgot-password">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    Sign In to Dashboard
+                </button>
+            </form>
+
+            <div class="divider"></div>
+
+            <div class="form-footer">
+                &copy; 2026 Qatalyst &middot; QRES &middot; SDO Baliwag. All rights reserved.
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    /* ── Theme toggle ── */
+    const toggle = document.getElementById('themeToggle');
+    const saved = localStorage.getItem('qatalyst-theme');
+    if (saved === 'light') { document.body.classList.add('light'); toggle.checked = true; }
+    toggle.addEventListener('change', () => {
+        if (toggle.checked) { document.body.classList.add('light'); localStorage.setItem('qatalyst-theme','light'); }
+        else { document.body.classList.remove('light'); localStorage.removeItem('qatalyst-theme'); }
+    });
+</script>
+<script src="js/config.js"></script>
+<script src="js/login.js"></script>
+</body>
+</html>

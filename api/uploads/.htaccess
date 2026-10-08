@@ -1,0 +1,44 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# UPLOADS FOLDER SECURITY
+# CRITICAL: Prevent PHP/script execution in uploads directory
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Disable PHP execution completely
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# Block dangerous file extensions
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar|exe|sh|bash|cgi|pl|py|asp|aspx|jsp)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Force downloads for all files (prevents browser execution)
+<IfModule mod_headers.c>
+    Header set Content-Disposition "attachment"
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
+
+# Only allow specific file types
+<FilesMatch "\.(?i:pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|jpg|jpeg|png|gif|webp|zip|rar|7z|enc)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Disable directory listing
+Options -Indexes -ExecCGI
+
+# Deny .htaccess access
+<Files .htaccess>
+    Order Allow,Deny
+    Deny from all
+</Files>

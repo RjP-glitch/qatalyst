@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST — Excel Importer</title>
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;family=Syne:wght@400;600;700;800&amp;family=DM+Mono:wght@400;500&amp;family=Manrope:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/import-excell.css?v2">
+    <link rel="stylesheet" href="css/notifications.css">
+    <style>
+            /* ── Scrollbar ── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        /* ── Duplicate response notice banner ──────────────────────────────── */
+        #duplicateNoticeBanner {
+            margin: 0 0 14px;
+            border: 1.5px solid #f59e0b;
+            border-radius: 10px;
+            background: #fffbeb;
+            overflow: hidden;
+            font-family: inherit;
+        }
+        .dup-banner-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 16px;
+            cursor: pointer;
+            user-select: none;
+            background: #fef3c7;
+            flex-wrap: wrap;
+        }
+        .dup-banner-header:hover { background: #fde68a; }
+        .dup-banner-icon   { font-size: 16px; }
+        .dup-banner-title  { font-weight: 700; color: #92400e; font-size: 13.5px; }
+        .dup-banner-sub    { color: #b45309; font-size: 12.5px; flex: 1; }
+        .dup-banner-toggle { margin-left: auto; font-size: 12px; color: #92400e; font-weight: 600; white-space: nowrap; }
+        .dup-banner-body {
+            padding: 12px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 16px;
+        }
+        .dup-banner-body.dup-collapsed { display: none; }
+        .dup-group-label {
+            width: 100%;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #78350f;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-bottom: 2px;
+        }
+        .dup-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fef9ee;
+            border: 1px solid #fcd34d;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 12.5px;
+        }
+        .dup-name { font-weight: 600; color: #92400e; }
+        .dup-rows { font-size: 11px; color: #b45309; background: #fde68a; border-radius: 4px; padding: 1px 6px; }
+        @keyframes pulse-ring {
+          0%  { transform: scale(0.8); opacity: 0.8; }
+          100%{ transform: scale(1.8); opacity: 0; }
+        }
+        
+        .tour-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          background: rgba(255,255,255,0.12);
+          border: 1.5px solid rgba(255,255,255,0.35);
+          border-radius: 12px;
+          padding: 8px 16px 8px 10px;
+          color: #fff;
+          cursor: pointer;
+          font-family: inherit;
+          transition: background 0.15s, border-color 0.15s;
+        }
+        .tour-btn:hover { background: rgba(255,255,255,0.2); }
+        
+        .tour-btn-icon {
+          width: 32px; height: 32px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.2);
+          display: flex; align-items: center; justify-content: center;
+          position: relative;
+        }
+        
+        .tour-btn-pulse {
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          border: 1.5px solid rgba(255,255,255,0.6);
+          animation: pulse-ring 1.8s ease-out infinite;
+        }
+        
+        .tour-btn-label { font-size: 14px; font-weight: 500; }
+        .tour-btn-sub   { font-size: 11px; opacity: 0.75; }
+        
+        /* was missing — add this */
+        .tour-btn-cap {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        
+        /* rename from .tour-btn-pulse-dot */
+        .tour-btn-pulse-dot {
+          width: 6px; height: 6px;
+          border-radius: 50%;
+          background: #5eead4;
+          flex-shrink: 0;
+          margin-left: 4px;
+        }
+    </style>
+    <link rel="stylesheet" href="css/manual-help-btn.css">
+</head>
+
+<body>
+
+    <div class="main-container">
+
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('certs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="certs-arrow"></i>
+                </button>
+                <div class="submenu" id="certs-submenu">
+                    <button class="nav-btn" onclick="navigate('certificates')"><span>Generator</span></button>
+                    <button class="nav-btn" onclick="navigate('certificatesplitter')"><span>Splitter</span></button>
+                </div>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+
+        <!-- Mobile sidebar backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             MAIN CONTENT
+             ══════════════════════════════════════════════════════════════ -->
+        <div class="main-content">
+
+            <!-- ── Page Header ── -->
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-file-excel"></i> Excel Importer</h1>
+                    <p>Import → Map Columns → Compute Results → Save to Database</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="manual-help-btn" type="button" onclick="openTutorial()">
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <!-- Take a Tour button — replace existing plain button -->
+                    <button class="tour-btn"
+                            onclick="startGuidedTour()"
+                            title="Start the interactive guided tour">
+                        <div class="tour-btn-icon">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            <div class="tour-btn-pulse"></div>
+                        </div>
+                        <div class="tour-btn-cap">
+                            <span class="tour-btn-label">Take a Tour</span>
+                            <span class="tour-btn-sub">Interactive walkthrough</span>
+                        </div>
+                        <div class="tour-btn-pulse-dot"></div>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+                    <div class="tb-file-badge" id="fileBadge" style="display:none">
+                        <span>📊</span><span id="fileNameLabel"></span>
+                    </div>
+                    <div class="header-dropdown">
+                        <button class="header-link" onclick="toggleHeaderDropdown(event)" title="More actions">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                        <div class="header-dropdown-menu" id="headerDropdownMenu">
+                            <button class="dropdown-item" onclick="downloadJSON()">
+                                <i class="fa-solid fa-download"></i> Export JSON
+                            </button>
+                            <button class="dropdown-item" onclick="openSaveConfigModal()">
+                                <i class="fa-solid fa-bookmark"></i> Save Config
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item dropdown-item--danger" onclick="logout()">
+                                <i class="fa-solid fa-right-from-bracket"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Section Tabs ── -->
+            <div class="section-tabs">
+                <button class="tab-btn active" data-sec="columns" onclick="setSection(this)">
+                    <i class="fa-solid fa-table-columns"></i>
+                    <span>① Import &amp; Map</span>
+                </button>
+                <button class="tab-btn" data-sec="compute" onclick="setSection(this)" id="tabCompute">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>② Compute &amp; Results</span>
+                </button>
+                <button class="tab-btn" data-sec="settings" onclick="setSection(this)">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>⚙ Settings</span>
+                </button>
+            </div>
+
+
+            <!-- ══════════════════════════════════════════════════════════
+                 CONTENT AREA
+                 ══════════════════════════════════════════════════════════ -->
+            <div class="content-area">
+
+                <!-- ══ SECTION 1: COLUMN MAPPER ══════════════════════════ -->
+                <div class="section active" id="sec-columns">
+
+                    <!-- Upload + title row -->
+                    <div class="mapper-header">
+                        <div>
+                            <div class="mapper-title">Column Configurator</div>
+                            <div class="mapper-sub" id="heroSub">
+                                Import an Excel file (.xlsx, .xls) or CSV to get started.
+                            </div>
+                        </div>
+                        <div>
+                            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none"
+                                onchange="handleFileUpload(event)">
+                            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                <i class="fa-solid fa-folder-open"></i> Import New File
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ══ UPLOAD DROP ZONE ══ -->
+                    <div class="upload-drop-zone" id="uploadZone">
+                        <div class="upload-drop-inner">
+                            <div class="upload-drop-icon">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                            </div>
+                            <h3 class="upload-drop-title">Import Excel File</h3>
+                            <p class="upload-drop-text">
+                                Drag &amp; drop your <strong>.xlsx</strong>, <strong>.xls</strong>, or
+                                <strong>.csv</strong> file here
+                            </p>
+                            <div class="upload-drop-divider"><span>OR</span></div>
+                            <button class="btn btn-primary upload-drop-btn"
+                                onclick="document.getElementById('fileInput').click()">
+                                <i class="fa-solid fa-folder-open"></i> Browse Files
+                            </button>
+                            <p class="upload-drop-hint">
+                                <i class="fa-solid fa-circle-info"></i>
+                                Supported formats: Excel (.xlsx, .xls) and CSV — columns will be auto-detected
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <!-- ══ SAVE CONFIG MODAL ══ -->
+                    <div class="modal-overlay" id="saveConfigModal">
+                        <div class="modal-box" style="max-width:460px">
+                            <div class="modal-header">
+                                <h3><i class="fa-solid fa-bookmark"></i> Save Column Configuration</h3>
+                                <button class="modal-close" onclick="closeSaveConfigModal()">&times;</button>
+                            </div>
+                            <form id="saveConfigForm" onsubmit="submitSaveConfig(event)">
+                                <div class="modal-body">
+                                    <label class="modal-label">Configuration Name <span
+                                            style="color:#EF4444">*</span></label>
+                                    <input type="text" id="cfgName" class="modal-input"
+                                        placeholder="e.g. DM-057 Day1&2 HASIK" required maxlength="255">
+                                    <label class="modal-label" style="margin-top:12px">Description <span
+                                            style="color:#94A3B8;font-weight:400">(optional)</span></label>
+                                    <input type="text" id="cfgDesc" class="modal-input"
+                                        placeholder="e.g. 74 cols, 4 speakers per day" maxlength="500">
+                                    <div id="cfgSaveStatus" class="save-status" hidden></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn"
+                                        style="background:#F1F5F9;color:var(--ink-2);border:1px solid var(--border)"
+                                        onclick="closeSaveConfigModal()">Cancel</button>
+                                    <button type="submit" class="btn btn-primary" id="cfgSaveBtn"><i
+                                            class="fa-solid fa-bookmark"></i> Save Config</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- ══ MAPPER CONTENT ══ -->
+                    <div id="mapperContent" style="display:none">
+
+                        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+                            <button class="stats-toggle-btn" style="margin-bottom:0" id="statsToggleBtn"
+                                onclick="toggleStatsBar()">
+                                <i class="fa-solid fa-chart-bar"></i>
+                                <span>Column Stats</span>
+                                <span class="stats-toggle-summary" id="statsSummary">0 cols</span>
+                                <i class="fa-solid fa-chevron-down stats-toggle-arrow" id="statsToggleArrow"></i>
+                            </button>
+                            <button class="stats-toggle-btn" style="margin-bottom:0" id="filterToggleBtn"
+                                onclick="toggleFilterBar()">
+                                <i class="fa-solid fa-filter"></i>
+                                <span>Filters</span>
+                                <span class="stats-toggle-summary" id="filterSummary">All</span>
+                                <i class="fa-solid fa-chevron-down stats-toggle-arrow" id="filterToggleArrow"></i>
+                            </button>
+                            <button class="stats-toggle-btn" id="overviewToggleBtn" onclick="toggleOverviewBar()"
+                                style="margin-bottom:8px">
+                                <i class="fa-solid fa-table-columns"></i>
+                                <span>Column Overview</span>
+                                <span class="stats-toggle-summary" id="overviewSummary">0 cols</span>
+                                <i class="fa-solid fa-chevron-down stats-toggle-arrow"></i>
+                            </button>
+                        </div>
+                        <div class="stats-bar stats-bar--hidden" id="statsBar">
+                            <div class="stat"><span class="stat-ic">🗂️</span>
+                                <div>
+                                    <div class="stat-n" id="stTotal">0</div>
+                                    <div class="stat-l">Total Cols</div>
+                                </div>
+                            </div>
+                            <div class="stat"><span class="stat-ic" style="color:var(--blue)">📊</span>
+                                <div>
+                                    <div class="stat-n" id="stScore" style="color:var(--blue)">0</div>
+                                    <div class="stat-l">Score</div>
+                                </div>
+                            </div>
+                            <div class="stat"><span class="stat-ic">ℹ️</span>
+                                <div>
+                                    <div class="stat-n" id="stInfo" style="color:var(--slate)">0</div>
+                                    <div class="stat-l">Info</div>
+                                </div>
+                            </div>
+                            <div class="stat"><span class="stat-ic" style="color:var(--purple)">💬</span>
+                                <div>
+                                    <div class="stat-n" id="stFeedback" style="color:var(--purple)">0</div>
+                                    <div class="stat-l">Feedback</div>
+                                </div>
+                            </div>
+                            <div class="stat"><span class="stat-ic" style="color:var(--amber)">⚠️</span>
+                                <div>
+                                    <div class="stat-n" id="stUnset" style="color:var(--amber)">0</div>
+                                    <div class="stat-l">Unset</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cs-hint" id="mapperSummaryHint">
+                            <span class="cs-hint-ic">📄</span>
+                            <span id="mapperSummaryText">—</span>
+                        </div>
+                        <div class="cat-legend stats-bar--hidden" id="catLegend"></div>
+                        <div class="overview-wrap stats-bar--hidden" id="overviewWrap"></div>
+
+                        <!-- Sheet tabs -->
+                        <div class="sheet-nav">
+                            <div class="sheet-tabs-row" id="sheetTabs"></div>
+                            <div style="display:flex;gap:6px;align-items:center;margin-bottom:0;padding-bottom:1px">
+                                <span style="font-size:.68rem;color:var(--ink-3);font-weight:600"
+                                    id="sheetDiffNote"></span>
+                            </div>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="table-wrap" id="tableWrap">
+                            <table class="sheet" id="sheetTable"></table>
+                        </div>
+
+                        <!-- Editor Panel -->
+                        <div class="ep" id="ep">
+                            <div class="ep-head">
+                                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                                    <div class="ep-title">Configure Column</div>
+                                    <div class="ep-pill" id="epPill">—</div>
+                                    <div style="font-size:.78rem;color:var(--ink-3);font-weight:600;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                                        id="epName"></div>
+                                </div>
+                                <button class="ep-close" onclick="closeEP()">✕</button>
+                            </div>
+
+                            <div class="ep-grid">
+                                <div>
+                                    <span class="ep-label">Column Type</span>
+                                    <div class="type-tgl">
+                                        <button class="tt" id="ttScore" onclick="setType('score')">📊 Score</button>
+                                        <button class="tt" id="ttInfo" onclick="setType('info')">ℹ️ Info</button>
+                                        <button class="tt" id="ttFb" onclick="setType('feedback')">💬 Feedback</button>
+                                    </div>
+                                    <div style="font-size:.67rem;color:var(--ink-3);margin-top:6px;line-height:1.4"
+                                        id="typeDesc">Numeric ratings that will be averaged and analyzed.</div>
+                                </div>
+                                <div id="catCol">
+                                    <span class="ep-label">Category</span>
+                                    <select class="ep-select" id="epCat">
+                                        <option value="">— Select Category —</option>
+                                        <option>Program Management &amp; Operations</option>
+                                        <option>Attainment of Objectives</option>
+                                        <option>Delivery of Content</option>
+                                        <option>Venue</option>
+                                        <option>Meal</option>
+                                        <option>Program Management Team</option>
+                                        <option>Feedbacks</option>
+                                        <option>Resource Speaker</option>
+                                    </select>
+                                    <div style="font-size:.67rem;color:var(--ink-3);margin-top:4px" id="catHint"></div>
+                                </div>
+                                <div>
+                                    <span class="ep-label">Apply to Range</span>
+                                    <div class="range-row">
+                                        <input class="rbox" id="rStart" maxlength="3" placeholder="N">
+                                        <span style="color:var(--ink-3);font-size:.75rem;font-weight:700">→</span>
+                                        <input class="rbox" id="rEnd" maxlength="3" placeholder="Q">
+                                        <button class="btn btn-primary btn-sm" onclick="applyRange()"
+                                            style="white-space:nowrap">Apply Range</button>
+                                    </div>
+                                    <div style="font-size:.67rem;color:var(--ink-3);margin-top:4px">Apply same config to
+                                        a consecutive column range.</div>
+                                </div>
+                            </div>
+
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px">
+                                <div>
+                                    <span class="ep-label">Custom Column Selection</span>
+                                    <div class="tag-wrap" id="tagWrap"
+                                        onclick="document.getElementById('tagIn').focus()">
+                                        <input class="tag-in" id="tagIn" placeholder="A, D, M…"
+                                            onkeydown="tagKeydown(event)">
+                                    </div>
+                                    <div style="font-size:.67rem;color:var(--ink-3);margin-top:3px">Press
+                                        <kbd>Enter</kbd> or <kbd>,</kbd> to add.</div>
+                                </div>
+                                <div class="ep-samples" id="epSamples">
+                                    <div class="ep-samples-title">Sample Values</div>
+                                    <div id="samplesContent" style="color:var(--ink-3);font-size:.72rem">Select a column
+                                        to see sample data.</div>
+                                </div>
+                            </div>
+
+                            <div class="ep-actions">
+                                <button class="btn btn-primary" onclick="saveEP()">✓ Save</button>
+                                <button class="btn"
+                                    style="background:#F1F5F9;color:var(--ink-2);border:1px solid var(--border)"
+                                    onclick="clearEP()">✗ Clear Config</button>
+                                <button class="btn btn-sm"
+                                    style="background:var(--amber-lt);color:var(--amber-d);border:1px solid #FDE68A;margin-left:auto"
+                                    onclick="applyToAllSame()">↻ Apply to All Similar</button>
+                            </div>
+                        </div>
+
+                        <!-- ══ PROCEED ACTION BAR — shown after file is mapped ══ -->
+                        <div class="proceed-action-bar" id="proceedBar">
+                            <div class="proceed-left">
+                                <div class="proceed-status" id="proceedStatus">
+                                    <span class="proceed-dot"></span>
+                                    <span id="proceedStatusText">Configure your columns above, then proceed when
+                                        ready.</span>
+                                </div>
+                            </div>
+                            <div class="proceed-right">
+                                <button class="btn"
+                                    style="background:#F1F5F9;color:var(--ink-2);border:1px solid var(--border)"
+                                    onclick="openSaveConfigModal()">
+                                    <i class="fa-solid fa-bookmark"></i> Save Config
+                                </button>
+                                <button class="btn btn-proceed" onclick="proceedToCompute()" id="proceedBtn">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Settings &amp; Compute
+                                    <i class="fa-solid fa-arrow-right" style="margin-left:4px"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div><!-- /mapperContent -->
+                </div><!-- /sec-columns -->
+
+
+                <!-- ══ SECTION 2: COMPUTE & RESULTS ══════════════════════ -->
+                <div class="section" id="sec-compute">
+
+                    <!-- ── Compute Card — always at the top ── -->
+                    <div class="card compute-card">
+                        <div class="compute-card-inner">
+                            <div class="compute-card-info">
+                                <div class="compute-card-title">
+                                    <i class="fa-solid fa-calculator"></i> Ready to Compute
+                                </div>
+                                <div class="compute-card-desc" id="computeDesc">
+                                    Upload a file and map your columns in Step ①, then click Compute Results.
+                                </div>
+                                <div class="compute-card-meta" id="computeMeta" style="display:none">
+                                    <span class="compute-badge" id="computeScoreBadge">0 score cols</span>
+                                    <span class="compute-badge compute-badge--file" id="computeFileBadge">No file</span>
+                                </div>
+                            </div>
+                            <button class="btn-compute" id="computeBtn" disabled onclick="doCompute()">
+                                <i class="fa-solid fa-bolt"></i> Compute Results
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Speaker Names moved into Save to Database modal -->
+
+                    <!-- Error message -->
+                    <div id="errorMsg" class="error-msg hidden"></div>
+
+                    <!-- Respondent Results -->
+                    <div id="resultsSection" class="card hidden">
+                        <div class="card-title">
+                            <i class="fa-solid fa-clipboard-list"></i> Respondent Results
+                        </div>
+                        <div class="results-header">
+                            <h2></h2>
+                            <button class="btn-save" id="saveBtn">
+                                <i class="fa-solid fa-floppy-disk"></i> Save to Database
+                            </button>
+                        </div>
+                        <div id="summaryCardsSticky" class="summary-cards-sticky hidden"></div>
+                        <div class="summary-cards" id="summaryCards"></div>
+                        <div class="table-controls">
+                            <input type="text" id="searchInput" class="search-input"
+                                placeholder="🔍 Search respondents…">
+                            <button class="btn-sm-outline" id="exportBtn">
+                                <i class="fa-solid fa-download"></i> Export CSV
+                            </button>
+                        </div>
+                        <div class="table-wrapper">
+                            <table id="resultsTable">
+                                <thead id="tableHead"></thead>
+                                <tbody id="tableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Consolidated Report -->
+                    <div id="consolidatedSection" class="hidden">
+                        <div class="results-header">
+                            <h2 style="font-size:18px;font-weight:700;">
+                                <i class="fa-solid fa-file-lines"></i> Consolidated Report
+                            </h2>
+                        </div>
+                        <div id="consolidatedBody"></div>
+                    </div>
+
+                </div><!-- /sec-compute -->
+
+
+                <!-- ══ SECTION 3: SETTINGS ════════════════════════════════ -->
+                <div class="section" id="sec-settings">
+                    <div class="section-title"><i class="fa-solid fa-gear"></i> Settings</div>
+                    <div class="section-sub">Configure find/replace rules, respondent info, scales, sheet behavior, and
+                        backups.</div>
+
+                    <!-- Accordion: Find & Replace Rules (moved here from Compute tab) -->
+                    <div class="accordion-card">
+                        <button class="accordion-header" onclick="toggleAccordion(this)">
+                            <span class="accordion-icon"><i class="fa-solid fa-repeat"></i></span>
+                            <span class="accordion-label">Find &amp; Replace Rules</span>
+                            <span class="accordion-hint">Text-to-number conversion applied before computing
+                                averages</span>
+                            <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+                        </button>
+                        <div class="accordion-body">
+                            <p class="card-desc" style="margin-bottom:14px">
+                                Add rules to convert text responses (e.g. "Strongly Agree") into numbers before
+                                computing. These rules are applied automatically when you click Compute Results.
+                            </p>
+                            <div class="preset-buttons">
+                                <button class="btn-preset" id="presetAgree">+ Agree/Disagree Scale</button>
+                                <button class="btn-preset" id="presetSatisfied">+ Satisfaction Scale</button>
+                                <button class="btn-preset" id="presetFrequency">+ Frequency Scale</button>
+                                <button class="btn-preset" id="presetLikert">+ Likert 5-Point</button>
+                                <button class="btn-preset danger" id="clearRules">🗑️ Clear All</button>
+                            </div>
+                            <div class="add-rule-form">
+                                <input type="text" id="findInput" class="rule-input"
+                                    placeholder="Find text (e.g. Strongly Agree)">
+                                <input type="text" id="replaceInput" class="rule-input rule-input-sm"
+                                    placeholder="Replace with (e.g. 4)">
+                                <button class="btn-add" id="addRuleBtn">+ Add Rule</button>
+                            </div>
+                            <div id="rulesContainer" class="rules-container">
+                                <p class="no-rules" id="noRulesMsg">No rules added yet.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accordion: Respondent Info -->
+                    <div class="accordion-card">
+                        <button class="accordion-header" onclick="toggleAccordion(this)">
+                            <span class="accordion-icon"><i class="fa-solid fa-user"></i></span>
+                            <span class="accordion-label">Respondent Info Columns</span>
+                            <span class="accordion-hint">Map column letters to metadata fields</span>
+                            <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="cfg-grid">
+                                <div class="cfg-card">
+                                    <div class="cfg-title">🪪 Identity Columns</div>
+                                    <div class="cfg-sub">Primary identifier columns</div>
+                                    <div class="field"><span class="field-label">Full Name Column</span><input
+                                            class="field-input" id="ri_name" value="J" placeholder="e.g. J">
+                                        <div class="field-hint">Full Name (First, Middle, Last)</div>
+                                    </div>
+                                    <div class="field"><span class="field-label">Email Column</span><input
+                                            class="field-input" id="ri_email" value="L" placeholder="e.g. D">
+                                        <div class="field-hint">Email Address (fallback identifier)</div>
+                                    </div>
+                                </div>
+                                <div class="cfg-card">
+                                    <div class="cfg-title">🏷️ Demographics</div>
+                                    <div class="cfg-sub">Respondent attribute columns</div>
+                                    <div class="field"><span class="field-label">Sex / Gender</span><input
+                                            class="field-input" id="ri_sex" value="H" placeholder="e.g. H"></div>
+                                    <div class="field"><span class="field-label">Participant Type</span><input
+                                            class="field-input" id="ri_type" value="I" placeholder="e.g. I">
+                                        <div class="field-hint">Internal / External / Public Secondary…</div>
+                                    </div>
+                                    <div class="field"><span class="field-label">Designation</span><input
+                                            class="field-input" id="ri_desig" value="K" placeholder="e.g. K"></div>
+                                    <div class="field"><span class="field-label">School / Office</span><input
+                                            class="field-input" id="ri_school" value="M" placeholder="e.g. M"></div>
+                                </div>
+                            </div>
+                            <div class="cfg-card" style="max-width:560px">
+                                <div class="cfg-title">🔍 Always-Excluded Keywords</div>
+                                <div class="cfg-sub">Column headers containing these words are always treated as
+                                    info/non-score columns.</div>
+                                <div class="tag-wrap" id="excWrap" onclick="document.getElementById('excIn').focus()">
+                                    <input class="tag-in" id="excIn" placeholder="type keyword…" style="width:100px"
+                                        onkeydown="excKeydown(event)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accordion: Scale & Labels -->
+                    <div class="accordion-card">
+                        <button class="accordion-header" onclick="toggleAccordion(this)">
+                            <span class="accordion-icon"><i class="fa-solid fa-sliders"></i></span>
+                            <span class="accordion-label">Scale &amp; Labels</span>
+                            <span class="accordion-hint">Score scaling &amp; result thresholds</span>
+                            <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="cfg-grid">
+                                <div class="cfg-card">
+                                    <div class="cfg-title">🎯 Scale Candidates</div>
+                                    <div class="cfg-sub">If detected max ≤ one of these values, that becomes the scale.
+                                    </div>
+                                    <div class="tag-wrap" id="scaleWrap"
+                                        onclick="document.getElementById('scaleIn').focus()">
+                                        <input class="tag-in" id="scaleIn" placeholder="add…" style="width:40px"
+                                            onkeydown="scaleKeydown(event)">
+                                    </div>
+                                    <div style="font-size:.67rem;color:var(--ink-3);margin-top:5px">Press Enter to add.
+                                    </div>
+                                </div>
+                                <div class="cfg-card">
+                                    <div class="cfg-title">📊 Result Thresholds</div>
+                                    <div class="cfg-sub">Minimum % of max score to reach each label.</div>
+                                    <div style="display:flex;flex-direction:column;gap:7px">
+                                        <div class="threshold-row"><span class="threshold-label">⭐
+                                                Outstanding</span><input type="number" class="threshold-input"
+                                                value="90"><span class="threshold-pct">%+</span></div>
+                                        <div class="threshold-row"><span class="threshold-label">✅ Very
+                                                Satisfactory</span><input type="number" class="threshold-input"
+                                                value="80"><span class="threshold-pct">%+</span></div>
+                                        <div class="threshold-row"><span class="threshold-label">👍
+                                                Satisfactory</span><input type="number" class="threshold-input"
+                                                value="70"><span class="threshold-pct">%+</span></div>
+                                        <div class="threshold-row ni-row"><span class="threshold-label">⚠️ Needs
+                                                Improvement</span><input type="number" class="threshold-input"
+                                                value="0"><span class="threshold-pct">%+</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="cfg-card" style="max-width:560px;margin-top:12px">
+                                <div class="cfg-title">🎨 Category Colors</div>
+                                <div class="cfg-sub">Regenerate and persist category color styles (useful after category changes from Teams).</div>
+                                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+                                    <button class="btn" style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D" onclick="resetCategoryStyles()">
+                                        <i class="fa-solid fa-palette"></i> Reset Category Colors
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accordion: Per-Sheet Config -->
+                    <div class="accordion-card">
+                        <button class="accordion-header" onclick="toggleAccordion(this)">
+                            <span class="accordion-icon"><i class="fa-solid fa-file-lines"></i></span>
+                            <span class="accordion-label">Per-Sheet Config</span>
+                            <span class="accordion-hint">Override speaker slots per sheet</span>
+                            <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="cs-hint"><span class="cs-hint-ic">💡</span><span>Day 1 has <strong>74
+                                        columns</strong> (4 resource speakers: AU–BR) while Day 2 has <strong>62
+                                        columns</strong> (2 resource speakers: AU–BF).</span></div>
+                            <div class="cfg-card">
+                                <div class="cfg-title">📋 Detected Sheet Differences</div>
+                                <div class="cfg-sub">Auto-detected from your imported file.</div>
+                                <div style="display:flex;flex-direction:column;gap:8px" id="sheetDiffContainer">
+                                    <div
+                                        style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:#F8FAFC">
+                                        <div style="font-size:1rem">📄</div>
+                                        <div style="flex:1">
+                                            <div style="font-size:.8rem;font-weight:700;color:var(--ink)">Day 1</div>
+                                            <div style="font-size:.7rem;color:var(--ink-3)">74 columns · 4 resource
+                                                speaker blocks</div>
+                                        </div>
+                                        <span class="diff-badge">41 respondents</span>
+                                    </div>
+                                    <div
+                                        style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid #FDE68A;border-radius:var(--r-sm);background:#FFFBEB">
+                                        <div style="font-size:1rem">📄</div>
+                                        <div style="flex:1">
+                                            <div style="font-size:.8rem;font-weight:700;color:var(--ink)">Day 2 <span
+                                                    style="font-size:.65rem;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px;margin-left:4px">DIFFERENT</span>
+                                            </div>
+                                            <div style="font-size:.7rem;color:var(--ink-3)">62 columns · 2 resource
+                                                speaker blocks</div>
+                                        </div>
+                                        <span class="diff-badge"
+                                            style="background:#FEF3C7;color:#92400E;border-color:#FCD34D">42
+                                            respondents</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" style="margin-top:14px"
+                                    onclick="showToast('✓ Per-sheet overrides auto-generated from file','ok')">⚡
+                                    Auto-Generate Overrides</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accordion: Skip Sheets -->
+                    <div class="accordion-card">
+                        <button class="accordion-header" onclick="toggleAccordion(this)">
+                            <span class="accordion-icon"><i class="fa-solid fa-ban"></i></span>
+                            <span class="accordion-label">Skip Sheets</span>
+                            <span class="accordion-hint">Exclude specific sheets from processing</span>
+                            <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="cfg-card" style="max-width:480px">
+                                <div class="cfg-title">Skip List</div>
+                                <div class="cfg-sub">Type a sheet name and press Enter to add it.</div>
+                                <div class="tag-wrap" id="skipWrap" onclick="document.getElementById('skipIn').focus()">
+                                    <input class="tag-in" id="skipIn" placeholder="sheet name…" style="width:110px"
+                                        onkeydown="skipKeydown(event)">
+                                </div>
+                                <div style="margin-top:8px;font-size:.7rem;color:var(--ink-3)">Currently active sheets:
+                                    <strong style="color:var(--green)">Day 1</strong>, <strong
+                                        style="color:var(--green)">Day 2</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accordion: Saved Configurations -->
+                    <div class="accordion-card">
+                        <button class="accordion-header" onclick="toggleAccordion(this)">
+                            <span class="accordion-icon"><i class="fa-solid fa-bookmark"></i></span>
+                            <span class="accordion-label">Saved Configurations</span>
+                            <span class="accordion-hint">Apply, manage, and save column mappings</span>
+                            <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="cfg-card" style="max-width:600px">
+                                <div class="cfg-title"><i class="fa-solid fa-bookmark" style="color:#3B82F6"></i> Saved
+                                    Column Configurations</div>
+                                <div class="cfg-sub">Click a configuration to apply it. Save the current mapping with
+                                    the button below.</div>
+                                <div class="saved-configs-list" id="savedConfigsListBackup" style="margin-top:10px">
+                                    <div class="saved-configs-loading"><i class="fa-solid fa-spinner fa-spin"></i>
+                                        Loading...</div>
+                                </div>
+                                <button class="btn btn-primary" style="margin-top:12px" onclick="openSaveConfigModal()">
+                                    <i class="fa-solid fa-bookmark"></i> Save Current Config
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accordion: Backup / Restore -->
+                    <div class="accordion-card">
+                        <button class="accordion-header" onclick="toggleAccordion(this)">
+                            <span class="accordion-icon"><i class="fa-solid fa-file-export"></i></span>
+                            <span class="accordion-label">Backup &amp; Restore</span>
+                            <span class="accordion-hint">Export/import configuration</span>
+                            <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="cs-hint"><span class="cs-hint-ic">ℹ️</span><span><code
+                                        style="background:var(--blue-lt);color:var(--blue);padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:.72rem">process.php</code>
+                                    reads settings directly from the database every time it runs.</span></div>
+                            <div class="cfg-card" style="max-width:500px">
+                                <div class="cfg-title">💾 JSON Backup / Restore</div>
+                                <div class="cfg-sub">Download a snapshot or restore from a file.</div>
+                                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+                                    <button class="btn btn-primary" onclick="downloadJSON()">↓ Download JSON
+                                        Backup</button>
+                                    <button class="btn"
+                                        style="background:#F1F5F9;color:var(--ink-2);border:1px solid var(--border)"
+                                        onclick="document.getElementById('restoreFile').click()">↑ Restore from
+                                        JSON</button>
+                                    <input type="file" id="restoreFile" accept=".json" style="display:none"
+                                        onchange="handleRestoreJSON(event)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save Settings Bar -->
+                    <div id="saveSettingsBar" style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: flex-end;
+                        gap: 10px;
+                        padding: 16px 20px;
+                        margin-top: 8px;
+                        background: #F8FAFC;
+                        border: 1.5px solid var(--border);
+                        border-radius: var(--r-sm);
+                    ">
+                        <span style="flex:1; font-size:.8rem; color:var(--ink-3);">
+                            <i class="fa-solid fa-circle-info" style="color:var(--blue); margin-right:4px;"></i>
+                            Changes to settings are not saved automatically.
+                        </span>
+                        <button class="btn btn-primary" onclick="saveSettingsOnly()" style="display:flex;align-items:center;gap:7px;padding:9px 20px;">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Settings
+                        </button>
+                    </div>
+
+                </div><!-- /sec-settings -->
+
+
+            </div><!-- /content-area -->
+        </div><!-- /main-content -->
+    </div><!-- /main-container -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     SAVE TO DATABASE MODAL
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div id="saveModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-floppy-disk"></i> Save Evaluation to Database</h2>
+                <button class="modal-close" id="saveModalClose" title="Close">&times;</button>
+            </div>
+            <p class="modal-desc">Fill in the program details below. All fields except Title are optional.</p>
+            <!-- Shown only in container-linked mode: explains that details come from the container -->
+            <div id="linkedModeNotice" style="display:none;margin-bottom:16px;padding:12px 16px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;font-size:13px;color:#1e3a8a;">
+                <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>
+                <strong>Linked to a container program.</strong> Program details (title, dates, venue, etc.) are managed from the container — only response statistics and speaker names are saved for this day import.
+            </div>
+            <form id="saveForm" class="save-form">
+
+                <!-- Per-day inclusive date — shown in linked/container mode only -->
+                <div class="form-group" id="linkedDatesGroup" style="display:none;">
+                    <label for="meta_day_inclusive_dates">
+                        <i class="fa-solid fa-calendar-day" style="color:#3b82f6;margin-right:4px;"></i>
+                        Inclusive Date for this Day
+                    </label>
+                    <input type="text" id="meta_day_inclusive_dates" placeholder="e.g. May 19, 2026">
+                    <small class="form-hint">Date specific to this day import. Auto-calculated from the container's start date — edit if needed.</small>
+                </div>
+
+                <!-- Title — hidden in linked mode, container owns it -->
+                <div class="form-group" data-standalone-only>
+                    <label for="meta_title">Title of Training Program *</label>
+                    <input type="text" id="meta_title" placeholder="e.g. Capacity Building &amp; PPA Integration" required>
+                </div>
+
+                <!-- Sequence Number + Division Memo + Status — hidden in linked mode -->
+                <div class="form-row" data-standalone-only>
+                    <div class="form-group">
+                        <label for="meta_sequence_number">Sequence Number</label>
+                        <input type="text" id="meta_sequence_number" placeholder="e.g. SDOCB-SMME-2026-047"
+                            style="font-family:monospace;">
+                        <small class="form-hint">Auto-generated if left blank.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="meta_division_memo">Division Memo</label>
+                        <input type="text" id="meta_division_memo" placeholder="e.g. DM No.XXX s.2026">
+                    </div>
+                    <div class="form-group">
+                        <label for="meta_status">Status</label>
+                        <select id="meta_status">
+                            <option value="completed" selected>Completed</option>
+                        </select>
+                        <small class="form-hint">Excel imports are saved as completed records.</small>
+                    </div>
+                </div>
+
+                <!-- Proponents + QAME — hidden in linked mode -->
+                <div class="form-row" data-standalone-only>
+                    <div class="form-group">
+                        <label for="meta_proponents">Proponent/s</label>
+                        <input type="text" id="meta_proponents" placeholder="e.g. QAME Division, DepEd">
+                    </div>
+                    <div class="form-group">
+                        <label for="meta_qame">QAME Associates</label>
+                        <input type="text" id="meta_qame" placeholder="Name/s of QAME Associates">
+                    </div>
+                </div>
+
+                <!-- Unit + Nature of Event — hidden in linked mode -->
+                <div class="form-row" data-standalone-only>
+                    <div class="form-group">
+                        <label for="meta_unit">Unit</label>
+                        <div class="select-with-action">
+                            <select id="meta_unit">
+                                <option value="SGOD">SGOD</option>
+                            </select>
+                            <button type="button" class="btn-add-option-inline" onclick="promptAddDropdownOption('unit')">
+                                <i class="fa-solid fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="meta_nature">Nature of Event</label>
+                        <div class="select-with-action">
+                            <select id="meta_nature">
+                                <option value="Training">Training</option>
+                            </select>
+                            <button type="button" class="btn-add-option-inline" onclick="promptAddDropdownOption('nature_of_event')">
+                                <i class="fa-solid fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Venue + Inclusive Dates — hidden in linked mode -->
+                <div class="form-row" data-standalone-only>
+                    <div class="form-group">
+                        <label for="meta_venue">Training Venue/s</label>
+                        <input type="text" id="meta_venue" placeholder="e.g. SPED Center, Quezon City">
+                    </div>
+                    <div class="form-group">
+                        <label for="meta_dates">Inclusive Dates</label>
+                        <input type="text" id="meta_dates" placeholder="e.g. February 11–12, 2026">
+                    </div>
+                </div>
+
+                <!-- Start Date + End Date — hidden in linked mode -->
+                <div class="form-row" data-standalone-only>
+                    <div class="form-group">
+                        <label for="meta_start_date">Start Date</label>
+                        <input type="date" id="meta_start_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="meta_end_date">End Date</label>
+                        <input type="date" id="meta_end_date">
+                    </div>
+                </div>
+
+                <!-- Total Participants -->
+                <div class="form-group">
+                    <label for="meta_total_participants">Total Number of Participants</label>
+                    <!-- Single expected-participants input -->
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                        <input type="number" id="meta_total_participants" min="0" placeholder="e.g. 60"
+                            style="flex:1;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;"
+                            oninput="updateParticipantPct()">
+                    </div>
+                    <!-- Per-day response counts (read-only) with live % -->
+                    <div id="meta_perday_display" style="display:none;flex-direction:column;gap:6px;margin-bottom:4px;"></div>
+                    <small class="form-hint">Enter the expected number of participants. Response percentage is shown per day.</small>
+                </div>
+
+                <!-- Resource Speaker Names -->
+                <div class="form-group" id="modalSpeakersSection" style="display:none;">
+                    <label style="display:flex;align-items:center;gap:6px;font-weight:600;">
+                        <i class="fa-solid fa-microphone" style="color:#b45309;"></i> Resource Speaker Names
+                    </label>
+                    <div id="modalSpeakersForm" style="display:flex;flex-direction:column;gap:8px;margin-top:6px;"></div>
+                    <small class="form-hint">These names will appear in the consolidated report.</small>
+                </div>
+
+                <!-- Description — hidden in linked mode -->
+                <div class="form-group" data-standalone-only>
+                    <label for="meta_description">Description</label>
+                    <textarea id="meta_description" rows="2" placeholder="Optional notes about this training program" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;resize:vertical;"></textarea>
+                </div>
+
+                <!-- Link to Container Program (used only in container-linked import mode) -->
+                <div class="form-group" id="meta_workshop_group" style="display:none;">
+                    <label for="meta_workshop">Link to Program</label>
+                    <select id="meta_workshop">
+                        <option value="">— None (standalone import) —</option>
+                    </select>
+                    <small class="form-hint">This is shown only when importing a specific container day from Programs.</small>
+                    <div id="workshopStatusMsg" class="save-status hidden"></div>
+                </div>
+
+                <div id="saveStatus" class="save-status hidden"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" id="saveModalClose2">Cancel</button>
+                    <button type="submit" id="saveSubmitBtn" class="btn-save-submit">
+                        <i class="fa-solid fa-floppy-disk"></i> Save to Database
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v4"></script>
+    <script src="js/import-excell.js?v14"></script>
+    <script src="js/tutorial-modal.js?v2"></script>
+    <script src="js/guided-tour.js?v5"></script>
+</body>
+
+</html>

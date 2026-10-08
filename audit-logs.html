@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - Audit Logs</title>
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/user-management.css?v3">
+    <link rel="stylesheet" href="css/audit-logs.css?v2">
+    <link rel="stylesheet" href="css/notifications.css?v2">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Loading -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="dashboard-toast" id="toast"></div>
+
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn active" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <!-- Mobile sidebar backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-clipboard-list"></i> Audit Logs</h1>
+                    <p>Review system activity across portal and admin actions</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" aria-label="Open menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Audit Content ── -->
+            <div class="content-area" id="auditContent">
+
+                <div class="audit-note">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Audit logs are immutable and only viewable by admins. Use CSV export for external review.
+                </div>
+
+                <div class="audit-filters">
+                    <div class="filter-grid">
+                        <div class="filter-field">
+                            <label for="searchInput">Search</label>
+                            <input id="searchInput" type="search" placeholder="Search description, module, action" />
+                        </div>
+                        <div class="filter-field">
+                            <label for="roleFilter">Role</label>
+                            <select id="roleFilter">
+                                <option value="">All roles</option>
+                                <option value="admin">admin</option>
+                                <option value="viewer">viewer</option>
+                                <option value="facilitator">facilitator</option>
+                                <option value="evaluator">evaluator</option>
+                                <option value="portal_user">portal_user</option>
+                                <option value="teacher">teacher</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="schoolFilter">School</label>
+                            <select id="schoolFilter">
+                                <option value="">All schools</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="actionFilter">Action</label>
+                            <input id="actionFilter" type="text" placeholder="login, submit_document" />
+                        </div>
+                        <div class="filter-field">
+                            <label for="moduleFilter">Module</label>
+                            <input id="moduleFilter" type="text" placeholder="auth, workshops, settings" />
+                        </div>
+                        <div class="filter-field">
+                            <label for="statusFilter">Status</label>
+                            <select id="statusFilter">
+                                <option value="">All statuses</option>
+                                <option value="success">success</option>
+                                <option value="failed">failed</option>
+                                <option value="pending">pending</option>
+                                <option value="approved">approved</option>
+                                <option value="rejected">rejected</option>
+                                <option value="review">review</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="fromDate">From</label>
+                            <input id="fromDate" type="date" />
+                        </div>
+                        <div class="filter-field">
+                            <label for="toDate">To</label>
+                            <input id="toDate" type="date" />
+                        </div>
+                    </div>
+                    <div class="quick-ranges" id="quickRanges">
+                        <span class="quick-ranges-label">Quick range:</span>
+                        <button type="button" class="chip-btn" data-range="today">Today</button>
+                        <button type="button" class="chip-btn" data-range="7">Last 7 days</button>
+                        <button type="button" class="chip-btn" data-range="30">Last 30 days</button>
+                        <button type="button" class="chip-btn" data-range="clear">All time</button>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-primary" id="applyFiltersBtn">
+                            <i class="fa-solid fa-filter"></i> Apply
+                        </button>
+                        <button class="btn-outline" id="resetFiltersBtn">
+                            <i class="fa-solid fa-rotate-left"></i> Reset
+                        </button>
+                        <button class="btn-outline" id="exportCsvBtn">
+                            <i class="fa-solid fa-file-csv"></i> Export CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <table class="audit-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>User</th>
+                                <th>School</th>
+                                <th>Event</th>
+                                <th>Status</th>
+                                <th>IP Address</th>
+                                <th>Description</th>
+                                <th class="th-expand"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditBody">
+                            <tr>
+                                <td colspan="8">
+                                    <div class="empty-state">
+                                        <i class="fa-solid fa-spinner fa-spin"></i>
+                                        <h3>Loading logs…</h3>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+                <p class="table-hint"><i class="fa-solid fa-circle-info"></i> Click any row to see full details.</p>
+
+            </div><!-- /#auditContent -->
+        </div><!-- /.main-content -->
+    </div><!-- /.main-container -->
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/audit-logs.js?v12"></script>
+</body>
+
+</html>

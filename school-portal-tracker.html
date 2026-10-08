@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>QATALYST - Document Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="css/school-portal-tracker.css?v3">
+    <link rel="stylesheet" href="css/school-portal-notifications.css" />
+</head>
+<body data-portal-mode="separate" data-default-tab="tracker">
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<div class="main-container">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo-section">
+            <div class="logo-icon">Q</div>
+            <div class="logo-text">
+                <h1>QATALYST</h1>
+                <p>School Portal</p>
+            </div>
+        </div>
+
+        <div class="school-pill-sidebar">
+            <div class="school-pill-label">Your School</div>
+            <div class="school-pill-name" id="sidebarSchoolName">Loading...</div>
+            <div class="school-pill-dist" id="sidebarDistrict">—</div>
+        </div>
+
+        <nav class="nav-menu">
+            <div class="nav-section-label">Main</div>
+            <button class="nav-btn" data-portal-nav="dashboard" onclick="window.location.href='school-portal-dashboard.html'">
+                <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+            </button>
+            <button class="nav-btn" data-portal-nav="submissions" onclick="window.location.href='school-portal-submissions.html'">
+                <i class="fa-solid fa-folder-open nav-icon"></i><span>My Submissions</span>
+                <span class="nav-badge" id="pendingBadge" style="display:none;"></span>
+            </button>
+            <button class="nav-btn active" data-portal-nav="tracker" onclick="window.location.href='school-portal-tracker.html'">
+                <i class="fa-solid fa-chart-gantt nav-icon"></i><span>Document Tracker</span>
+            </button>
+
+            <div class="nav-section-label">Tools</div>
+            <button class="nav-btn" data-portal-nav="calendar" onclick="window.location.href='school-portal-calendar.html'">
+                <i class="fa-solid fa-calendar-days nav-icon"></i><span>School Calendar</span>
+            </button>
+            <button class="nav-btn" data-portal-nav="tuition" onclick="window.location.href='school-portal-tuition.html'">
+                <i class="fa-solid fa-file-invoice-dollar nav-icon"></i><span>School Tuition Fee</span>
+			</button>
+			<button class="nav-btn" data-portal-nav="permit" onclick="window.location.href='school-portal-permit.html'">
+                <i class="fa-solid fa-file-shield nav-icon"></i><span>School Permit</span>
+            </button>
+
+            <div class="nav-section-label">Account</div>
+            <button class="nav-btn" data-portal-nav="audit" onclick="window.location.href='school-portal-audit.html'">
+				<i class="fa-solid fa-clipboard-list nav-icon"></i>
+				<span>Audit Logs</span>
+			</button>
+            <button class="nav-btn" data-portal-nav="profile" onclick="window.location.href='school-portal-profile.html'">
+                <i class="fa-solid fa-user-circle nav-icon"></i><span>Profile</span>
+            </button>
+        </nav>
+
+        <div class="user-info-sidebar">
+            <div class="user-avatar-sidebar" id="sidebarAvatar">?</div>
+            <div class="user-details">
+                <h3 id="sidebarName">Loading...</h3>
+                <p id="sidebarRole">—</p>
+            </div>
+        </div>
+        <button class="sidebar-logout-btn" onclick="handleLogout()">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Logout</span>
+        </button>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+    <!-- ── Main Content ──────────────────────────────────────────────────────── -->
+    <div class="main-content">
+
+        <div class="page-header">
+            <div class="page-header-left">
+                <h1 id="pageTitle"><i class="fa-solid fa-chart-gantt"></i> Document Tracker</h1>
+                <p id="pageSubtitle">Live status of your school documents as tracked by the SDO office</p>
+            </div>
+            <div class="page-header-right">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="dashboard-content">
+
+            <!-- ╔═ TRACKER TAB ═══════════════════════════════════════════════ -->
+            <div class="tab-panel active" id="tab-tracker">
+
+                <div class="tracker-header">
+                    <div class="tracker-header-left">
+                        <h2>Document Tracker</h2>
+                        <p>Live status of your school's documents as tracked by the SDO office</p>
+                    </div>
+                    <div class="tracker-year-wrap">
+                        <label for="trackerYearSelect"><i class="fa-solid fa-calendar-alt" style="margin-right:4px;"></i>School Year</label>
+                        <select id="trackerYearSelect" onchange="trackerChangeYear()">
+                            <option>Loading…</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="tracker-legend">
+                    <div class="tracker-legend-item">
+                        <div class="tracker-legend-dot done"></div>
+                        <span>Completed</span>
+                    </div>
+                    <div class="tracker-legend-item">
+                        <div class="tracker-legend-dot pending"></div>
+                        <span>Pending / Not yet processed</span>
+                    </div>
+                    <div class="tracker-legend-note">
+                        <i class="fa-solid fa-circle-info"></i>
+                        This tracker is managed by the SDO office. Contact them for updates.
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-card-body">
+                        <div id="trackerContent">
+                            <!-- Populated by renderTracker() -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ╔═ PROFILE TAB (shared across pages) ════════════════════════ -->
+            <div class="tab-panel" id="tab-profile">
+                <div style="margin-bottom:20px;">
+                    <h2 style="font-size:16px;font-weight:800;color:#1a1a2e;">Profile</h2>
+                    <p style="font-size:12px;color:#6b7280;margin-top:2px;">Your account and school information</p>
+                </div>
+                <div class="profile-grid">
+                    <div class="profile-card">
+                        <div class="profile-avatar-lg" id="profileAvatar">?</div>
+                        <div class="profile-name"  id="profileName">—</div>
+                        <div class="profile-role"  id="profileRoleBadge">—</div>
+                        <div class="profile-email" id="profileEmail">—</div>
+                        <div class="profile-stat-row">
+                            <div class="profile-stat">
+                                <div class="profile-stat-val" id="pStatTotal">—</div>
+                                <div class="profile-stat-lbl">Submissions</div>
+                            </div>
+                            <div class="profile-stat">
+                                <div class="profile-stat-val" id="pStatApproved">—</div>
+                                <div class="profile-stat-lbl">Approved</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="info-card">
+                            <h3><i class="fa-solid fa-school"></i> School Information</h3>
+                            <div class="info-row"><span class="info-label">School Name</span><span class="info-value" id="pSchool">—</span></div>
+                            <div class="info-row"><span class="info-label">District</span><span class="info-value" id="pDistrict">—</span></div>
+                            <div class="info-row"><span class="info-label">School Type</span><span class="info-value" id="pType">—</span></div>
+                            <div class="info-row"><span class="info-label">DepEd School ID</span><span class="info-value" id="pDepedId">—</span></div>
+                            <div class="info-row"><span class="info-label">Grade / Department</span><span class="info-value" id="pGrade">—</span></div>
+                            <div class="info-row"><span class="info-label">Employee / Student No.</span><span class="info-value" id="pSchoolIdNo">—</span></div>
+                        </div>
+                        <div class="info-card">
+                            <h3><i class="fa-solid fa-user"></i> Account Details</h3>
+                            <div class="info-row"><span class="info-label">Full Name</span><span class="info-value" id="pFullName">—</span></div>
+                            <div class="info-row"><span class="info-label">Email Address</span><span class="info-value" id="pEmail">—</span></div>
+                            <div class="info-row"><span class="info-label">Role</span><span class="info-value" id="pRole">—</span></div>
+                            <div class="info-row">
+                                <span class="info-label">Email Verified</span>
+                                <span class="info-value"><span class="status-badge badge-approved">✓ Verified</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /dashboard-content -->
+    </div><!-- /main-content -->
+</div><!-- /main-container -->
+
+<!-- ── Upload Modal (needed by shared JS) ─────────────────────────────────── -->
+<div class="upload-modal-overlay" id="uploadModalOverlay"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;"
+     onclick="closeUploadModal(event)">
+    <div class="upload-modal" onclick="event.stopPropagation()"
+         style="background:var(--color-background-primary,#fff);border-radius:16px;border:0.5px solid #e5e7eb;width:100%;max-width:540px;margin:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:0.5px solid #e5e7eb;">
+            <h3 style="font-size:15px;font-weight:700;color:#1a1a2e;margin:0;">
+                <i class="fa-solid fa-cloud-upload-alt" style="margin-right:8px;color:#2456a4;"></i>Upload Document
+            </h3>
+            <button onclick="_closeUploadModal()" style="background:none;border:none;cursor:pointer;color:#6b7280;font-size:16px;padding:4px;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div id="uploadMsg" style="display:none;margin:12px 20px 0;padding:10px 14px;border-radius:8px;font-size:13px;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:18px 20px;">
+            <div id="upload-card-tuition" style="border:0.5px solid #e5e7eb;border-radius:12px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;">
+                <div style="width:48px;height:48px;border-radius:12px;background:#e6f1fb;display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-money-bill-wave" style="font-size:20px;color:#185fa5;"></i>
+                </div>
+                <div>
+                    <h4 style="font-size:13px;font-weight:700;color:#1a1a2e;margin:0 0 4px;">Tuition Fee Document</h4>
+                    <p style="font-size:11px;color:#6b7280;margin:0;">Increase or no-increase notice.</p>
+                </div>
+                <div style="font-size:10px;color:#9ca3af;">PDF, DOC, DOCX · Max 10 MB</div>
+                <input type="file" id="file-tuition" accept=".pdf,.doc,.docx" style="display:none;" onchange="handleUpload(this,'tuition')">
+                <button class="upload-card-btn btn btn-primary" style="width:100%;font-size:12px;" onclick="document.getElementById('file-tuition').click()">
+                    <i class="fa-solid fa-folder-open"></i> Choose File
+                </button>
+            </div>
+            <div id="upload-card-calendar" style="border:0.5px solid #e5e7eb;border-radius:12px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;">
+                <div style="width:48px;height:48px;border-radius:12px;background:#eeedfe;display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-calendar-alt" style="font-size:20px;color:#534ab7;"></i>
+                </div>
+                <div>
+                    <h4 style="font-size:13px;font-weight:700;color:#1a1a2e;margin:0 0 4px;">School Calendar</h4>
+                    <p style="font-size:11px;color:#6b7280;margin:0;">Calendar for the current school year.</p>
+                </div>
+                <div style="font-size:10px;color:#9ca3af;">PDF, DOC, DOCX, XLSX, TXT · Max 10 MB</div>
+                <input type="file" id="file-calendar" accept=".pdf,.doc,.docx,.xlsx,.txt" style="display:none;" onchange="handleUpload(this,'calendar')">
+                <button class="upload-card-btn btn btn-outline" style="width:100%;font-size:12px;" onclick="document.getElementById('file-calendar').click()">
+                    <i class="fa-solid fa-folder-open"></i> Choose File
+                </button>
+            </div>
+        </div>
+        <div style="padding:0 20px 18px;display:flex;justify-content:flex-end;">
+            <button class="btn btn-outline" onclick="_closeUploadModal()" style="font-size:13px;">Close</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.upload-card-loading  { opacity:.7; pointer-events:none; }
+.upload-card-disabled { opacity:.4; pointer-events:none; }
+.upload-msg-success { background:#eaf3de; color:#27500a; border:0.5px solid #97c459; }
+.upload-msg-error   { background:#fcebeb; color:#791f1f; border:0.5px solid #f09595; }
+.upload-msg-info    { background:#e6f1fb; color:#0c447c; border:0.5px solid #85b7eb; }
+
+/* Tracker-specific styles */
+.tracker-header {
+    display:flex; align-items:flex-start; justify-content:space-between;
+    margin-bottom:14px; gap:12px; flex-wrap:wrap;
+}
+.tracker-header-left h2 { font-size:16px; font-weight:800; color:#1a1a2e; margin:0 0 2px; }
+.tracker-header-left p  { font-size:12px; color:#6b7280; margin:0; }
+.tracker-year-wrap { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.tracker-year-wrap label { font-size:12px; color:#6b7280; white-space:nowrap; }
+.tracker-year-wrap select {
+    font-size:13px; padding:6px 10px; border-radius:8px;
+    border:1px solid #e5e7eb; color:#1a1a2e; background:#fff; cursor:pointer;
+}
+
+.tracker-legend {
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    margin-bottom:16px; padding:10px 14px;
+    background:#f9fafb; border:1px solid #f0f0f0; border-radius:10px;
+    font-size:12px; color:#6b7280;
+}
+.tracker-legend-item { display:flex; align-items:center; gap:6px; }
+.tracker-legend-dot { width:12px; height:12px; border-radius:3px; }
+.tracker-legend-dot.done    { background:#eaf3de; border:1.5px solid #97c459; }
+.tracker-legend-dot.pending { background:#f9fafb; border:1.5px dashed #d1d5db; }
+.tracker-legend-note { margin-left:auto; display:flex; align-items:center; gap:5px; font-size:11px; color:#9ca3af; }
+
+.tracker-loading, .tracker-error, .tracker-empty {
+    text-align:center; padding:48px 20px; color:#9ca3af; font-size:13px;
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+.tracker-loading i, .tracker-error i, .tracker-empty i { font-size:28px; opacity:.5; }
+.tracker-error { color:#dc2626; }
+.tracker-empty p { margin:0; line-height:1.6; }
+
+.tracker-summary-bar {
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
+}
+.tracker-summary-left { display:flex; flex-direction:column; gap:2px; }
+.tracker-summary-label { font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; }
+.tracker-summary-fraction { font-size:13px; color:#1a1a2e; font-weight:600; }
+.tracker-pct-badge { font-size:13px; font-weight:800; padding:4px 12px; border-radius:20px; }
+.tracker-pct-badge.complete { background:#eaf3de; color:#27500a; }
+.tracker-pct-badge.partial  { background:#e6f1fb; color:#0c447c; }
+.tracker-pct-badge.none     { background:#f3f4f6; color:#6b7280; }
+
+.tracker-progress-track {
+    height:6px; background:#f0f0f0; border-radius:99px; margin-bottom:24px; overflow:hidden;
+}
+.tracker-progress-fill {
+    height:100%; background:#2456a4; border-radius:99px; transition:width .4s ease;
+}
+
+.tracker-category {
+    background:#fff; border:1px solid #e8eaf0; border-radius:14px;
+    margin-bottom:14px; overflow:hidden;
+}
+.tracker-cat-header {
+    display:flex; align-items:center; gap:12px; padding:14px 16px;
+    background:#f9fafb; border-bottom:1px solid #f0f0f0;
+}
+.tracker-cat-icon {
+    width:36px; height:36px; border-radius:10px; display:flex;
+    align-items:center; justify-content:center; font-size:15px; flex-shrink:0;
+}
+.tracker-icon-purple { background:#eeedfe; color:#534ab7; }
+.tracker-icon-blue   { background:#e6f1fb; color:#185fa5; }
+.tracker-icon-teal   { background:#e1f5ee; color:#0f6e56; }
+.tracker-icon-amber  { background:#faeeda; color:#854f0b; }
+.tracker-icon-rose   { background:#fce7f3; color:#9d174d; }
+.tracker-icon-indigo { background:#eef2ff; color:#4338ca; }
+.tracker-icon-gray   { background:#f3f4f6; color:#6b7280; }
+
+.tracker-cat-title { flex:1; min-width:0; }
+.tracker-cat-title h4 { font-size:13px; font-weight:700; color:#1a1a2e; margin:0 0 2px; }
+.tracker-cat-sub { font-size:11px; color:#9ca3af; }
+
+.tracker-cat-badge {
+    font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px;
+    display:flex; align-items:center; gap:4px; white-space:nowrap;
+}
+.badge-complete { background:#eaf3de; color:#27500a; }
+.badge-partial  { background:#e6f1fb; color:#0c447c; }
+.badge-none     { background:#f3f4f6; color:#9ca3af; }
+
+.tracker-cat-body { padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+
+.tracker-row-label {
+    font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase;
+    letter-spacing:.05em; margin-top:4px; padding-bottom:4px;
+    border-bottom:1px dashed #f0f0f0;
+}
+.tracker-steps { display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
+
+.tracker-step {
+    display:flex; align-items:center; gap:6px; padding:7px 12px;
+    border-radius:8px; font-size:12px;
+}
+.tracker-step.step-done    { background:#eaf3de; }
+.tracker-step.step-pending { background:#f9fafb; border:1px dashed #e5e7eb; }
+
+.tracker-step-icon { font-size:14px; flex-shrink:0; }
+.step-done    .tracker-step-icon { color:#3b6d11; }
+.step-pending .tracker-step-icon { color:#d1d5db; }
+
+.tracker-step-text { display:flex; flex-direction:column; gap:1px; }
+.tracker-step-label { font-weight:600; }
+.step-done    .tracker-step-label { color:#27500a; }
+.step-pending .tracker-step-label { color:#9ca3af; }
+.tracker-step-date { font-size:10px; color:#6b7280; }
+
+.tracker-step-connector { width:20px; height:2px; background:#e5e7eb; flex-shrink:0; }
+
+@media (max-width:600px) {
+    .tracker-steps { flex-direction:column; align-items:flex-start; }
+    .tracker-step-connector { width:2px; height:14px; margin-left:18px; }
+    .tracker-legend-note { display:none; }
+}
+</style>
+
+<script src="js/config.js?v4"></script>
+<script src="js/school-portal-permissions.js"></script>
+<script src="js/school-portal-tracker.js?v4"></script>
+<script src="js/school-portal-notifications.js"></script>
+
+</body>
+</html>

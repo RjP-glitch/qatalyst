@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QATALYST - Schools Submissions Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="css/notifications.css">
+    <link rel="stylesheet" href="css/manual-help-btn.css">
+    <link rel="stylesheet" href="css/summary-report.css?v11" />
+</head>
+<body>
+
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- ── Main Content ── -->
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-chart-bar"></i> Schools Submissions Summary</h1>
+                    <p>Overview of document tracking progress per school and school year</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="btn" onclick="window.location.href='checklist.html'">
+                        <i class="fa-solid fa-arrow-left"></i> Back to Checklist
+                    </button>
+                    <button class="btn btn-indorsements" id="indorsementsBtn" onclick="openIndorsementsModal()">
+                        <i class="fa-solid fa-stamp"></i> View Indorsements
+                    </button>
+                    <button class="btn btn-primary" id="exportBtn" onclick="exportReport()">
+                        <i class="fa-solid fa-file-export"></i> Export Report
+                    </button>
+                    <button class="manual-help-btn" type="button"
+                        onclick="window.location.href='user-manual.html?page=checklist.html'">
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-area">
+
+                <!-- ── Controls bar ── -->
+                <div class="summary-controls">
+                    <div class="summary-controls-left">
+                        <!-- Year selector -->
+                        <div class="ctrl-group">
+                            <label class="ctrl-label"><i class="fa-solid fa-calendar-alt"></i> School Year</label>
+                            <select id="yearSelect" class="ctrl-select" onchange="onYearChange()">
+                                <option value="">Loading…</option>
+                            </select>
+                        </div>
+
+                        <!-- School type tabs -->
+                        <div class="type-tabs">
+                            <button class="type-tab active" id="tabPrivate" onclick="switchType('private', this)">
+                                <i class="fa-solid fa-school"></i> Private
+                            </button>
+                            <button class="type-tab" id="tabPublic" onclick="switchType('public', this)">
+                                <i class="fa-solid fa-landmark"></i> Public
+                            </button>
+                        </div>
+
+                        <!-- Search -->
+                        <div class="search-wrap">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="searchInput" placeholder="Search school…" oninput="onSearch(this.value)" class="search-input" />
+                        </div>
+                    </div>
+                    <div class="summary-controls-right">
+                        <!-- Category filter -->
+                        <div class="ctrl-group">
+                            <label class="ctrl-label"><i class="fa-solid fa-filter"></i> Category</label>
+                            <select id="categoryFilter" class="ctrl-select" onchange="onCategoryChange()">
+                                <option value="all">All Categories</option>
+                                <optgroup label="Tracked by Endorsed / Approved / Released">
+                                    <option value="school_calendar">School Calendar</option>
+                                    <option value="tuition_increase">Tuition Fee Increase</option>
+                                    <option value="no_increase">No Increase</option>
+                                    <option value="authority_new">Authority to Operate (New)</option>
+                                    <option value="renewal_permit">Renewal of Gov't Permit</option>
+                                    <option value="tracks_strand">Application for Tracks/Strand</option>
+                                    <option value="special_programs">Special Programs</option>
+                                    <option value="school_campaign">School Campaign</option>
+                                    <option value="closure">Closure</option>
+                                    <option value="special_order">Special Order (SHS)</option>
+                                </optgroup>
+                                <optgroup label="Tracked by School Level (Pre-Elem / Elem / JHS / SHS)">
+                                    <option value="app_govt_recognition">Application for Gov't Recognition</option>
+                                    <option value="off_campus">Off-Campus Activities</option>
+                                    <option value="special_order_level">Level</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <!-- Status filter -->
+                        <div class="filter-pills">
+                            <button class="filter-pill active" onclick="setStatusFilter('all', this)">All</button>
+                            <button class="filter-pill pill-done" onclick="setStatusFilter('done', this)">Completed</button>
+                            <button class="filter-pill pill-partial" onclick="setStatusFilter('partial', this)">Ongoing</button>
+                            <button class="filter-pill pill-none" onclick="setStatusFilter('none', this)">Pending</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Summary stat cards ── -->
+                <div class="stat-cards" id="statCards">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-blue"><i class="fa-solid fa-school"></i></div>
+                        <div class="stat-body">
+                            <div class="stat-value" id="statTotal">—</div>
+                            <div class="stat-label">Total Schools</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-green"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="stat-body">
+                            <div class="stat-value" id="statDone">—</div>
+                            <div class="stat-label">Fully Completed</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-amber"><i class="fa-solid fa-hourglass-half"></i></div>
+                        <div class="stat-body">
+                            <div class="stat-value" id="statPartial">—</div>
+                            <div class="stat-label">Ongoing</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-red"><i class="fa-solid fa-clock"></i></div>
+                        <div class="stat-body">
+                            <div class="stat-value" id="statPending">—</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-indigo"><i class="fa-solid fa-percent"></i></div>
+                        <div class="stat-body">
+                            <div class="stat-value" id="statAvgPct">—</div>
+                            <div class="stat-label">Avg. Completion</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Main table ── -->
+                <div id="categoryModeBanner" class="category-mode-banner hidden">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span id="categoryModeBannerText"></span>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-card-header">
+                        <div class="summary-card-title">
+                            <i class="fa-solid fa-table-list"></i>
+                            <span id="summaryCardTitle">School-by-School Progress</span>
+                        </div>
+                        <div class="summary-card-actions">
+                            <span class="summary-count" id="summaryCount">Loading…</span>
+                        </div>
+                    </div>
+
+                    <div id="summaryLoader" class="summary-loader">
+                        <div class="summary-spinner"></div>
+                        <span>Loading tracking data…</span>
+                    </div>
+
+                    <div id="summaryError" class="summary-error hidden">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span id="summaryErrorMsg">Failed to load data.</span>
+                        <button class="btn btn-secondary" onclick="loadData()">Retry</button>
+                    </div>
+
+                    <div id="summaryTableWrap" class="hidden">
+                        <div class="table-scroll">
+                            <table class="summary-table" id="summaryTable">
+                                <thead id="summaryThead"></thead>
+                                <tbody id="summaryTbody"></tbody>
+                            </table>
+                        </div>
+
+                        <div id="emptyState" class="empty-state hidden">
+                            <i class="fa-solid fa-inbox"></i>
+                            <p>No schools match your current filters.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── More breakdowns (collapsed by default to avoid clutter) ── -->
+                <button type="button" class="more-breakdowns-toggle" id="moreBreakdownsToggle" onclick="toggleMoreBreakdowns()">
+                    <i class="fa-solid fa-chevron-right" id="moreBreakdownsIcon"></i>
+                    <span>More breakdowns</span>
+                    <span class="more-breakdowns-hint">Level-based categories &amp; category completion overview</span>
+                </button>
+
+                <div id="moreBreakdownsWrap" class="more-breakdowns-wrap hidden">
+                    <!-- ── Level Submissions Table ── -->
+                    <div id="levelSubmissionsWrap"></div>
+
+                    <!-- ── Category breakdown chart ── -->
+                    <div class="summary-card" style="margin-top:20px;">
+                        <div class="summary-card-header">
+                            <div class="summary-card-title">
+                                <i class="fa-solid fa-chart-bar"></i>
+                                Category Completion Overview
+                            </div>
+                        </div>
+                        <div id="categoryBars" class="category-bars"></div>
+                    </div>
+                </div>
+
+            </div><!-- /content-area -->
+        </div><!-- /main-content -->
+    </div><!-- /main-container -->
+
+    <!-- Toast -->
+    <div id="_globalToast" style="display:none;"></div>
+
+    <script>
+        // Inline config shim — same pattern as other pages
+        if (typeof CONFIG === 'undefined') {
+            window.CONFIG = {
+                API_URL: window.location.pathname.includes('/pages/')
+                    ? '../api'
+                    : 'api',
+            };
+        }
+    </script>
+    <script src="js/permissions.js?v5"></script>
+    <script src="js/config.js?v6"></script>
+    <!-- docx.js — matches programs.html exactly (jsdelivr v7.8.2) -->
+    <script src="https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js"
+        integrity="sha384-zjTqOObJTD6OT6CUn8mSpDY+crIiP0cX457OjcZosSATiUFbmdXa9KRScjfLVxFH"
+        crossorigin="anonymous"></script>
+    <script src="js/summary-report.js"></script>
+    <!--<script src="js/generate-summary-report.js"></script>-->
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>QATALYST - Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="css/school-portal-profile.css?v5">
+    <link rel="stylesheet" href="css/school-portal-notifications.css"/>
+    <style>
+        /* ── Profile page additions ── */
+        .info-section-sub {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--text-muted, #8a93a8);
+            margin: 1.25rem 0 0.5rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid var(--border-color, #e8ecf4);
+        }
+        .info-section-sub:first-child { margin-top: 0; }
+
+        /* Levels checkbox group */
+        .levels-check-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 1.25rem;
+            margin-top: 0.25rem;
+        }
+        .levels-check-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .levels-check-group input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+            accent-color: var(--primary, #4361ee);
+        }
+
+        /* Status select */
+        .status-select-wrap { margin-top: 0.25rem; }
+        .status-select-wrap select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: var(--input-bg, #fff);
+            color: var(--text-primary, #1a202c);
+            cursor: pointer;
+        }
+        .status-select-wrap select:focus {
+            outline: none;
+            border-color: var(--primary, #4361ee);
+            box-shadow: 0 0 0 3px rgba(67,97,238,.1);
+        }
+    </style>
+</head>
+<body data-portal-mode="separate">
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<div class="main-container">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo-section">
+            <div class="logo-icon">Q</div>
+            <div class="logo-text">
+                <h1>QATALYST</h1>
+                <p>School Portal</p>
+            </div>
+        </div>
+
+        <div class="school-pill-sidebar">
+            <div class="school-pill-label">Your School</div>
+            <div class="school-pill-name" id="sidebarSchoolName">Loading...</div>
+            <div class="school-pill-dist" id="sidebarDistrict">—</div>
+        </div>
+
+        <nav class="nav-menu">
+            <div class="nav-section-label">Main</div>
+            <button class="nav-btn" data-portal-nav="dashboard" onclick="window.location.href='school-portal-dashboard.html'">
+                <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+            </button>
+            <button class="nav-btn" data-portal-nav="submissions" onclick="window.location.href='school-portal-submissions.html'">
+                <i class="fa-solid fa-folder-open nav-icon"></i><span>My Submissions</span>
+                <span class="nav-badge" id="pendingBadge" style="display:none;"></span>
+            </button>
+            <button class="nav-btn" data-portal-nav="tracker" onclick="window.location.href='school-portal-tracker.html'">
+                <i class="fa-solid fa-chart-gantt nav-icon"></i><span>Document Tracker</span>
+            </button>
+
+            <div class="nav-section-label">Tools</div>
+            <button class="nav-btn" data-portal-nav="calendar" onclick="window.location.href='school-portal-calendar.html'">
+                <i class="fa-solid fa-calendar-days nav-icon"></i><span>School Calendar</span>
+            </button>
+            <button class="nav-btn" data-portal-nav="tuition" onclick="window.location.href='school-portal-tuition.html'"><i
+				class="fa-solid fa-file-invoice-dollar nav-icon"></i><span>School Tuition Fee</span>
+            </button>
+            <button class="nav-btn" data-portal-nav="permit" onclick="window.location.href='school-portal-permit.html'">
+                <i class="fa-solid fa-file-shield nav-icon"></i><span>School Permit</span>
+            </button>
+
+            <div class="nav-section-label">Account</div>
+            <button class="nav-btn" data-portal-nav="audit" onclick="window.location.href='school-portal-audit.html'">
+                <i class="fa-solid fa-clipboard-list nav-icon"></i>
+                <span>Audit Logs</span>
+            </button>
+            <button class="nav-btn active" data-portal-nav="profile" onclick="window.location.href='school-portal-profile.html'">
+                <i class="fa-solid fa-user-circle nav-icon"></i><span>Profile</span>
+            </button>
+        </nav>
+
+        <div class="user-info-sidebar">
+            <div class="user-avatar-sidebar" id="sidebarAvatar">?</div>
+            <div class="user-details">
+                <h3 id="sidebarName">Loading...</h3>
+                <p id="sidebarRole">—</p>
+            </div>
+        </div>
+        <button class="sidebar-logout-btn" onclick="handleLogout()">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Logout</span>
+        </button>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+    <!-- ── Main Content ──────────────────────────────────────────────────────── -->
+    <div class="main-content">
+
+        <div class="page-header">
+            <div class="page-header-left">
+                <h1><i class="fa-solid fa-user-circle"></i> Profile</h1>
+                <p>Your account and school information</p>
+            </div>
+            <div class="page-header-right">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="dashboard-content">
+
+            <!-- ── Profile Hero: compact header ── -->
+            <div class="profile-hero">
+                <div class="profile-hero-body">
+                    <div class="profile-avatar-wrap">
+                        <div class="profile-avatar-lg" id="profileAvatar">?</div>
+                        <div class="profile-photo-uploader" title="Upload photo">
+                            <input id="editProfilePhotoFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="handleProfilePhotoUpload(event)">
+                            <span><i class="fa-solid fa-camera"></i></span>
+                        </div>
+                    </div>
+                    <div class="profile-hero-info">
+                        <div class="profile-name" id="profileName">—</div>
+                        <div class="profile-role" id="profileRoleBadge">—</div>
+                        <div class="profile-hero-meta">
+                            <span><i class="fa-solid fa-envelope"></i> <span id="profileEmail">—</span></span>
+                        </div>
+                    </div>
+                    <div class="profile-stat-row">
+                        <div class="profile-stat">
+                            <div class="profile-stat-val" id="pStatTotal">—</div>
+                            <div class="profile-stat-lbl">Submissions</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-val" id="pStatApproved">—</div>
+                            <div class="profile-stat-lbl">Approved</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-grid">
+                <div>
+                    <!-- ── School Information — system-controlled, read-only ── -->
+                    <div class="info-card">
+                        <h3><i class="fa-solid fa-school"></i> School Information</h3>
+                        <div class="info-row"><span class="info-label">School Name</span><span class="info-value" id="pSchool">—</span></div>
+                        <div class="info-row"><span class="info-label">District</span><span class="info-value" id="pDistrict">—</span></div>
+                        <div class="info-row"><span class="info-label">School Type</span><span class="info-value" id="pType">—</span></div>
+                        <div class="info-row"><span class="info-label">DepEd School ID</span><span class="info-value" id="pDepedId">—</span></div>
+                        <div class="info-row"><span class="info-label">Employee / Student No.</span><span class="info-value" id="pSchoolIdNo">—</span></div>
+                    </div>
+
+                    <!-- ── Edit School Settings ── -->
+                    <div class="info-card">
+                        <h3><i class="fa-solid fa-pen-to-square"></i> Edit School Settings</h3>
+                        <p class="settings-helper-text">Approved school details appear in the SDO directory. School head contact details are separate from your login account name and email.</p>
+
+                        <!-- School Logo -->
+                        <div class="profile-logo-uploader">
+                            <input id="editSchoolLogoFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="handleSchoolLogoUpload(event)">
+                            <img id="editSchoolLogoPreview" alt="School logo preview" style="display:none;">
+                            <div id="editSchoolLogoPlaceholder" class="profile-logo-placeholder">
+                                <i class="fa-solid fa-image"></i>
+                                <span>Upload School Logo</span>
+                                <small>PNG, JPG, WEBP · Max 3MB</small>
+                            </div>
+                        </div>
+
+                        <!-- Directory-aligned fields (shown based on school type) -->
+                        <div id="publicDirectoryFields" style="display:none;">
+                            <div class="info-section-sub">Public Schools (Directory)</div>
+                            <div class="profile-form-grid">
+                                <div class="profile-form-field" style="grid-column: 1 / -1;">
+                                    <label for="editPubHeadName">School Head Name <span class="req">*</span></label>
+                                    <input id="editPubHeadName" type="text" maxlength="255" placeholder="e.g. Juan D. Dela Cruz">
+                                </div>
+                                <div class="profile-form-field" style="grid-column: 1 / -1;">
+                                    <label for="editPubPosition">Position <span class="req">*</span></label>
+                                    <input id="editPubPosition" type="text" maxlength="255" placeholder="e.g. Principal I">
+                                </div>
+                                <div class="profile-form-field">
+                                    <label for="editPubDistrict">District</label>
+                                    <select id="editPubDistrict">
+                                        <option value="">— Select District —</option>
+                                    </select>
+                                </div>
+                                <div class="profile-form-field">
+                                    <label for="editPubSchoolId">School ID</label>
+                                    <input id="editPubSchoolId" type="text" maxlength="50" placeholder="e.g. 104737">
+                                </div>
+                                <div class="profile-form-field" style="grid-column: 1 / -1;">
+                                    <label for="editPubSchoolName">School Name</label>
+                                    <input id="editPubSchoolName" type="text" maxlength="255" placeholder="e.g. Baliwag North Central School">
+                                </div>
+                                <div class="profile-form-field">
+                                    <label for="editPubBirthdate">Birthdate</label>
+                                    <input id="editPubBirthdate" type="date">
+                                </div>
+                                <div class="profile-form-field">
+                                    <label for="editPubContact">Contact Number</label>
+                                    <input id="editPubContact" type="text" maxlength="50" placeholder="09XX XXX XXXX">
+                                </div>
+                                <div class="profile-form-field" style="grid-column: 1 / -1;">
+                                    <label for="editPubEmail">School Head E-mail Address</label>
+                                    <input id="editPubEmail" type="email" maxlength="150" placeholder="name@deped.gov.ph">
+                                </div>
+                                <div class="profile-form-field" style="grid-column: 1 / -1;">
+                                    <label for="editPubFirstDay">First Day at Station</label>
+                                    <input id="editPubFirstDay" type="date">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="privateDirectoryFields" style="display:none;">
+                            <div class="info-section-sub">Private Schools (Directory)</div>
+                            <div class="profile-form-grid">
+                                <div class="profile-form-field" style="grid-column: 1 / -1;">
+                                    <label for="editPrivSchoolName">School Name <span class="req">*</span></label>
+                                    <input id="editPrivSchoolName" type="text" maxlength="255" placeholder="e.g. Baliuag University (BU)">
+                                </div>
+                                <div class="profile-form-field" style="grid-column: 1 / -1;">
+                                    <label for="editPrivStatus">Status (leave blank if active)</label>
+                                    <select id="editPrivStatus">
+                                        <option value="">— Active / Operating —</option>
+                                        <option value="TEMPORARILY CLOSED">Temporarily Closed</option>
+                                        <option value="CLOSED">Closed</option>
+                                        <option value="WAITING FOR NOTICE OF CLOSURE">Waiting for Notice of Closure</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="info-section-sub">Elementary</div>
+                            <div class="profile-form-grid">
+                                <div class="profile-form-field">
+                                    <label for="editPrivElemAdmin">Administrator / Principal</label>
+                                    <input id="editPrivElemAdmin" type="text" maxlength="150" placeholder="Name or N/A">
+                                </div>
+                                <div class="profile-form-field">
+                                    <label for="editPrivElemContact">Contact Number</label>
+                                    <input id="editPrivElemContact" type="text" maxlength="50" placeholder="e.g. 09XX XXX XXXX">
+                                </div>
+                            </div>
+
+                            <div class="info-section-sub">Junior High School</div>
+                            <div class="profile-form-grid">
+                                <div class="profile-form-field">
+                                    <label for="editPrivJhsAdmin">Administrator / Principal</label>
+                                    <input id="editPrivJhsAdmin" type="text" maxlength="150" placeholder="Name or N/A">
+                                </div>
+                                <div class="profile-form-field">
+                                    <label for="editPrivJhsContact">Contact Number</label>
+                                    <input id="editPrivJhsContact" type="text" maxlength="50" placeholder="e.g. 09XX XXX XXXX">
+                                </div>
+                            </div>
+
+                            <div class="info-section-sub">Senior High School</div>
+                            <div class="profile-form-grid">
+                                <div class="profile-form-field">
+                                    <label for="editPrivShsAdmin">Administrator / Principal</label>
+                                    <input id="editPrivShsAdmin" type="text" maxlength="150" placeholder="Name or N/A">
+                                </div>
+                                <div class="profile-form-field">
+                                    <label for="editPrivShsContact">Contact Number</label>
+                                    <input id="editPrivShsContact" type="text" maxlength="50" placeholder="e.g. 09XX XXX XXXX">
+                                </div>
+                            </div>
+
+                            <div class="info-section-sub">Registrar</div>
+                            <div class="profile-form-grid">
+                                <div class="profile-form-field">
+                                    <label for="editPrivRegistrarName">Registrar Name</label>
+                                    <input id="editPrivRegistrarName" type="text" maxlength="150" placeholder="Name or N/A">
+                                </div>
+                                <div class="profile-form-field">
+                                    <label for="editPrivRegistrarContact">Contact Number</label>
+                                    <input id="editPrivRegistrarContact" type="text" maxlength="50" placeholder="e.g. 09XX XXX XXXX">
+                                </div>
+                            </div>
+
+                            <div class="info-section-sub">School Address</div>
+                            <div class="profile-form-grid">
+                                <div class="profile-form-field" style="grid-column: 1 / -1;">
+                                    <label for="editPrivStreet">Street Address</label>
+                                    <input id="editPrivStreet" type="text" maxlength="255" placeholder="e.g. 123 Rizal St.">
+                                </div>
+                                <div class="profile-form-field">
+                                    <label for="editPrivBarangay">Barangay</label>
+                                    <input id="editPrivBarangay" type="text" maxlength="100" placeholder="e.g. Barangay Poblacion">
+                                </div>
+                                <div class="profile-form-field">
+                                    <label for="editPrivCity">City / Municipality</label>
+                                    <input id="editPrivCity" type="text" maxlength="100" placeholder="e.g. City of Baliwag">
+                                </div>
+                            </div>
+
+                            <div class="info-section-sub">School Levels Offered</div>
+                            <div class="levels-check-group" style="margin-top:0.5rem;">
+                                <label><input type="checkbox" id="lvlPre"  value="pre">  Pre-School</label>
+                                <label><input type="checkbox" id="lvlElem" value="elem"> Elementary</label>
+                                <label><input type="checkbox" id="lvlJhs"  value="jhs">  Junior High School</label>
+                                <label><input type="checkbox" id="lvlShs"  value="shs">  Senior High School</label>
+                            </div>
+                        </div>
+
+                        <!-- Calendar Defaults -->
+                        <div class="info-section-sub">Calendar Defaults</div>
+                        <div class="profile-form-grid">
+                            <div class="profile-form-field">
+                                <label for="editSchoolIdNo">Employee / Student No.</label>
+                                <input id="editSchoolIdNo" type="text" maxlength="50" placeholder="Enter school ID number">
+                            </div>
+                        </div>
+
+                        <div class="profile-form-actions">
+                            <button class="btn btn-primary" onclick="saveSchoolSettings()">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Settings
+                            </button>
+                        </div>
+                        <div id="profileSettingsMsg" class="profile-settings-msg" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <!-- ── Account Details (read-only) ── -->
+                    <div class="info-card">
+                        <h3><i class="fa-solid fa-user"></i> Account Details</h3>
+                        <div class="info-row"><span class="info-label">Full Name</span><span class="info-value" id="pFullName">—</span></div>
+                        <div class="info-row">
+                            <span class="info-label">Email Address</span>
+                            <span class="info-value info-value-inline">
+                                <span id="pEmail">—</span>
+                                <i class="fa-solid fa-circle-check verified-check" id="pEmailVerifiedIcon" title="Verified" style="display:none;"></i>
+                            </span>
+                        </div>
+                        <div class="info-row"><span class="info-label">Role</span><span class="info-value" id="pRole">—</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /main-content -->
+</div><!-- /main-container -->
+
+<script src="js/config.js?v4"></script>
+<script src="js/school-portal-permissions.js"></script>
+<script src="js/school-portal-profile.js?v12"></script>
+<script src="js/school-portal-notifications.js"></script>
+</body>
+</html>

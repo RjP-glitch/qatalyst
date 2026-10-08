@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QATALYST - All Documents Submitted</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="css/documents-submitted.css?v14" />
+    <link rel="stylesheet" href="css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+    <!--<link rel="stylesheet" href="css/file-preview.css" />-->
+    <!-- docx UMD required by indorsement-generator.js -->
+    <!--<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>-->
+</head>
+
+<body>
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar" id="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn active" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <div class="main-content documents-page">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-inbox"></i> All Documents Submitted</h1>
+                    <p>View all school-submitted documents including calendar, tuition, and other document types</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="btn" onclick="navigate('checklist')">
+                        <i class="fa-solid fa-arrow-left"></i> Back to Checklist
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="all-docs-shell">
+                <div class="all-docs-card">
+                    <div class="all-docs-body" id="adsBody">
+                        <div class="all-docs-empty"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Loading submissions...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail + Status Update Modal -->
+    <div class="ds-overlay" id="adsDetailOverlay" onclick="ADS.closeDetailModal(event)">
+        <div class="dsd-modal" onclick="event.stopPropagation()">
+            <div class="dsd-modal-head">
+                <h2 id="adsDetailTitle">Submission Details</h2>
+                <div class="dsd-modal-head-actions" id="adsModalHeadActions">
+                    <!-- populated by JS: toggle preview, generate indorsement, print -->
+                </div>
+                <button class="ds-close-btn" type="button" onclick="ADS.closeDetailModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="dsd-body" id="adsDetailBody"></div>
+            <div class="dsd-modal-footer">
+                <div class="dsd-footer-group">
+                    <label class="dsf-label"><i class="fa-solid fa-flag"></i> Update Status</label>
+                    <select id="adsDetailStatus" class="all-docs-select dsd-footer-select">
+                        <option value="Pending Review">Pending Review</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Returned for Correction">Returned for Correction</option>
+                        <option value="For Endorsement">For Endorsement</option>
+                        <option value="Released to School">Released to School</option>
+                        <option value="draft">Draft (For Edit)</option>
+                    </select>
+                </div>
+                <div class="dsd-footer-group dsd-footer-remarks">
+                    <label class="dsf-label"><i class="fa-solid fa-comment-dots"></i> Remarks</label>
+                    <input id="adsDetailRemarks" type="text" class="all-docs-search-wrap dsd-footer-input" placeholder="Add remarks or notes..." />
+                </div>
+                <div class="dsd-modal-footer-right">
+                    <div id="adsDetailMsg" class="dsf-msg"></div>
+                    <button id="adsDetailSaveBtn" class="dsf-btn-save" onclick="ADS.saveDetailStatus()">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Status
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+
+        /* —— Permit batch grouped card —— */
+        .ads-permit-groups { display: flex; flex-direction: column; gap: 16px; padding: 10px 0; }
+        .ads-permit-batch-group { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+        .ads-permit-batch-group .ads-school-group-header { background: linear-gradient(90deg, #f0f4ff 0%, #f9fafb 100%); border-bottom: 1px solid #e5e7eb; }
+        .ads-permit-app-type-label {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #4b5563;
+            background: #e0e7ff;
+            border-radius: 5px;
+            padding: 2px 7px;
+            margin-left: 8px;
+        }
+        .ads-permit-file-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .ads-permit-file-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #1d4ed8;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            cursor: pointer;
+            transition: background .12s, border-color .12s;
+            max-width: 220px;
+        }
+        .ads-permit-file-chip:hover { background: #dbeafe; border-color: #93c5fd; }
+        .ads-permit-chip-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ads-permit-file-chip i { color: #2563eb; flex-shrink: 0; }
+        .ads-permit-sy-row {
+            display: flex;
+            gap: 14px;
+            padding: 8px 14px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .ads-permit-sy-row span { display: flex; align-items: center; gap: 5px; }
+        .ads-permit-batch-files-section {
+            background: #f0f4ff;
+            border: 1.5px solid #c7d7ff;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+        .ads-permit-batch-file-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 12.5px;
+            color: #374151;
+            margin-top: 4px;
+        }
+        .ads-permit-batch-file-row.is-active { background: #dbeafe; font-weight: 600; }
+        .ads-permit-batch-file-row i { color: #2563eb; flex-shrink: 0; }
+        .ads-permit-batch-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ads-permit-batch-note {
+            font-size: 11.5px;
+            color: #1d4ed8;
+            margin: 10px 0 2px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .ads-permit-batch-note i { font-size: 11px; }
+        .ads-hist-batch-note {
+            font-size: 11px;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #f0f4ff;
+            border: 1px solid #c7d7ff;
+            padding: 3px 8px;
+            border-radius: 5px;
+        }
+        /* Generate Indorsement button — teal/green accent to stand out from grey secondary buttons */
+        .dsd-btn-indorsement {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #6ee7b7;
+            background: #ecfdf5;
+            color: #065f46;
+            transition: background .15s, border-color .15s;
+        }
+        .dsd-btn-indorsement:hover:not(:disabled) {
+            background: #d1fae5;
+            border-color: #34d399;
+        }
+        .dsd-btn-indorsement:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
+        /* ── Edit Request badge on cards ── */
+        .ds-card-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .ads-edit-req-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1.5px solid #fed7aa;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .ads-edit-req-badge i { font-size: 10px; }
+
+        /* ── Edit Request section in detail modal ── */
+        .ads-edit-req-section {
+            background: #fff7ed;
+            border: 1.5px solid #fed7aa;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+        .ads-edit-req-title {
+            color: #c2410c !important;
+            border-bottom-color: #fed7aa !important;
+        }
+        .ads-edit-req-title i { color: #ea580c; }
+        .ads-edit-req-entry {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #fdba74;
+        }
+        .ads-edit-req-entry:first-of-type { margin-top: 6px; padding-top: 0; border-top: none; }
+        .ads-edit-req-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 5px;
+        }
+        .ads-edit-req-by {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #92400e;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .ads-edit-req-by i { color: #d97706; font-size: 11px; }
+        .ads-edit-req-date {
+            font-size: 11.5px;
+            color: #b45309;
+            white-space: nowrap;
+        }
+        .ads-edit-req-reason {
+            font-size: 12.5px;
+            color: #78350f;
+            background: rgba(255,255,255,.6);
+            border-radius: 6px;
+            padding: 6px 10px;
+            line-height: 1.5;
+        }
+        .ads-edit-req-no-reason {
+            color: #b45309;
+            font-style: italic;
+        }
+
+        /* ── Approve Edit button ── */
+        .ads-approve-edit-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 12px;
+            padding: 7px 16px;
+            border-radius: 7px;
+            border: none;
+            background: #0a1f3d;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: var(--font, 'Plus Jakarta Sans', sans-serif);
+            transition: background .15s, opacity .15s;
+            width: 100%;
+            justify-content: center;
+        }
+        .ads-approve-edit-btn:hover:not(:disabled) { background: #1a3a6b; }
+        .ads-approve-edit-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+        /* ── Post-approval success note ── */
+        .ads-edit-req-approved-note {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 12px;
+            padding: 8px 12px;
+            border-radius: 7px;
+            background: #f0fdf4;
+            border: 1.5px solid #86efac;
+            color: #15803d;
+            font-size: 12.5px;
+            font-weight: 600;
+        }
+        .ads-edit-req-approved-note i { color: #16a34a; }
+
+        /* ── Status tab strip  (spec §2) ── */
+        .ads-tabs-strip {
+            display: flex;
+            width: 100%;
+            border-bottom: 2px solid #e5e7eb;
+            background: #f9fafb;
+            border-radius: 10px 10px 0 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .ads-tabs-strip::-webkit-scrollbar { display: none; }
+        .ads-status-tab {
+            flex: 1;
+            min-width: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 13px 8px;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #6b7280;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            transition: color .15s, border-color .15s, background .15s;
+            font-family: inherit;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        /* On narrow screens, 6 equal-width (flex:1) tabs squeeze their
+           labels until they clip/overlap (e.g. "Returned" + "Indorsed to
+           RO" run together). Switch the strip to horizontally-scrollable,
+           content-sized tabs instead of forcing them to share the row. */
+        @media (max-width: 760px) {
+            .ads-tabs-strip {
+                justify-content: flex-start;
+                -webkit-overflow-scrolling: touch;
+            }
+            .ads-status-tab {
+                flex: 0 0 auto;
+                padding: 12px 14px;
+                font-size: 12px;
+            }
+        }
+        @media (max-width: 480px) {
+            .ads-status-tab {
+                padding: 11px 12px;
+                font-size: 11.5px;
+                gap: 5px;
+            }
+            .ads-tab-badge {
+                min-width: 16px;
+                height: 16px;
+                font-size: 10px;
+            }
+        }
+        .ads-status-tab:hover {
+            color: #185FA5;
+            background: #eef5fc;
+        }
+        .ads-status-tab--active {
+            color: #185FA5;
+            font-weight: 700;
+            border-bottom-color: #185FA5;
+            background: #dbeafe;
+            box-shadow: inset 0 -3px 0 #185FA5;
+        }
+        .ads-tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 9px;
+            font-size: 10.5px;
+            font-weight: 700;
+            background: #185FA5;
+            color: #fff;
+        }
+        .ads-tab-badge--inactive {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+
+        /* ── Toolbar embedded under tabs ── */
+        .ads-tabs-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 10px 14px;
+            background: #fff;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .ads-tabs-toolbar .all-docs-search-wrap {
+            flex: 1;
+            min-width: 200px;
+        }
+        .ads-tabs-toolbar .all-docs-select-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 480px) {
+            .ads-tabs-toolbar .all-docs-search-wrap {
+                min-width: 100%;
+            }
+            .ads-tabs-toolbar .all-docs-select-row {
+                width: 100%;
+            }
+            .ads-tabs-toolbar .all-docs-select-row select {
+                flex: 1;
+                min-width: 0;
+            }
+        }
+
+        .ads-tab-content { min-height: 120px; padding-top: 4px; }
+
+        /* ── History tab layout (spec §6) ── */
+        .ads-history-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            min-height: 400px;
+        }
+        .ads-hist-list {
+            border-right: 1px solid #e5e7eb;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+        .ads-hist-list-title {
+            padding: 10px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .6px;
+            text-transform: uppercase;
+            color: #9ca3af;
+            border-bottom: 1px solid #f3f4f6;
+            background: #fafafa;
+        }
+        .ads-hist-record-item {
+            padding: 11px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background .12s;
+        }
+        .ads-hist-record-item:hover { background: #f0f7ff; }
+        .ads-hist-record-item--active { background: #E6F1FB; border-left: 3px solid #185FA5; }
+        .ads-hist-record-name {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #1f2937;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ads-hist-record-meta {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ads-hist-trail {
+            padding: 16px 20px;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+        .ads-hist-trail-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 13.5px;
+            color: #1f2937;
+        }
+        .ads-hist-trail-sub { font-size: 12px; color: #9ca3af; }
+        .ads-hist-trail-entries { display: flex; flex-direction: column; }
+        .ads-hist-entry {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #f9fafb;
+        }
+        .ads-hist-dot {
+            flex-shrink: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-top: 4px;
+        }
+        .ads-hist-entry-body { flex: 1; min-width: 0; }
+        .ads-hist-entry-main {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 6px;
+        }
+        .ads-hist-event-label { font-size: 13px; font-weight: 700; color: #1f2937; }
+        .ads-hist-entry-by   { font-size: 12px; color: #6b7280; }
+        .ads-hist-entry-time { margin-left: auto; font-size: 11.5px; color: #9ca3af; white-space: nowrap; }
+        .ads-hist-entry-note { font-size: 12px; color: #9ca3af; font-style: italic; margin-top: 4px; }
+
+        /* ── History legend ── */
+        .ads-hist-legend {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px 14px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 11.5px;
+            color: #6b7280;
+        }
+        .ads-hist-legend-title {
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: .6px;
+            text-transform: uppercase;
+            color: #9ca3af;
+            margin-right: 4px;
+        }
+        .ads-hist-legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 14px;
+        }
+        .ads-hist-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        @media (max-width: 640px) {
+            .ads-history-layout { grid-template-columns: 1fr; }
+            .ads-hist-list { max-height: 180px; border-right: none; border-bottom: 1px solid #e5e7eb; }
+        }
+
+        /* ── draft status badge ── */
+        .ds-draft { background: #f5f3ff; color: #6d28d9; border-color: #c4b5fd; }
+
+        /* ── Tuition fee submission preview ── */
+        .ads-tuition-preview { padding: 4px 2px 10px; }
+        .ads-tf-section { margin-bottom: 16px; }
+        .ads-tf-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .ads-tf-section-title i { color: #d97706; font-size: 12px; }
+        .ads-tf-mode-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            font-weight: 700;
+            margin-left: auto;
+        }
+        .ads-tf-mode-increase { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
+        .ads-tf-mode-retain   { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+        .ads-tf-level-block { margin-bottom: 18px; }
+        .ads-tf-level-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #92400e;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            padding: 5px 10px;
+            margin-bottom: 6px;
+        }
+        .ads-tf-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .ads-tf-table th {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 5px 8px;
+            text-align: right;
+            font-weight: 700;
+            color: #374151;
+        }
+        .ads-tf-table th:first-child { text-align: left; }
+        .ads-tf-table td {
+            border: 1px solid #f0f1f3;
+            padding: 5px 8px;
+            text-align: right;
+            color: #1f2937;
+        }
+        .ads-tf-table td:first-child { text-align: left; color: #374151; }
+        .ads-tf-table tr.ads-tf-total-row td {
+            font-weight: 700;
+            background: #f9fafb;
+            border-top: 1.5px solid #d1d5db;
+        }
+        .ads-tf-table tr.ads-tf-increase td:last-child { color: #b91c1c; }
+        .ads-tf-empty-level { font-size: 12px; color: #9ca3af; font-style: italic; padding: 4px 2px; }
+        .ads-tf-grand-total {
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1d4ed8;
+        }
+    </style>
+
+    <!-- ══════════════════════════════════════════════════════
+         RECORDS MODAL — missing base styles (overlay/shell/header/footer),
+         mirroring the existing working .ds-overlay / .dsd-modal pattern.
+         These were never carried over when the modal markup was copied
+         from checklist.html, which is why "Generate Indorsement" appeared
+         to do nothing — the overlay rendered with position:static and a
+         transparent background, pushed below the page fold instead of
+         showing as a centered modal.
+    ══════════════════════════════════════════════════════ -->
+    <style>
+        .records-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 20, 50, .55);
+            backdrop-filter: blur(4px);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .records-modal-overlay.open { display: flex; }
+
+        .records-modal {
+            background: #fff;
+            border-radius: var(--ds-radius, 12px);
+            box-shadow: var(--ds-shadow, 0 20px 60px rgba(0,0,0,.25));
+            width: 95vw;
+            max-width: 1100px;
+            height: 88vh;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            font-family: var(--ds-font, inherit);
+            overflow: hidden;
+        }
+
+        .records-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #f1f5f9;
+            flex-shrink: 0;
+        }
+        .records-modal-title {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .records-modal-close {
+            width: 32px; height: 32px;
+            border: none; background: #f1f5f9;
+            border-radius: 8px; cursor: pointer;
+            color: #64748b; font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: background .15s;
+        }
+        .records-modal-close:hover { background: #e2e8f0; color: #0f172a; }
+
+        .records-modal-footer {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        /* ── Indorsement modal internals ── */
+        #ind_tabBar { display: none; }
+        @media (max-width: 768px) {
+            #ind_tabBar {
+                display: flex;
+                border-bottom: 1px solid #f1f5f9;
+                flex-shrink: 0;
+            }
+            .ind-tab-btn {
+                flex: 1;
+                padding: 10px;
+                border: none;
+                background: #fff;
+                color: #6b7280;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                border-bottom: 2px solid transparent;
+            }
+            .ind-tab-btn.active { color: #0369a1; border-bottom-color: #0369a1; background: #f0f9ff; }
+        }
+
+        #ind_bodyWrapper {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        #ind_leftPanel {
+            width: 360px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            border-right: 1px solid #f1f5f9;
+        }
+        #ind_rightPanel {
+            flex: 1;
+            min-width: 0;
+            overflow-y: auto;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        @media (max-width: 768px) {
+            #ind_bodyWrapper { flex-direction: column; }
+            #ind_leftPanel, #ind_rightPanel { width: 100%; border-right: none; }
+        }
+
+        .ind-step-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .6px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .ind-step-badge {
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: #0369a1;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .ind-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .4px;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+        .ind-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 9px 12px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            color: #0f172a;
+            background: #fff;
+        }
+        .ind-input:focus { outline: none; border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(147,197,253,.35); }
+
+        #ind_preview {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            background: #fff;
+        }
+    </style>
+
+    <!-- ══════════════════════════════════════════════════════
+         INDORSEMENT MODAL — copied from checklist.html
+    ══════════════════════════════════════════════════════ -->
+    <div class="records-modal-overlay" id="indorsementModalOverlay" onclick="closeIndorsementModal(event)">
+
+        <div class="records-modal" id="indorsementModal">
+
+            <!-- Header -->
+            <div class="records-modal-header" style="padding:16px 20px 14px; flex-shrink:0;">
+                <div class="records-modal-title" style="font-size:14px;gap:8px;min-width:0;flex:1;">
+                    <span id="ind_modalTitle"
+                        style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px;display:inline-block;">
+                        <i class="fa-solid fa-file-signature" style="margin-right:6px;color:#0369a1;"></i>Generate
+                        Indorsement Letter
+                    </span>
+                </div>
+                <button class="records-modal-close" onclick="closeIndorsementModal()" title="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Mobile Tab Bar -->
+            <div id="ind_tabBar">
+                <button class="ind-tab-btn active" id="ind_tabBtnFields" onclick="_indSwitchTab('fields')">
+                    <i class="fa-solid fa-list-ul"></i> Fields
+                </button>
+                <button class="ind-tab-btn" id="ind_tabBtnPreview" onclick="_indSwitchTab('preview')">
+                    <i class="fa-solid fa-file-lines"></i> Preview
+                </button>
+            </div>
+
+            <!-- Body: two-column on desktop, single-tab on mobile -->
+            <div id="ind_bodyWrapper">
+
+                <!-- LEFT PANEL -->
+                <div id="ind_leftPanel">
+
+                    <!-- STEP 1: Type Selector -->
+                    <div>
+                        <div class="ind-step-header">
+                            <span class="ind-step-badge">1</span>
+                            INDORSEMENT TYPE
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                            <button id="ind_typeBtn_school_calendar" onclick="_indSetType('school_calendar')" style="padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-family:inherit;transition:all .15s;text-align:left;line-height:1.4;">
+                                <i class="fa-solid fa-calendar-days" style="display:block;font-size:15px;margin-bottom:4px;"></i>School Calendar
+                            </button>
+                            <button id="ind_typeBtn_tuition_increase" onclick="_indSetType('tuition_increase')" style="padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-family:inherit;transition:all .15s;text-align:left;line-height:1.4;">
+                                <i class="fa-solid fa-arrow-trend-up" style="display:block;font-size:15px;margin-bottom:4px;"></i>Tuition Fee Increase
+                            </button>
+                            <button id="ind_typeBtn_no_increase" onclick="_indSetType('no_increase')" style="padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-family:inherit;transition:all .15s;text-align:left;line-height:1.4;">
+                                <i class="fa-solid fa-minus-circle" style="display:block;font-size:15px;margin-bottom:4px;"></i>No Increase
+                            </button>
+                            <button id="ind_typeBtn_school_permit" onclick="_indSetType('school_permit')" style="padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-family:inherit;transition:all .15s;text-align:left;line-height:1.4;">
+                                <i class="fa-solid fa-id-card" style="display:block;font-size:15px;margin-bottom:4px;"></i>School Permit
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2+: Fields (hidden until type chosen) -->
+                    <div id="ind_fieldsSection" style="display:none;flex-direction:column;gap:14px;">
+
+                        <!-- Indorsement Number -->
+                        <div>
+                            <div class="ind-step-header">
+                                <span class="ind-step-badge">2</span>
+                                INDORSEMENT NUMBER
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <button id="ind_numBtn1" onclick="_indSelectNum(1)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #bae6fd;background:#f0f9ff;color:#0369a1;font-family:inherit;transition:all .15s;">1st</button>
+                                <button id="ind_numBtn2" onclick="_indSelectNum(2)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-family:inherit;transition:all .15s;">2nd</button>
+                                <button id="ind_numBtn3" onclick="_indSelectNum(3)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-family:inherit;transition:all .15s;">3rd</button>
+                                <button id="ind_numBtn4" onclick="_indSelectNum(4)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-family:inherit;transition:all .15s;">4th</button>
+                                <button id="ind_numBtn5" onclick="_indSelectNum(5)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-family:inherit;transition:all .15s;">5th</button>
+                                <button id="ind_numBtn6" onclick="_indSelectNum(6)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-family:inherit;transition:all .15s;">6th</button>
+                            </div>
+                            <input type="hidden" id="ind_numberSelect" value="1" />
+                        </div>
+
+                        <!-- Flow note -->
+                        <div id="ind_flowNote" style="font-size:11px;line-height:1.6;padding:9px 12px;border-radius:8px;background:#f0f9ff;border:1px solid #bae6fd;color:#0369a1;"></div>
+
+                        <!-- School Search -->
+                        <div id="ind_schoolSearchRow">
+                            <label class="ind-label">SELECT SCHOOL</label>
+                            <div style="position:relative;">
+                                <input id="ind_schoolSearch" type="text" class="ind-input" style="padding-right:36px;"
+                                    placeholder="Search private school name…" autocomplete="off"
+                                    oninput="_indFilterSchools(this.value)" onfocus="_indShowSchoolDropdown()"
+                                    onblur="setTimeout(_indHideSchoolDropdown,180)" />
+                                <i class="fa-solid fa-magnifying-glass" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--color-text-secondary);font-size:13px;pointer-events:none;"></i>
+                                <div id="ind_schoolDropdown" style="display:none;position:absolute;top:calc(100%+4px);left:0;right:0;background:var(--color-background-primary,#fff);border:1px solid var(--color-border-tertiary,#e5e7eb);border-radius:8px;max-height:200px;overflow-y:auto;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.10);"></div>
+                            </div>
+                            <p style="font-size:11px;color:var(--color-text-secondary);margin:5px 0 0;">Selecting a school auto-fills name &amp; address.</p>
+                            <div id="ind_savedBadge" style="display:none;margin-top:6px;font-size:11px;padding:5px 10px;border-radius:6px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;"></div>
+                        </div>
+
+                        <!-- School Name -->
+                        <div>
+                            <label class="ind-label">SCHOOL NAME <span style="color:#ef4444;">*</span></label>
+                            <input id="ind_schoolName" type="text" class="ind-input"
+                                placeholder="e.g. OUR LADY OF GUADALUPE SCHOOL OF BALIWAG, INC."
+                                oninput="indClearMsg();_indUpdatePreview();_indUpdateSaveButtonState()" />
+                        </div>
+
+                        <!-- Level -->
+                        <div id="ind_levelRow">
+                            <label class="ind-label">LEVEL <span style="color:#ef4444;">*</span></label>
+                            <select id="ind_levelSelect" multiple class="ind-input" style="min-height:110px;" onchange="indClearMsg();_indUpdateLevelFromSelect()">
+                                <option value="pre_elem">Pre-Elementary Course</option>
+                                <option value="elem">Elementary Course</option>
+                                <option value="jhs">Junior High School Course</option>
+                                <option value="shs">Senior High School Course</option>
+                            </select>
+                            <input id="ind_level" type="hidden" />
+                            <p style="font-size:11px;color:var(--color-text-secondary);margin:5px 0 0;">Ctrl/Cmd+click to select multiple.</p>
+                        </div>
+
+                        <!-- Address -->
+                        <div>
+                            <label class="ind-label">SCHOOL ADDRESS <span style="color:#ef4444;">*</span></label>
+                            <input id="ind_address" type="text" class="ind-input"
+                                placeholder="e.g. Molave St. Alido Subd., Virgen Delas Flores, City of Baliwag"
+                                oninput="indClearMsg();_indUpdatePreview()" />
+                        </div>
+
+                        <!-- School Year -->
+                        <div>
+                            <label class="ind-label">SCHOOL YEAR <span style="color:#ef4444;">*</span></label>
+                            <select id="ind_sy" class="ind-input" style="appearance:none;-webkit-appearance:none;"
+                                oninput="indClearMsg();_indUpdatePreview()" onchange="indClearMsg();_indUpdatePreview()">
+                                <option value="">— Select School Year —</option>
+                            </select>
+                        </div>
+
+                        <!-- Calendar-specific fields -->
+                        <div id="ind_calendarFields">
+                            <div style="margin-bottom:12px;">
+                                <label class="ind-label">TOTAL SCHOOL DAYS</label>
+                                <input id="ind_days" type="number" class="ind-input" placeholder="e.g. 200" min="1"
+                                    oninput="indClearMsg();_indUpdatePreview()" />
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <div>
+                                    <label class="ind-label">START DATE</label>
+                                    <input id="ind_startDate" type="date" class="ind-input" style="padding:9px 8px;"
+                                        oninput="indClearMsg();_indUpdatePreview()" />
+                                </div>
+                                <div>
+                                    <label class="ind-label">END DATE</label>
+                                    <input id="ind_endDate" type="date" class="ind-input" style="padding:9px 8px;"
+                                        oninput="indClearMsg();_indUpdatePreview()" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Letter Date -->
+                        <div>
+                            <label class="ind-label">LETTER DATE</label>
+                            <input id="ind_letterDate" type="date" class="ind-input"
+                                oninput="indClearMsg();_indUpdatePreview()" />
+                        </div>
+
+                        <!-- Signatory (collapsed) -->
+                        <div style="border-top:1px solid var(--color-border-tertiary,#e5e7eb);padding-top:12px;">
+                            <button id="ind_changeSignatoryBtn" onclick="_indToggleSignatory()" style="width:100%;padding:9px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px dashed #d1d5db;background:var(--color-background-secondary,#f9fafb);color:#6b7280;font-family:inherit;transition:all .15s;text-align:left;">
+                                <i class="fa-solid fa-user-pen" style="margin-right:5px;"></i>Change Signatory Name
+                            </button>
+                            <div id="ind_signatoryWrap" style="display:none;margin-top:12px;flex-direction:column;gap:10px;">
+                                <div>
+                                    <label class="ind-label">Search Personnel Directory</label>
+                                    <div style="position:relative;">
+                                        <input id="ind_personnelSearch" type="text" class="ind-input"
+                                            placeholder="Search name or position…" autocomplete="off"
+                                            oninput="_indFilterPersonnel(this.value)"
+                                            onfocus="_indShowPersonnelDropdown()"
+                                            onblur="setTimeout(_indHidePersonnelDropdown,180)" />
+                                        <div id="ind_personnelDropdown" style="display:none;position:absolute;top:calc(100%+4px);left:0;right:0;background:var(--color-background-primary,#fff);border:1px solid var(--color-border-tertiary,#e5e7eb);border-radius:8px;max-height:180px;overflow-y:auto;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.10);"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="ind-label">SIGNATORY NAME <span style="color:#ef4444;">*</span></label>
+                                    <input id="ind_sigName" type="text" class="ind-input" style="font-weight:600;"
+                                        placeholder="e.g. ROWENA T. QUIAMBAO, CESO VI"
+                                        oninput="indClearMsg();_indUpdatePreview()" />
+                                </div>
+                                <div>
+                                    <label class="ind-label">SIGNATORY POSITION <span style="color:#ef4444;">*</span></label>
+                                    <input id="ind_sigPosition" type="text" class="ind-input"
+                                        placeholder="e.g. Schools Division Superintendent"
+                                        oninput="indClearMsg();_indUpdatePreview()" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Message -->
+                        <div id="ind_msg" style="display:none;"></div>
+
+                    </div><!-- /ind_fieldsSection -->
+
+                </div><!-- /LEFT PANEL -->
+
+                <!-- RIGHT PANEL -->
+                <div id="ind_rightPanel">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;flex-shrink:0;">
+                        <div>
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:var(--color-text-secondary);">LETTER PREVIEW</div>
+                            <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px;">Click to edit. Changes included in .docx.</div>
+                        </div>
+                        <span style="font-size:10.5px;padding:3px 9px;background:#fefce8;border:1px solid #fde047;color:#854d0e;border-radius:6px;font-weight:600;white-space:nowrap;">
+                            <i class="fa-solid fa-pen-to-square" style="margin-right:3px;"></i>Editable
+                        </span>
+                    </div>
+                    <div id="ind_preview" contenteditable="true" spellcheck="false">
+                        <span style="color:var(--color-text-secondary);font-style:italic;padding:24px 28px;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;text-align:center;">
+                            Select an indorsement type to begin…
+                        </span>
+                    </div>
+                </div><!-- /RIGHT PANEL -->
+
+            </div><!-- /body wrapper -->
+
+            <!-- Footer -->
+            <div id="ind_footer" class="records-modal-footer" style="padding:12px 20px;justify-content:space-between;gap:8px;flex-shrink:0;border-top:1px solid var(--color-border-tertiary,#e5e7eb);">
+                <button class="btn btn-secondary" onclick="closeIndorsementModal()">Cancel</button>
+                <div id="ind_footerActions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <button class="btn" id="ind_saveBtn" onclick="saveIndorsement()" disabled style="padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid #bbf7d0;background:#f0fdf4;color:#166534;font-family:inherit;transition:all .15s;opacity:.5;display:flex;align-items:center;gap:6px;">
+                        <i class="fa-solid fa-floppy-disk"></i><span>Save</span>
+                    </button>
+                    <button class="btn btn-primary" id="ind_downloadBtn" onclick="generateStandaloneIndorsement()" style="display:flex;align-items:center;gap:6px;">
+                        <i class="fa-solid fa-file-word"></i><span>Download .docx</span>
+                    </button>
+                </div>
+            </div>
+
+        </div><!-- /modal -->
+    </div><!-- /overlay -->
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/indorsement-generator.js?v10"></script>
+    <script src="js/documents-submitted-all.js?v16"></script>
+
+    <!-- Tab switcher for mobile indorsement modal -->
+    <script>
+        function _indSwitchTab(tab) {
+            const left = document.getElementById('ind_leftPanel');
+            const right = document.getElementById('ind_rightPanel');
+            const btnF = document.getElementById('ind_tabBtnFields');
+            const btnP = document.getElementById('ind_tabBtnPreview');
+            if (!left || !right) return;
+            if (tab === 'fields') {
+                left.classList.remove('ind-hidden');
+                right.classList.add('ind-hidden');
+                btnF && btnF.classList.add('active');
+                btnP && btnP.classList.remove('active');
+            } else {
+                right.classList.remove('ind-hidden');
+                left.classList.add('ind-hidden');
+                btnP && btnP.classList.add('active');
+                btnF && btnF.classList.remove('active');
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('autoprint') === '1') {
+                setTimeout(() => {
+                    if (typeof exportCalendarPDF === 'function') exportCalendarPDF();
+                    else window.print();
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+
+</html>

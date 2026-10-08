@@ -1,0 +1,20 @@
+{
+  "name": "import-excell",
+  "version": "1.0.0",
+  "description": "This is a simple PHP application that demonstrates the use of MVC architecture. Below is an overview of the project structure and instructions for setup and usage.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:school-portal": "php tests/school-portal-integration.php"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "cors": "^2.8.6",
+    "docx": "^9.6.0",
+    "express": "^5.2.1"
+  }
+}

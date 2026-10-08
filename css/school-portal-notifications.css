@@ -1,0 +1,345 @@
+/**
+ * QATALYST School Portal — Notification System Styles
+ * Scoped under .sn-* to avoid collisions with admin notification styles.
+ */
+
+/* ── Container ── */
+.sn-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* ── Bell Button ── */
+.sn-bell {
+    position: relative;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 8px 11px;
+    color: #cbd5e1;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background 0.2s, transform 0.15s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.sn-bell:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    transform: scale(1.06);
+}
+
+.sn-bell:active {
+    transform: scale(0.93);
+}
+
+/* When placed inside the sidebar (dark background) */
+.sidebar .sn-bell,
+.sidebar .sn-container {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: 8px;
+    padding: 10px 14px;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+}
+
+.sidebar .sn-bell::after {
+    content: 'Notifications';
+    font-size: 13px;
+    margin-left: 8px;
+    color: #cbd5e1;
+}
+
+/* ── Badge ── */
+.sn-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: linear-gradient(135deg, #f43f5e, #dc2626);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.45);
+    border: 2px solid #0a1f3d;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.sn-badge.sn-pulse {
+    animation: snPulse 0.6s ease-out;
+}
+
+@keyframes snPulse {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.35); }
+    100% { transform: scale(1); }
+}
+
+/* ── Dropdown ── */
+.sn-dropdown {
+    position: absolute;
+    /* Default: anchored below the bell in a header */
+    top: calc(100% + 10px);
+    right: 0;
+    width: 360px;
+    max-height: 500px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.98);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+    z-index: 9999;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e5e7eb;
+}
+
+.sn-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+/* When inside sidebar the dropdown opens to the right */
+.sidebar .sn-dropdown {
+    top: 0;
+    left: calc(100% + 8px);
+    right: auto;
+}
+
+/* ── Dropdown Header ── */
+.sn-dropdown-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 16px 11px;
+    border-bottom: 1px solid #f1f5f9;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    flex-shrink: 0;
+}
+
+.sn-dropdown-head h3 {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: 0.01em;
+}
+
+.sn-mark-all {
+    background: none;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 500;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.sn-mark-all:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #1e293b;
+}
+
+/* ── Notification List ── */
+.sn-list {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.sn-list::-webkit-scrollbar        { width: 5px; }
+.sn-list::-webkit-scrollbar-track  { background: #f8fafc; }
+.sn-list::-webkit-scrollbar-thumb  { background: #cbd5e1; border-radius: 3px; }
+
+/* ── Notification Item ── */
+.sn-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: background 0.12s;
+    position: relative;
+}
+
+.sn-item:last-child {
+    border-bottom: none;
+}
+
+.sn-item:hover {
+    background: #f8fafc;
+}
+
+.sn-item.sn-unread {
+    background: linear-gradient(90deg, #eff6ff 0%, #fff 80%);
+}
+
+.sn-item.sn-unread:hover {
+    background: linear-gradient(90deg, #dbeafe 0%, #f8fafc 80%);
+}
+
+/* ── Item Icon ── */
+.sn-item-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    color: #fff;
+}
+
+.sn-icon-green  { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.sn-icon-red    { background: linear-gradient(135deg, #f87171, #dc2626); }
+.sn-icon-blue   { background: linear-gradient(135deg, #60a5fa, #2563eb); }
+.sn-icon-amber  { background: linear-gradient(135deg, #fbbf24, #d97706); }
+.sn-icon-purple { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+.sn-icon-indigo { background: linear-gradient(135deg, #818cf8, #4338ca); }
+.sn-icon-teal   { background: linear-gradient(135deg, #2dd4bf, #0d9488); }
+.sn-icon-gray   { background: linear-gradient(135deg, #94a3b8, #64748b); }
+
+/* ── Item Body ── */
+.sn-item-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.sn-item-title {
+    margin: 0 0 2px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sn-item-msg {
+    margin: 0 0 4px;
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.sn-item-time {
+    font-size: 10.5px;
+    color: #94a3b8;
+}
+
+/* Unread dot */
+.sn-dot {
+    width: 8px;
+    height: 8px;
+    background: #3b82f6;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 5px;
+    align-self: flex-start;
+}
+
+/* ── Loading ── */
+.sn-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 36px 20px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* ── Empty ── */
+.sn-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 20px;
+    color: #94a3b8;
+    text-align: center;
+    gap: 6px;
+}
+
+.sn-empty i {
+    font-size: 30px;
+    opacity: 0.45;
+}
+
+.sn-empty p {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.sn-empty span {
+    font-size: 11.5px;
+    color: #94a3b8;
+}
+
+/* ── Footer ── */
+.sn-footer {
+    padding: 11px 16px;
+    border-top: 1px solid #e5e7eb;
+    background: #f8fafc;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.sn-footer a {
+    font-size: 12.5px;
+    color: #2456a4;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.15s;
+}
+
+.sn-footer a:hover {
+    color: #1d4080;
+    text-decoration: underline;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+    .sn-dropdown {
+        width: calc(100vw - 24px);
+        right: -40px;
+    }
+    .sidebar .sn-dropdown {
+        left: 0;
+        top: calc(100% + 6px);
+        right: 0;
+        width: auto;
+    }
+}

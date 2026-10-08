@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - Email Verification</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/code-validation.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+<body>
+    <div class="login-wrapper">
+        <!-- Left: Brand Panel -->
+        <div class="brand-panel">
+            <div class="brand-top">
+                <div class="brand-logo-area">
+                    <div class="brand-icon">Q</div>
+                    <div>
+                        <div class="brand-name">QATA<span>LYST</span></div>
+                        <div class="brand-tagline">Quality Assurance, Technical Assistance, Learning, and Systems Tracking</div>
+                    </div>
+                </div>
+
+                <h2 class="brand-headline">
+                    Secure your <span>account</span> with email verification
+                </h2>
+                <p class="brand-desc">
+                    A 6-digit code has been sent to your email. Enter it to confirm your identity and access your dashboard.
+                </p>
+            </div>
+
+            <div class="brand-bottom">
+                <div class="progress-steps">
+                    <!-- Step 1 -->
+                    <div class="progress-step-item">
+                        <div class="step-circle completed">✓</div>
+                        <div class="step-info">
+                            <div class="step-label">Login</div>
+                            <div class="step-sublabel">Credentials verified</div>
+                        </div>
+                    </div>
+                    <div class="step-connector"></div>
+
+                    <!-- Step 2 -->
+                    <div class="progress-step-item">
+                        <div class="step-circle active">2</div>
+                        <div class="step-info">
+                            <div class="step-label">Email Verification</div>
+                            <div class="step-sublabel">Enter your 6-digit code</div>
+                        </div>
+                    </div>
+                    <div class="step-connector"></div>
+
+                    <!-- Step 3 -->
+                    <div class="progress-step-item">
+                        <div class="step-circle pending">3</div>
+                        <div class="step-info">
+                            <div class="step-label pending">Dashboard</div>
+                            <div class="step-sublabel">Access your workspace</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Form Panel -->
+        <div class="form-panel">
+            <div class="form-header">
+                <div class="form-eyebrow">Step 2 of 3</div>
+                <h1>Verify Your Email</h1>
+                <p>We've sent a verification code to your registered email address.</p>
+            </div>
+
+            <div class="qatalyst-badge">
+                <div class="q-dot"></div>
+                Qatalyst · QRES Portal
+            </div>
+
+            <!-- Email display -->
+            <div class="email-display">
+                <div class="email-icon">✉</div>
+                <div class="email-text">
+                    Code sent to
+                    <strong id="emailDisplay">Loading...</strong>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+
+            <!-- Verification Form -->
+            <form id="verificationForm">
+                <div class="form-group">
+                    <label>Enter 6-Digit Verification Code</label>
+                    <div class="code-input-group" id="codeInputGroup">
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" required>
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" required>
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" required>
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" required>
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" required>
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" required>
+                    </div>
+                </div>
+
+                <!-- Resend Section -->
+                <div class="resend-section">
+                    <span class="resend-text">Didn't receive the code?</span>
+                    <div>
+                        <span class="resend-link" id="resendBtn">Resend Code</span>
+                        <span class="timer" id="timer"></span>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="button-group">
+                    <button type="button" class="btn-secondary" onclick="goBack()">← Back</button>
+                    <button type="submit" class="btn-primary" id="submitBtn">Verify & Continue</button>
+                </div>
+            </form>
+
+            <a href="#" class="change-email-link">← Use a different email</a>
+
+            <div class="form-footer">
+                © 2025 Qatalyst · QRES. All rights reserved.
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/code-validation.js"></script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <!-- Prevent browser from caching this page so back-button always re-validates -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>QATALYST - School Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="css/school-portal-dashboard.css?v3">
+    <link rel="stylesheet" href="css/school-portal-notifications.css" />
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<div class="main-container">
+
+    <!-- ── Sidebar ─────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo-section">
+            <div class="logo-icon">Q</div>
+            <div class="logo-text">
+                <h1>QATALYST</h1>
+                <p>School Portal</p>
+            </div>
+        </div>
+
+        <div class="school-pill-sidebar">
+            <div class="school-pill-label">Your School</div>
+            <div class="school-pill-name" id="sidebarSchoolName">Loading...</div>
+            <div class="school-pill-dist" id="sidebarDistrict">—</div>
+        </div>
+
+        <nav class="nav-menu">
+            <div class="nav-section-label">Main</div>
+            <button class="nav-btn active" data-portal-nav="dashboard" onclick="window.location.href='school-portal-dashboard.html'">
+                <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+            </button>
+            <button class="nav-btn" data-portal-nav="submissions" onclick="window.location.href='school-portal-submissions.html'">
+                <i class="fa-solid fa-folder-open nav-icon"></i><span>My Submissions</span>
+                <span class="nav-badge" id="pendingBadge" style="display:none;"></span>
+            </button>
+            <button class="nav-btn" data-portal-nav="tracker" onclick="window.location.href='school-portal-tracker.html'">
+                <i class="fa-solid fa-chart-gantt nav-icon"></i><span>Document Tracker</span>
+            </button>
+
+            <div class="nav-section-label">Tools</div>
+            <button class="nav-btn" data-portal-nav="calendar" onclick="window.location.href='school-portal-calendar.html'">
+                <i class="fa-solid fa-calendar-days nav-icon"></i><span>School Calendar</span>
+            </button>
+            <button class="nav-btn" data-portal-nav="tuition" onclick="window.location.href='school-portal-tuition.html'">
+                <i class="fa-solid fa-file-invoice-dollar nav-icon"></i><span>School Tuition Fee</span>
+            </button>
+            <button class="nav-btn" data-portal-nav="permit" onclick="window.location.href='school-portal-permit.html'">
+                <i class="fa-solid fa-file-shield nav-icon"></i><span>School Permit</span>
+            </button>
+
+            <div class="nav-section-label">Account</div>
+            <button class="nav-btn" data-portal-nav="audit" onclick="window.location.href='school-portal-audit.html'">
+                <i class="fa-solid fa-clipboard-list nav-icon"></i>
+                <span>Audit Logs</span>
+            </button>
+            <button class="nav-btn" data-portal-nav="profile" onclick="window.location.href='school-portal-profile.html'">
+                <i class="fa-solid fa-user-circle nav-icon"></i><span>Profile</span>
+            </button>
+        </nav>
+
+        <div class="user-info-sidebar">
+            <div class="user-avatar-sidebar" id="sidebarAvatar">?</div>
+            <div class="user-details">
+                <h3 id="sidebarName">Loading...</h3>
+                <p id="sidebarRole">—</p>
+            </div>
+        </div>
+        <button class="sidebar-logout-btn" onclick="handleLogout()">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Logout</span>
+        </button>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+    <!-- ── Main Content ─────────────────────────────────────────── -->
+    <div class="main-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-left">
+                <h1 id="pageTitle"><i class="fa-solid fa-house"></i> Dashboard</h1>
+                <p id="pageSubtitle">School Document Submission Portal</p>
+            </div>
+            <div class="page-header-right">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="dashboard-content">
+
+            <!-- ══ DASHBOARD ═════════════════════════════════════ -->
+            <div class="tab-panel active" id="tab-dashboard">
+
+                <!-- Welcome Banner -->
+                <div class="welcome-banner">
+                    <div class="welcome-text">
+                        <h2 id="welcomeGreeting">Welcome!</h2>
+                        <p id="welcomeSub">Submit and track your school documents — tuition fees, school calendars, and indorsement letters.</p>
+                    </div>
+                    <div class="welcome-date">
+                        <div class="date-big" id="dateBig"></div>
+                        <div id="dateMonth"></div>
+                        <div id="dateDay"></div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="summary-card clickable" onclick="window.location.href='school-portal-submissions.html'">
+                        <div class="card-icon blue"><i class="fa-solid fa-file-alt"></i></div>
+                        <div class="card-info">
+                            <h3 id="statTotal">—</h3>
+                            <p>Total Submissions</p>
+                        </div>
+                    </div>
+                    <div class="summary-card clickable" onclick="window.location.href='school-portal-submissions.html'">
+                        <div class="card-icon green"><i class="fa-solid fa-check-circle"></i></div>
+                        <div class="card-info">
+                            <h3 id="statApproved">—</h3>
+                            <p>Approved</p>
+                        </div>
+                    </div>
+                    <div class="summary-card clickable" onclick="window.location.href='school-portal-submissions.html'">
+                        <div class="card-icon amber"><i class="fa-solid fa-clock"></i></div>
+                        <div class="card-info">
+                            <h3 id="statPending">—</h3>
+                            <p>Pending Review</p>
+                        </div>
+                    </div>
+                    <div class="summary-card clickable" onclick="window.location.href='school-portal-submissions.html'">
+                        <div class="card-icon rose"><i class="fa-solid fa-redo"></i></div>
+                        <div class="card-info">
+                            <h3 id="statEndorsed">—</h3>
+                            <p>For Re-submission</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two-column grid -->
+                <div class="dashboard-grid">
+                    <!-- Recent Submissions -->
+                    <div class="dash-card">
+                        <div class="dash-card-header">
+                            <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Submissions</h3>
+                        </div>
+                        <div class="dash-card-body" style="padding:0;">
+                            <table class="submissions-table">
+                                <thead>
+                                    <tr>
+                                        <th>Document</th>
+                                        <th>Type</th>
+                                        <th>Date</th>
+                                        <th>Indorsement</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentSubmissionsBody">
+                                    <tr><td colspan="5">
+                                        <div class="empty-state">
+                                            <i class="fa-solid fa-spinner fa-spin"></i>
+                                            <p>Loading submissions...</p>
+                                        </div>
+                                    </td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="view-all-row">
+                            <a class="view-all-link" data-portal-feature="submissions" onclick="window.location.href='school-portal-submissions.html'">
+                                View All Submissions <i class="fa-solid fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Right column -->
+                    <div style="display:flex;flex-direction:column;gap:20px;">
+                        <!-- Quick actions -->
+                        <div class="dash-card">
+                            <div class="dash-card-header">
+                                <h3><i class="fa-solid fa-bolt"></i> Quick Actions</h3>
+                            </div>
+                            <div class="dash-card-body">
+                                <div class="quick-actions">
+                                    <a class="quick-action-btn" data-portal-feature="tuition" onclick="window.location.href='school-portal-tuition.html'">
+                                        <div class="qa-icon card-icon blue"><i class="fa-solid fa-money-bill-wave"></i></div>
+                                        <div class="qa-text">
+                                            <h4>Submit Tuition Fee</h4>
+                                            <p>Upload increase or no-increase notice</p>
+                                        </div>
+                                    </a>
+                                    <a class="quick-action-btn" data-portal-feature="calendar" onclick="window.location.href='school-portal-calendar.html'">
+                                        <div class="qa-icon card-icon purple"><i class="fa-solid fa-calendar-alt"></i></div>
+                                        <div class="qa-text">
+                                            <h4>School Calendar</h4>
+                                            <p>Create and manage your school calendar</p>
+                                        </div>
+                                    </a>
+                                    <a class="quick-action-btn" data-portal-feature="calendar" onclick="window.location.href='school-portal-submissions.html#upload'">
+                                        <div class="qa-icon card-icon amber"><i class="fa-solid fa-cloud-upload-alt"></i></div>
+                                        <div class="qa-text">
+                                            <h4>Submit School Calendar</h4>
+                                            <p>Upload your official school calendar document</p>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /dashboard-content -->
+    </div><!-- /main-content -->
+</div><!-- /main-container -->
+
+<script src="js/config.js?v5"></script>
+<script src="js/school-portal-permissions.js?v5"></script>
+<script src="js/school-portal-dashboard.js?v7"></script>
+<script src="js/school-portal-notifications.js"></script>
+</body>
+</html>

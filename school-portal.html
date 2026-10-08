@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST — School Portal · SDO Baliwag</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        /* ── Design tokens (mirrors index.html exactly) ── */
+        :root {
+            --bg: linear-gradient(135deg,#060e1f 0%,#0a1f3d 55%,#0f2d5a 100%);
+            --text: #eef2ff;
+            --text2: #aebedd;
+            --text3: #7d93b8;
+            --surf: rgba(255,255,255,0.06);
+            --surfh: rgba(255,255,255,0.1);
+            --bdr: rgba(255,255,255,0.12);
+            --bdrh: rgba(255,255,255,0.22);
+            --grid: rgba(255,255,255,0.03);
+            --blue: #2456a4;
+            --violet: #7c3aed;
+            --blue-light: #4a90d9;
+            --violet-light: #a78bfa;
+            --accent: #4a90d9;
+        }
+        body.light {
+            --bg: linear-gradient(135deg,#EEF2FF 0%,#F3E8FF 50%,#FCE7F3 100%);
+            --text: #1a1a2e;
+            --text2: #374151;
+            --text3: #6b7280;
+            --surf: #ffffff;
+            --surfh: #f8fafc;
+            --bdr: rgba(0,0,0,0.06);
+            --bdrh: rgba(0,0,0,0.12);
+            --grid: rgba(0,0,0,0.035);
+            --accent: #2456a4;
+        }
+        body.light .portal-card,body.light .stat-card{box-shadow:0 2px 12px rgba(0,0,0,.06)}
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            transition: background .35s, color .35s;
+            position: relative;
+        }
+
+        /* ── Background orbs ── */
+        .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); animation: orb-float 22s ease-in-out infinite alternate; }
+        .orb1 { width: 60vw; height: 55vw; top: -15%; left: -15%; background: rgba(36,86,164,.10); }
+        .orb2 { width: 55vw; height: 45vw; bottom: -10%; right: -10%; background: rgba(124,58,237,.08); animation-direction: alternate-reverse; animation-duration: 19s; }
+        @keyframes orb-float { 0% { transform: translate(0,0); } 100% { transform: translate(3%,5%); } }
+
+        /* ── Grid ── */
+        .gridbg {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* ── Header (matches login/index) ── */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: linear-gradient(90deg,#0a1f3d 0%,#1a3a6b 50%,#2456a4 100%);
+            border-bottom: 3px solid #f5d800;
+            box-shadow: 0 4px 16px rgba(10,31,61,.3);
+        }
+        .hdr {
+            height: 62px; display: flex; align-items: center; justify-content: space-between;
+            max-width: 1180px; margin: 0 auto; padding: 0 2rem;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+        .lmark {
+            width: 36px; height: 36px; border-radius: 9px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'DM Serif Display', Georgia, serif; font-size: 17px; color: #fff;
+            box-shadow: 0 0 16px rgba(59,130,246,.28); flex-shrink: 0;
+        }
+        .lname { font-size: 1.05rem; font-weight: 600; letter-spacing: .5px; color: #fff; white-space: nowrap; }
+        .hdr-r { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+        /* toggle */
+        .tgl-w { display: flex; align-items: center; gap: 6px; }
+        .tgl-ic { font-size: .75rem; color: rgba(255,255,255,.7); }
+        .tgl { position: relative; width: 40px; height: 22px; border-radius: 11px; cursor: pointer; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); transition: background .3s; flex-shrink: 0; }
+        .tgl input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .tgl-fill { position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background .3s; pointer-events: none; }
+        .tgl input:checked + .tgl-fill { background: linear-gradient(90deg,#2456a4,#4a90d9); }
+        .tgl-thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .3s; box-shadow: 0 1px 4px rgba(0,0,0,.3); pointer-events: none; }
+        .tgl input:checked ~ .tgl-thumb { transform: translateX(18px); }
+
+        .btn { display: inline-flex; align-items: center; gap: 7px; padding: .5rem 1.1rem; border-radius: 9px; font-size: .875rem; font-weight: 500; text-decoration: none; transition: all .22s; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; white-space: nowrap; border: 1.5px solid transparent; }
+        .btn-g { background: transparent; border-color: rgba(255,255,255,0.32); color: #fff; }
+        .btn-g:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,.55); }
+        .btn-p { background: linear-gradient(135deg, #2456a4, #3b7dd8); color: #fff; box-shadow: 0 3px 14px rgba(10,31,61,.3); }
+        .btn-p:hover { transform: translateY(-1px); box-shadow: 0 5px 20px rgba(10,31,61,.4); }
+
+        /* ── Page outer ── */
+        .page-outer {
+            position: relative; z-index: 2;
+            width: 100%; max-width: 1000px;
+            margin: 0 auto;
+            padding: 6rem 2rem 3rem;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* eyebrow */
+        .eyebrow {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: .42rem .95rem; border-radius: 50px;
+            background: rgba(36,86,164,.1); border: 1px solid rgba(36,86,164,.22);
+            font-size: .78rem; color: var(--accent); letter-spacing: .6px; text-transform: uppercase;
+            margin-bottom: 1.75rem;
+            animation: fadeUp .5s forwards;
+        }
+        .edot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pdot 2s infinite; }
+        @keyframes pdot { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        /* ── Main card ── */
+        .portal-card {
+            width: 100%;
+            display: grid; grid-template-columns: 1fr 1.1fr;
+            border-radius: 22px; overflow: hidden;
+            border: 1px solid var(--bdr);
+            box-shadow: 0 30px 80px rgba(0,0,0,.5);
+            animation: fadeUp .65s .1s both;
+        }
+
+        /* ── Brand panel (left) ── */
+        .brand-panel {
+            background: linear-gradient(160deg,rgba(36,86,164,.08) 0%,rgba(124,58,237,.06) 100%);
+            border-right: 1px solid var(--bdr);
+            padding: 3rem 2.5rem;
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; overflow: hidden;
+        }
+        body.light .brand-panel { background: rgba(36,86,164,.04); }
+        .brand-panel::after {
+            content: ''; position: absolute; top: -80px; right: -80px;
+            width: 300px; height: 300px; border-radius: 50%;
+            background: radial-gradient(circle,rgba(124,58,237,.12),transparent 70%);
+            pointer-events: none;
+        }
+        .brand-top { position: relative; z-index: 1; }
+        .brand-bottom { position: relative; z-index: 1; }
+
+        .brand-logo-area { display: flex; align-items: center; gap: 12px; margin-bottom: 2.5rem; }
+        .brand-icon {
+            width: 44px; height: 44px; border-radius: 11px;
+            background: linear-gradient(135deg,#3b82f6,#8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'DM Serif Display',Georgia,serif; font-size: 20px; color: #fff;
+            box-shadow: 0 8px 20px rgba(59,130,246,.28);
+        }
+        .brand-name { font-size: 1.1rem; font-weight: 600; color: var(--text); letter-spacing: .5px; cursor: pointer; transition: color .35s; }
+        .brand-name span { color: var(--accent); }
+        .brand-tagline { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 3px; transition: color .35s; }
+
+        .brand-headline {
+            font-family: 'DM Serif Display',Georgia,serif;
+            font-size: 1.8rem; line-height: 1.2; letter-spacing: -.3px;
+            color: var(--text); margin-bottom: .9rem; transition: color .35s;
+        }
+        .brand-headline span {
+            background: linear-gradient(90deg,#4a90d9,#7c3aed);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .brand-desc { font-size: .855rem; color: var(--text2); line-height: 1.7; font-weight: 300; transition: color .35s; }
+
+        .stat-row { display: flex; flex-direction: column; gap: 9px; }
+        .stat-card {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--surf); border: 1px solid var(--bdr);
+            border-radius: 11px; padding: 9px 13px;
+            font-size: 12.5px; color: var(--text2);
+            transition: background .25s, border-color .25s;
+        }
+        .stat-card:hover { background: var(--surfh); border-color: var(--bdrh); }
+        .stat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+        /* ── Form panel (right) ── */
+        .form-panel {
+            background: var(--surf);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            padding: 2.25rem 2.5rem;
+            display: flex; flex-direction: column;
+            overflow-y: auto; max-height: 90vh;
+        }
+        body.light .form-panel { background: rgba(255,255,255,0.85); }
+
+        /* ── Tab switcher ── */
+        .tab-switcher {
+            display: flex; gap: 6px;
+            background: var(--bg);
+            border: 1px solid var(--bdr);
+            border-radius: 12px; padding: 4px;
+            margin-bottom: 1.75rem;
+        }
+        body.light .tab-switcher { background: rgba(0,0,0,.05); }
+        .tab-btn {
+            flex: 1; padding: .5rem .75rem;
+            border-radius: 9px; border: none;
+            background: transparent; color: var(--text3);
+            font-size: .83rem; font-weight: 500;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            cursor: pointer; transition: all .22s;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .tab-btn:hover { color: var(--text2); background: var(--surf); }
+        .tab-btn.active {
+            background: linear-gradient(135deg,#2456a4,#3b7dd8);
+            color: #fff; box-shadow: 0 3px 12px rgba(36,86,164,.25);
+        }
+
+        /* panels */
+        .panels-container { flex: 1; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; animation: fadeUp .3s ease; }
+
+        /* form header */
+        .form-eyebrow { font-size: .72rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); margin-bottom: .55rem; font-weight: 500; }
+        .form-header h1 { font-family: 'DM Serif Display',Georgia,serif; font-size: 1.9rem; letter-spacing: -.3px; color: var(--text); margin-bottom: .35rem; transition: color .35s; }
+        .form-header p { font-size: .855rem; color: var(--text2); margin-bottom: 1.25rem; font-weight: 300; transition: color .35s; }
+
+        /* badge */
+        .school-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: .3rem .8rem; border-radius: 50px;
+            background: rgba(36,86,164,.1); border: 1px solid rgba(36,86,164,.22);
+            font-size: .72rem; color: var(--accent); letter-spacing: .5px;
+            margin-bottom: 1.25rem;
+        }
+        .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: linear-gradient(135deg,#3b82f6,#8b5cf6); }
+
+        /* messages */
+        .error-message {
+            background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3);
+            color: #f87171; padding: .6rem .9rem; border-radius: 10px;
+            margin-bottom: 1rem; font-size: .8rem; display: none;
+        }
+        .error-message.show { display: block; }
+        .success-message {
+            background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25);
+            color: #4ade80; padding: .6rem .9rem; border-radius: 10px;
+            margin-bottom: 1rem; font-size: .8rem; display: none;
+        }
+        .success-message.show { display: block; }
+
+        /* section heading */
+        .section-heading {
+            font-size: .7rem; text-transform: uppercase; letter-spacing: 2px;
+            color: var(--text3); margin: 1.1rem 0 .6rem; font-weight: 500; transition: color .35s;
+        }
+
+        /* form groups */
+        .form-group { margin-bottom: 1rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .form-group label {
+            display: block; font-size: .76rem; font-weight: 500;
+            color: var(--text2); margin-bottom: .4rem;
+            text-transform: uppercase; letter-spacing: .3px; transition: color .35s;
+        }
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .input-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 13px; pointer-events: none; transition: color .25s; }
+
+        .form-group input,
+        .form-group select {
+            width: 100%; padding: .68rem 1rem .68rem 2.5rem;
+            background: rgba(255,255,255,.04); border: 1px solid var(--bdr);
+            border-radius: 10px; font-size: .875rem;
+            font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text);
+            transition: all .25s; appearance: none;
+        }
+        body.light .form-group input,
+        body.light .form-group select { background: rgba(255,255,255,.8); color: #0d1117; }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none; border-color: rgba(36,86,164,.5);
+            background: rgba(36,86,164,.05);
+            box-shadow: 0 0 0 3px rgba(36,86,164,.1);
+        }
+        .form-group input::placeholder { color: var(--text3); }
+        .form-group select option { background: #0f172a; color: #e8edf5; }
+        body.light .form-group select option { background: #fff; color: #0d1117; }
+
+        /* password toggle */
+        .toggle-password {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            color: var(--text3); cursor: pointer; font-size: 13px;
+            user-select: none; transition: color .2s; z-index: 2;
+        }
+        .toggle-password:hover { color: var(--accent); }
+
+        /* options row */
+        .form-options { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; font-size: .8rem; }
+        .remember-label { display: flex; align-items: center; gap: 7px; color: var(--text2); cursor: pointer; user-select: none; transition: color .35s; }
+        .remember-label input[type="checkbox"] { width: 15px; height: 15px; accent-color: #2456a4; cursor: pointer; }
+        .forgot-link { color: var(--accent); text-decoration: none; font-weight: 500; transition: color .2s; }
+        .forgot-link:hover { color: #7c3aed; }
+
+        /* submit button */
+        .submit-btn {
+            width: 100%; padding: .75rem 1.5rem;
+            background: linear-gradient(135deg,#2456a4,#3b7dd8); color: #fff;
+            font-weight: 600; border: none; border-radius: 11px;
+            font-size: .9rem; font-family: 'Plus Jakarta Sans', sans-serif;
+            cursor: pointer; transition: all .3s ease;
+            box-shadow: 0 4px 18px rgba(36,86,164,.25); letter-spacing: .3px;
+            margin-top: .5rem;
+        }
+        .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(36,86,164,.38); }
+        .submit-btn:disabled { background: linear-gradient(135deg,#374151,#4b5563); cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* terms note */
+        .terms-note { margin-top: 1.1rem; font-size: .78rem; color: var(--text3); text-align: center; line-height: 1.6; transition: color .35s; }
+        .terms-note a { color: var(--accent); text-decoration: none; transition: color .2s; }
+        .terms-note a:hover { color: #7c3aed; }
+
+        /* role selector */
+        .role-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: .5rem; }
+        .role-card {
+            padding: .9rem; border-radius: 11px;
+            border: 1px solid var(--bdr); background: var(--surf);
+            cursor: pointer; transition: all .2s; text-align: center;
+        }
+        .role-card:hover { background: var(--surfh); border-color: var(--bdrh); }
+        .role-card.selected { background: rgba(36,86,164,.1); border-color: rgba(36,86,164,.4); }
+        .role-icon { font-size: 1.4rem; display: block; margin-bottom: .35rem; }
+        .role-name { font-size: .8rem; font-weight: 600; color: var(--text); margin-bottom: .2rem; transition: color .35s; }
+        .role-label { font-size: .7rem; color: var(--text3); transition: color .35s; }
+
+        /* school type toggle */
+        .school-type-toggle { display: flex; gap: 7px; }
+        .type-btn {
+            flex: 1; padding: .6rem .75rem;
+            border: 1px solid var(--bdr); border-radius: 9px;
+            background: var(--surf); color: var(--text2);
+            font-size: .83rem; font-weight: 500; cursor: pointer;
+            transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .type-btn:hover { border-color: rgba(36,86,164,.4); color: var(--accent); background: rgba(36,86,164,.06); }
+        .type-btn.active { background: linear-gradient(135deg,#2456a4,#3b7dd8); border-color: transparent; color: #fff; box-shadow: 0 3px 12px rgba(36,86,164,.25); }
+
+        /* levels checkboxes */
+        .levels-check-group {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: .25rem;
+        }
+        .levels-check-group label {
+            display: flex; align-items: center; gap: 8px;
+            font-size: .82rem; color: var(--text2); cursor: pointer;
+            background: var(--surf); border: 1px solid var(--bdr);
+            border-radius: 8px; padding: .55rem .8rem;
+            transition: all .2s; text-transform: none; letter-spacing: 0; font-weight: 400;
+            line-height: 1.3; position: relative;
+        }
+        .levels-check-group label:hover { background: var(--surfh); border-color: rgba(36,86,164,.4); color: var(--text); }
+        /* fully reset the native checkbox and draw our own */
+        .levels-check-group input[type="checkbox"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px; height: 15px;
+            min-width: 15px; min-height: 15px;
+            max-width: 15px; max-height: 15px;
+            border: 1.5px solid var(--bdrh);
+            border-radius: 4px;
+            background: transparent;
+            margin: 0; padding: 0;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all .2s;
+            display: inline-block;
+            vertical-align: middle;
+            position: relative;
+        }
+        .levels-check-group input[type="checkbox"]:checked {
+            background: #2456a4;
+            border-color: #2456a4;
+        }
+        .levels-check-group input[type="checkbox"]:checked::after {
+            content: '';
+            position: absolute;
+            left: 3px; top: 1px;
+            width: 5px; height: 8px;
+            border: 2px solid #fff;
+            border-top: none; border-left: none;
+            transform: rotate(45deg);
+        }
+
+        /* password strength */
+        .password-strength { margin-top: 6px; height: 3px; background: var(--bdr); border-radius: 2px; overflow: hidden; }
+        .strength-bar { height: 100%; width: 0; border-radius: 2px; transition: width .3s, background .3s; }
+
+        /* school-id hint */
+        .school-id-hint { font-size: .75rem; color: var(--accent); margin-top: 5px; }
+
+        /* clear custom */
+        .clear-custom { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text3); cursor: pointer; font-size: 13px; transition: color .2s; z-index: 2; }
+        .clear-custom:hover { color: #f87171; }
+
+        /* footer */
+        .form-footer { margin-top: 1.25rem; text-align: center; font-size: .71rem; color: var(--text3); border-top: 1px solid var(--bdr); padding-top: 1.1rem; transition: color .35s, border-color .35s; }
+
+        /* ── Modals ── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(8,13,20,0.75); backdrop-filter: blur(6px);
+            z-index: 1000; align-items: center; justify-content: center; padding: 1rem;
+            animation: fadeUp .2s ease;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: #0f172a; border: 1px solid var(--bdr);
+            border-radius: 18px; width: 100%; max-width: 620px;
+            max-height: 85vh; display: flex; flex-direction: column;
+            box-shadow: 0 30px 80px rgba(0,0,0,.6);
+            animation: slideUp .25s ease;
+        }
+        body.light .modal-box { background: #fff; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--bdr); flex-shrink: 0;
+        }
+        .modal-title { display: flex; align-items: center; gap: 12px; }
+        .modal-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: linear-gradient(135deg,#3b82f6,#8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 16px; flex-shrink: 0;
+        }
+        .modal-title h2 { font-family: 'DM Serif Display',Georgia,serif; font-size: 1rem; color: var(--text); margin-bottom: 1px; transition: color .35s; }
+        .modal-title p { font-size: .72rem; color: var(--text3); transition: color .35s; }
+        .modal-close {
+            width: 32px; height: 32px; border-radius: 8px;
+            border: 1px solid var(--bdr); background: transparent;
+            color: var(--text3); cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; justify-content: center; transition: all .2s;
+        }
+        .modal-close:hover { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.3); color: #f87171; }
+
+        .modal-body { padding: 1.25rem 1.5rem; overflow-y: auto; flex: 1; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .modal-effective {
+            font-size: .72rem; color: var(--text3); background: var(--surf);
+            border: 1px solid var(--bdr); border-radius: 8px; padding: 8px 12px; margin-bottom: 1.25rem;
+        }
+        .modal-section { margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--bdr); }
+        .modal-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .modal-section h3 {
+            font-size: .8rem; font-weight: 600; color: var(--accent);
+            margin-bottom: 8px; display: flex; align-items: center; gap: 7px;
+        }
+        .modal-section p { font-size: .82rem; color: var(--text2); line-height: 1.65; transition: color .35s; }
+        .modal-section ul { padding-left: 1rem; margin-top: 6px; display: flex; flex-direction: column; gap: 5px; }
+        .modal-section ul li { font-size: .82rem; color: var(--text2); line-height: 1.6; transition: color .35s; }
+        .modal-section strong { color: var(--text); }
+        .modal-section a { color: var(--accent); }
+
+        .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--bdr); display: flex; justify-content: flex-end; flex-shrink: 0; }
+        .modal-accept-btn {
+            padding: .6rem 1.4rem;
+            background: linear-gradient(135deg,#2456a4,#3b7dd8); color: #fff;
+            font-weight: 600; border: none; border-radius: 9px;
+            font-size: .85rem; font-family: 'Plus Jakarta Sans', sans-serif; cursor: pointer;
+            transition: all .2s; display: flex; align-items: center; gap: 6px;
+            box-shadow: 0 4px 12px rgba(36,86,164,.25);
+        }
+        .modal-accept-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(36,86,164,.35); }
+
+        /* ── Loading dots (used by setLoading()) ── */
+        .loading {
+            display: inline-block; width: 4px; height: 4px;
+            border-radius: 50%; background: #fff; margin: 0 2px;
+            animation: ldot 1.4s infinite;
+        }
+        .loading:nth-child(2) { animation-delay: .2s; }
+        .loading:nth-child(3) { animation-delay: .4s; }
+        @keyframes ldot { 0%,60%,100%{opacity:.4} 30%{opacity:1} }
+
+        /* ── School ID hint (injected by JS) ── */
+        .school-id-hint {
+            display: flex; align-items: center; gap: 6px;
+            font-size: .75rem; color: var(--accent); margin-top: 5px;
+        }
+        .school-id-hint.no-id { color: #fbbf24; }
+
+        /* ── Supervisor hint (injected by JS) ── */
+        #supervisorHint {
+            display: none; align-items: center; gap: 6px;
+            font-size: .76rem; color: var(--text2); margin-top: 5px;
+            background: var(--surf); border: 1px solid var(--bdr);
+            border-radius: 8px; padding: .45rem .75rem; transition: color .35s;
+        }
+        #supervisorHint strong { color: var(--text); }
+
+        /* ── Animations ── */
+        @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+        /* ── Responsive ── */
+        @media (max-width: 780px) {
+            .portal-card { grid-template-columns: 1fr; }
+            .brand-panel { padding: 2rem 1.75rem 1.5rem; border-right: none; border-bottom: 1px solid var(--bdr); }
+            .brand-headline { font-size: 1.4rem; }
+            .stat-row { display: none; }
+            .form-panel { padding: 2rem 1.75rem; max-height: unset; }
+            .page-outer { padding: 5rem 1.25rem 2rem; }
+        }
+        @media (max-width: 480px) {
+            .form-row { grid-template-columns: 1fr; }
+            .role-selector { grid-template-columns: 1fr; }
+            .levels-check-group { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-orbs"><div class="orb orb1"></div><div class="orb orb2"></div></div>
+<div class="gridbg"></div>
+
+<!-- Header -->
+<header>
+    <div class="hdr">
+        <a class="logo" href="index.html">
+            <div class="lmark">Q</div>
+            <span class="lname">QATALYST</span>
+        </a>
+        <div class="hdr-r">
+            <div class="tgl-w">
+                <i class="fas fa-moon tgl-ic" aria-hidden="true"></i>
+                <label class="tgl" aria-label="Toggle light/dark theme">
+                    <input type="checkbox" id="themeToggle">
+                    <div class="tgl-fill"></div>
+                    <div class="tgl-thumb"></div>
+                </label>
+                <i class="fas fa-sun tgl-ic" aria-hidden="true"></i>
+            </div>
+            <a href="index.html" class="btn btn-g">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>Home</span>
+            </a>
+            <a href="login.html" class="btn btn-p">
+                <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                <span>SDO Sign In</span>
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- Main -->
+<main class="page-outer">
+
+    <div class="eyebrow">
+        <span class="edot"></span>
+        School Document Portal &middot; SDO Baliwag
+    </div>
+
+    <div class="portal-card">
+
+        <!-- Left: Brand panel -->
+        <div class="brand-panel">
+            <div class="brand-top">
+                <div class="brand-logo-area">
+                    <div class="brand-icon">Q</div>
+                    <div>
+                        <div class="brand-name" onclick="window.location.href='index.html';">QATA<span>LYST</span></div>
+                        <div class="brand-tagline">School Document Portal · SDO Baliwag</div>
+                    </div>
+                </div>
+                <h2 class="brand-headline">
+                    Powered by <span>SDO Baliwag</span> —<br>School Document System
+                </h2>
+                <p class="brand-desc">
+                    Submit and track your school documents — tuition fee notices, school calendars, and indorsement letters — all in one place.
+                </p>
+            </div>
+            <div class="brand-bottom">
+                <div class="stat-row">
+                    <div class="stat-card"><div class="stat-dot" style="background:#4a90d9;"></div>Submit tuition fee increase or no-increase notices</div>
+                    <div class="stat-card"><div class="stat-dot" style="background:#a78bfa;"></div>Track indorsement status (1st, 2nd, and 3rd)</div>
+                    <div class="stat-card"><div class="stat-dot" style="background:#fb7185;"></div>Upload and monitor school calendar submissions</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Form panel -->
+        <div class="form-panel">
+
+            <div class="tab-switcher">
+                <button class="tab-btn active" data-tab="login" onclick="switchTab('login')">
+                    <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                </button>
+                <button class="tab-btn" data-tab="register" onclick="switchTab('register')">
+                    <i class="fa-solid fa-user-plus"></i> Register
+                </button>
+            </div>
+
+            <div class="panels-container">
+
+                <!-- LOGIN PANEL -->
+                <div class="tab-panel active" id="panel-login">
+                    <div class="form-header">
+                        <div class="form-eyebrow">Welcome back</div>
+                        <h1>Sign In</h1>
+                        <p>Access your school dashboard</p>
+                    </div>
+                    <div class="school-badge"><div class="badge-dot"></div>QATALYST · Secure Access</div>
+                    <div class="error-message" id="loginError"></div>
+                    <form id="loginForm" onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon"><i class="fa-solid fa-envelope"></i></span>
+                                <input type="email" id="loginEmail" placeholder="you@school.edu" autocomplete="username" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon"><i class="fa-solid fa-lock"></i></span>
+                                <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password" required>
+                                <span class="toggle-password" onclick="togglePwd('loginPassword', this)"><i class="fa-solid fa-eye-slash"></i></span>
+                            </div>
+                        </div>
+                        <div class="form-options">
+                            <label class="remember-label">
+                                <input type="checkbox" id="rememberMe">
+                                <span>Remember me</span>
+                            </label>
+                            <a href="forgot-password.html" class="forgot-link">Forgot Password?</a>
+                        </div>
+                        <button type="submit" class="submit-btn" id="loginBtn">Sign In to Dashboard</button>
+                    </form>
+                    <div class="terms-note">
+                        Don't have an account? <a href="#" onclick="switchTab('register'); return false;">Register here →</a>
+                    </div>
+                </div>
+
+                <!-- REGISTER PANEL -->
+                <div class="tab-panel" id="panel-register">
+                    <div class="form-header">
+                        <div class="form-eyebrow">New account</div>
+                        <h1>Register</h1>
+                        <p>Join your school's portal today</p>
+                    </div>
+                    <div class="school-badge"><div class="badge-dot"></div>QATALYST · New Member</div>
+                    <div class="error-message" id="regError"></div>
+                    <div class="success-message" id="regSuccess"></div>
+
+                    <form id="registerForm" onsubmit="handleRegister(event)">
+                        <div class="section-heading">School User Account</div>
+                        <p class="settings-helper-text">Register as a School User. SDO must approve your school affiliation before you can access school records.</p>
+
+                        <div class="section-heading">Personal Information</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>First Name</label>
+                                <div class="input-wrapper">
+                                    <span class="input-icon"><i class="fa-solid fa-user"></i></span>
+                                    <input type="text" id="regFirstName" placeholder="Juan" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <div class="input-wrapper">
+                                    <span class="input-icon"><i class="fa-solid fa-user"></i></span>
+                                    <input type="text" id="regLastName" placeholder="dela Cruz" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon"><i class="fa-solid fa-envelope"></i></span>
+                                <input type="email" id="regEmail" placeholder="you@school.edu" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Sex</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon"><i class="fa-solid fa-venus-mars"></i></span>
+                                <select id="regSex" required>
+                                    <option value="">Select sex...</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Prefer not to say">Prefer not to say</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="section-heading">School Details</div>
+
+                        <div class="form-group">
+                            <label>School Type</label>
+                            <div class="school-type-toggle">
+                                <button type="button" class="type-btn active" id="typeBtnPublic" onclick="onSchoolTypeChange('public')">
+                                    <i class="fa-solid fa-landmark"></i> Public
+                                </button>
+                                <button type="button" class="type-btn" id="typeBtnPrivate" onclick="onSchoolTypeChange('private')">
+                                    <i class="fa-solid fa-building-columns"></i> Private / SUC
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="districtGroup">
+                            <label>District</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon"><i class="fa-solid fa-map-pin"></i></span>
+                                <select id="regDistrict" onchange="onDistrictChange(this)">
+                                    <option value="">Select district...</option>
+                                </select>
+                            </div>
+                            <div id="supervisorHint"></div>
+                        </div>
+
+                        <div class="form-group" id="publicSchoolGroup">
+                            <label>School / Office</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon"><i class="fa-solid fa-school"></i></span>
+                                <select id="regSchoolSelect" onchange="onSchoolChange(this)" disabled>
+                                    <option value="">Select district first...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="privateSchoolGroup" style="display:none;">
+                            <label>Private School / SUC</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon"><i class="fa-solid fa-school"></i></span>
+                                <select id="regPrivateSchoolSelect" onchange="onPrivateSchoolChange(this)">
+                                    <option value="">Select school...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <p>If your school is missing from the list, contact SDO to add it before registering.</p>
+
+                        <div class="form-group" id="gradeGroup">
+                            <label id="gradeLabel">Department / Level Offered</label>
+                            <div class="levels-check-group" id="regLevelsGroup">
+                                <label><input type="checkbox" name="regLevel" value="pre"> Pre-Elem / Kinder</label>
+                                <label><input type="checkbox" name="regLevel" value="elem"> Elementary</label>
+                                <label><input type="checkbox" name="regLevel" value="jhs"> Junior High School</label>
+                                <label><input type="checkbox" name="regLevel" value="shs"> Senior High School</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Employee / Staff No. (optional)</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon"><i class="fa-solid fa-id-card"></i></span>
+                                <input type="text" id="regSchoolId" placeholder="Your employee or staff number (optional)" autocomplete="off">
+                            </div>
+                            <div id="schoolIdHint" class="school-id-hint" style="display:none;"></div>
+                        </div>
+
+                        <div class="section-heading">Security</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Password</label>
+                                <div class="input-wrapper">
+                                    <span class="input-icon"><i class="fa-solid fa-lock"></i></span>
+                                    <input type="password" id="regPassword" placeholder="Min. 8 chars" required oninput="checkStrength(this.value)">
+                                    <span class="toggle-password" onclick="togglePwd('regPassword', this)"><i class="fa-solid fa-eye-slash"></i></span>
+                                </div>
+                                <div class="password-strength">
+                                    <div class="strength-bar" id="strengthBar"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Confirm Password</label>
+                                <div class="input-wrapper">
+                                    <span class="input-icon"><i class="fa-solid fa-lock"></i></span>
+                                    <input type="password" id="regConfirm" placeholder="Repeat password" required>
+                                    <span class="toggle-password" onclick="togglePwd('regConfirm', this)"><i class="fa-solid fa-eye-slash"></i></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="submit-btn" id="regBtn">Create My Account</button>
+                    </form>
+
+                    <div class="terms-note">
+                        By registering, you agree to our <a href="#" onclick="openModal('termsModal'); return false;">Terms of Service</a> and <a href="#" onclick="openModal('privacyModal'); return false;">Privacy Policy</a>.<br>
+                        Already have an account? <a href="#" onclick="switchTab('login'); return false;">Sign in →</a>
+                    </div>
+                </div>
+
+            </div><!-- /panels-container -->
+
+            <div class="form-footer">
+                &copy; 2026 Schools Division Office of the City of Baliwag &middot; QATALYST School Portal. All rights reserved.
+            </div>
+        </div><!-- /form-panel -->
+
+    </div><!-- /portal-card -->
+</main>
+
+<!-- ── Terms of Service Modal ── -->
+<div class="modal-overlay" id="termsModal" onclick="closeModal('termsModal')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title">
+                <div class="modal-icon"><i class="fa-solid fa-file-contract"></i></div>
+                <div>
+                    <h2>Terms of Service</h2>
+                    <p>QATALYST School Portal · SDO Baliwag</p>
+                </div>
+            </div>
+            <button class="modal-close" onclick="closeModal('termsModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-effective">Effective Date: January 1, 2026 &nbsp;·&nbsp; Schools Division Office of the City of Baliwag</p>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-circle-info"></i> 1. Overview</h3>
+                <p>By creating an account and using the QATALYST School Portal, you agree to be bound by these Terms of Service. This portal is operated by the Schools Division Office (SDO) of the City of Baliwag under the Department of Education (DepEd) and is intended solely for authorized school officials, teachers, and school administrators within the SDO Baliwag jurisdiction.</p>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-user-shield"></i> 2. User Account Responsibilities</h3>
+                <ul>
+                    <li>You are responsible for maintaining the confidentiality of your account credentials. Do not share your password with anyone.</li>
+                    <li>You must provide accurate and truthful information during registration, including your real name, school affiliation, district, and official email address.</li>
+                    <li>Each user may only register one account. Multiple accounts for the same individual are not permitted.</li>
+                    <li>You must notify SDO Baliwag immediately if you suspect unauthorized access to your account.</li>
+                    <li>Accounts found to contain false information may be suspended or permanently deactivated without prior notice.</li>
+                </ul>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-file-arrow-up"></i> 3. Document Submission Rules</h3>
+                <ul>
+                    <li>All documents submitted through this portal must be official, complete, and duly signed by the appropriate school authority.</li>
+                    <li>Submitted documents must be in the required file format (PDF, DOC, DOCX, or XLSX) and must not exceed the maximum file size limit.</li>
+                    <li>Documents must correspond to the correct submission type. Submitting a document under the wrong category is the responsibility of the submitting user.</li>
+                    <li>Submissions are subject to review by SDO Baliwag personnel. The portal does not guarantee immediate processing.</li>
+                    <li>Once a document is submitted, it cannot be withdrawn. Users may re-submit a revised document only after receiving an indorsement notice.</li>
+                </ul>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-stamp"></i> 4. SDO's Right to Endorse or Reject Documents</h3>
+                <ul>
+                    <li>SDO Baliwag reserves the right to review, endorse, return, or reject any submitted document at its sole discretion.</li>
+                    <li>A document may receive up to three (3) indorsements — each indicating that the document was returned with remarks and requires revision.</li>
+                    <li>SDO Baliwag is not liable for delays in processing caused by incomplete or non-compliant submissions.</li>
+                    <li>The indorsement count and status reflected in this portal are for reference only and do not constitute an official DepEd communication unless accompanied by a formal letter.</li>
+                </ul>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-ban"></i> 5. Prohibited Actions</h3>
+                <ul>
+                    <li><strong>Submitting falsified, forged, or fraudulent documents</strong> is strictly prohibited and may result in administrative and/or legal action.</li>
+                    <li>Users must not attempt to gain unauthorized access to other accounts or to administrative functions of the portal.</li>
+                    <li>Submitting documents on behalf of another school without proper authorization is not allowed.</li>
+                    <li>Using the portal for any purpose other than its intended use is prohibited.</li>
+                </ul>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> 6. Consequences of Violations</h3>
+                <p>Violations may result in suspension or permanent deactivation of the user's account, referral to the appropriate DepEd disciplinary authority, and/or filing of administrative charges in accordance with existing Civil Service and DepEd rules and regulations.</p>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-rotate"></i> 7. Changes to These Terms</h3>
+                <p>SDO Baliwag reserves the right to update or modify these Terms of Service at any time. Continued use of the portal after changes are posted constitutes acceptance of the revised terms.</p>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-envelope"></i> 8. Contact</h3>
+                <p>For questions regarding these Terms of Service, please contact SDO Baliwag or visit the Schools Division Office of the City of Baliwag.</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-accept-btn" onclick="closeModal('termsModal')"><i class="fa-solid fa-check"></i> I Understand</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Privacy Policy Modal ── -->
+<div class="modal-overlay" id="privacyModal" onclick="closeModal('privacyModal')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title">
+                <div class="modal-icon" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);"><i class="fa-solid fa-shield-halved"></i></div>
+                <div>
+                    <h2>Privacy Policy</h2>
+                    <p>QATALYST School Portal · SDO Baliwag</p>
+                </div>
+            </div>
+            <button class="modal-close" onclick="closeModal('privacyModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-effective">Effective Date: January 1, 2026 &nbsp;·&nbsp; In compliance with R.A. 10173 (Data Privacy Act of 2012) and DepEd Order No. 72, s. 2016</p>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-circle-info"></i> 1. Introduction</h3>
+                <p>The Schools Division Office of the City of Baliwag is committed to protecting your personal data in accordance with the Republic Act No. 10173, otherwise known as the <strong>Data Privacy Act of 2012</strong>, and DepEd Order No. 72, s. 2016.</p>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-database"></i> 2. Information We Collect</h3>
+                <ul>
+                    <li><strong>Identity Information:</strong> Full name and School User account</li>
+                    <li><strong>Contact Information:</strong> Email address</li>
+                    <li><strong>School Information:</strong> School name, district, DepEd school ID, grade level or department</li>
+                    <li><strong>Account Data:</strong> Encrypted password, account status, email verification status</li>
+                    <li><strong>Submission Data:</strong> Uploaded documents, submission timestamps, indorsement history, and reviewer remarks</li>
+                    <li><strong>Technical Data:</strong> IP address and browser information for security logging purposes</li>
+                </ul>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-bullseye"></i> 3. Purpose of Data Collection</h3>
+                <ul>
+                    <li>To create and manage your school portal account</li>
+                    <li>To process and track document submissions</li>
+                    <li>To facilitate SDO review and communication regarding submitted documents</li>
+                    <li>To send email notifications regarding document status and verification</li>
+                    <li>To maintain security logs and prevent unauthorized access</li>
+                    <li>To generate official records and reports required by DepEd</li>
+                </ul>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-lock"></i> 4. Data Security</h3>
+                <ul>
+                    <li>All passwords are encrypted using industry-standard bcrypt hashing and are never stored in plain text.</li>
+                    <li>Session tokens are stored in HttpOnly cookies that are inaccessible to client-side scripts.</li>
+                    <li>All data transmissions are conducted over HTTPS encrypted connections.</li>
+                    <li>Access to your personal data is restricted to authorized SDO personnel only.</li>
+                </ul>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-share-nodes"></i> 5. Data Sharing</h3>
+                <p>Your personal data will <strong>not be sold, rented, or shared</strong> with third parties. Information may only be disclosed to authorized SDO Baliwag personnel, DepEd regional or central offices when required by official directives, or law enforcement when required by law.</p>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-calendar-xmark"></i> 6. Data Retention</h3>
+                <p>Your personal data will be retained for as long as your account is active or as required by DepEd records management policies. Upon account deactivation, personal data will be anonymized or securely deleted in accordance with applicable regulations.</p>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-person-circle-check"></i> 7. Your Rights as a Data Subject</h3>
+                <ul>
+                    <li><strong>Be informed</strong> about how your data is collected and processed</li>
+                    <li><strong>Access</strong> your personal data held by SDO Baliwag</li>
+                    <li><strong>Correct</strong> inaccurate or outdated personal information</li>
+                    <li><strong>Object</strong> to the processing of your data on legitimate grounds</li>
+                    <li><strong>Erasure or blocking</strong> of your data when it is no longer necessary</li>
+                    <li><strong>File a complaint</strong> with the National Privacy Commission (NPC)</li>
+                </ul>
+            </div>
+            <div class="modal-section">
+                <h3><i class="fa-solid fa-envelope"></i> 8. Contact &amp; Data Protection Officer</h3>
+                <p>For privacy-related concerns, please contact:<br>
+                <strong>SDO Baliwag — Data Protection Officer</strong><br>
+                Address: Schools Division Office of the City of Baliwag, Baliwag, Bulacan</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-accept-btn" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);" onclick="closeModal('privacyModal')"><i class="fa-solid fa-check"></i> I Understand</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ── Theme toggle ── */
+    const toggle = document.getElementById('themeToggle');
+    const saved = localStorage.getItem('qatalyst-theme');
+    if (saved === 'light') { document.body.classList.add('light'); toggle.checked = true; }
+    toggle.addEventListener('change', () => {
+        if (toggle.checked) { document.body.classList.add('light'); localStorage.setItem('qatalyst-theme','light'); }
+        else { document.body.classList.remove('light'); localStorage.removeItem('qatalyst-theme'); }
+    });
+
+    /* ── Tab switcher ── */
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+    }
+
+    /* ── Modals ── */
+    function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
+
+    /* ── Password toggle ── */
+    function togglePwd(inputId, btn) {
+        const inp = document.getElementById(inputId);
+        const hidden = inp.type === 'password';
+        inp.type = hidden ? 'text' : 'password';
+        btn.innerHTML = hidden ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
+    }
+
+    /* ── Password strength ── */
+    function checkStrength(val) {
+        const bar = document.getElementById('strengthBar');
+        if (!bar) return;
+        let score = 0;
+        if (val.length >= 8) score++;
+        if (/[A-Z]/.test(val)) score++;
+        if (/[0-9]/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
+        const colors = ['#ef4444','#f97316','#eab308','#22c55e'];
+        const widths = ['25%','50%','75%','100%'];
+        bar.style.width = score ? widths[score-1] : '0';
+        bar.style.background = score ? colors[score-1] : 'transparent';
+    }
+</script>
+<script src="js/email-decode.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/school-portal.js?v6"></script>
+</body>
+</html>

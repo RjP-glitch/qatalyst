@@ -1,0 +1,40 @@
+# Logs
+error.log
+*.log
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment
+.env
+.env.local
+
+# Environment overrides (keep the template)
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+config/secrets.php
+
+# Uploaded records and generated outputs
+/api/uploads/*
+!/api/uploads/.htaccess
+/uploads/
+/logs/
+/deployment/
+/tests/.runtime/
+/tests/proof/
+/composer/

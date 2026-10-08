@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>evaluation_db — Schema Explorer</title>
+    <link rel="stylesheet" href="css/view-tables.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+
+    <header>
+        <div class="header-inner">
+            <div class="logo">
+                <span class="db-badge">DB</span>
+                <div>
+                    <h1>evaluation_db</h1>
+                    <p class="subtitle">Schema Explorer · 29 tables · 38 relations</p>
+                </div>
+            </div>
+            <nav class="tabs">
+                <button class="tab active" data-tab="diagram">ERD Diagram</button>
+                <button class="tab" data-tab="tables">Table Browser</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- ERD DIAGRAM TAB -->
+    <section id="tab-diagram" class="tab-content active">
+        <div class="erd-toolbar">
+            <div class="legend">
+                <span class="dot dot-core"></span>Core
+                <span class="dot dot-eval"></span>Evaluation
+                <span class="dot dot-analytics"></span>Analytics
+                <span class="dot dot-auth"></span>Auth
+                <span class="dot dot-files"></span>Files
+            </div>
+            <div class="erd-controls">
+                <button onclick="resetZoom()" class="btn-sm">⟳ Reset</button>
+                <button onclick="toggleRelations()" class="btn-sm" id="rel-toggle">Hide Relations</button>
+            </div>
+        </div>
+        <div class="erd-viewport" id="erd-viewport">
+            <svg id="erd-svg" class="erd-svg">
+                <defs>
+                    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                        <path d="M0,0 L0,6 L8,3 z" fill="#ffffff30" />
+                    </marker>
+                    <marker id="arrow-hover" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                        <path d="M0,0 L0,6 L8,3 z" fill="#f0c040" />
+                    </marker>
+                </defs>
+                <g id="relations-layer"></g>
+            </svg>
+            <div id="erd-canvas" class="erd-canvas"></div>
+        </div>
+    </section>
+
+    <!-- TABLE BROWSER TAB -->
+    <section id="tab-tables" class="tab-content">
+        <div class="browser-layout">
+            <aside class="table-list-panel">
+                <div class="search-wrap">
+                    <input type="text" id="table-search" placeholder="Search tables…"
+                        oninput="filterTables(this.value)">
+                </div>
+                <ul id="table-list"></ul>
+            </aside>
+            <main class="table-detail-panel" id="table-detail">
+                <div class="empty-state">
+                    <div class="empty-icon">⬡</div>
+                    <p>Select a table to view its structure</p>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <script src="js/view-tables-schema.js"></script>
+    <script src="js/view-tables-app.js"></script>
+</body>
+
+</html>

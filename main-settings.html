@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - Settings</title>
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/main-settings.css?v10" />
+    <link rel="stylesheet" href="css/notifications.css?v2" />
+    <link rel="stylesheet" href="css/manual-help-btn.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="dashboard-toast" id="toast"></div>
+
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn" onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn" onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn" onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle" onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu" id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn" onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn active" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- ── Main Content ── -->
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-gear"></i> Settings</h1>
+                    <p>Manage your profile, security, and system preferences</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="manual-help-btn" type="button" onclick="window.location.href='user-manual.html'">
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="settings-container">
+                <div class="settings-layout">
+                    <!-- ===== GROUPED SETTINGS NAV ===== -->
+                    <nav class="settings-nav" id="settingsNav">
+                        <button class="settings-nav-mobile-toggle" id="settingsNavMobileToggle" onclick="toggleSettingsNavMobile()">
+                            <span class="settings-nav-mobile-current"><i class="fa-solid fa-user"></i> <span id="settingsNavCurrentLabel">Profile</span></span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <div class="settings-nav-groups" id="settingsNavGroups">
+                            <div class="settings-nav-group">
+                                <div class="settings-nav-label">Account</div>
+                                <button class="settings-tab active" data-tab="profile" onclick="switchTab('profile')">
+                                    <i class="fa-solid fa-user"></i> Profile
+                                </button>
+                                <button class="settings-tab" data-tab="security" onclick="switchTab('security')">
+                                    <i class="fa-solid fa-shield-halved"></i> Security
+                                </button>
+                                <button class="settings-tab" data-tab="sessions" onclick="switchTab('sessions')">
+                                    <i class="fa-solid fa-clock-rotate-left"></i> Sessions
+                                </button>
+                            </div>
+                            <div class="settings-nav-group">
+                                <div class="settings-nav-label">Content</div>
+                                <button class="settings-tab" data-tab="files" onclick="switchTab('files')">
+                                    <i class="fa-solid fa-file-lines"></i> Files
+                                </button>
+                                <button class="settings-tab" data-tab="supporting-documents" onclick="switchTab('supporting-documents')">
+                                    <i class="fa-solid fa-folder-open"></i> Supporting Docs
+                                </button>
+                            </div>
+                            <div class="settings-nav-group">
+                                <div class="settings-nav-label">Program Configuration</div>
+                                <button class="settings-tab" data-tab="rating-scales" onclick="switchTab('rating-scales')">
+                                    <i class="fa-solid fa-star-half-stroke"></i> Rating Scales
+                                </button>
+                                <button class="settings-tab" data-tab="user-roles" onclick="switchTab('user-roles')">
+                                    <i class="fa-solid fa-users-gear"></i> User Roles
+                                </button>
+                                <button class="settings-tab" data-tab="signatories" onclick="switchTab('signatories')">
+                                    <i class="fa-solid fa-file-signature"></i> Signatories
+                                </button>
+                                <button class="settings-tab" data-tab="qame-categories" onclick="switchTab('qame-categories')">
+                                    <i class="fa-solid fa-layer-group"></i> QAME Categories
+                                </button>
+                                <button class="settings-tab" data-tab="permit-checklist" onclick="switchTab('permit-checklist')">
+                                    <i class="fa-solid fa-clipboard-check"></i> Permit Checklist
+                                </button>
+                            </div>
+                            <div class="settings-nav-group">
+                                <div class="settings-nav-label">Support</div>
+                                <button class="settings-tab" data-tab="contact-us" onclick="switchTab('contact-us')">
+                                    <i class="fa-solid fa-address-card"></i> Contact Us
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <div class="settings-content">
+
+                <!-- ===== PROFILE TAB ===== -->
+                <div class="settings-panel active" id="panel-profile">
+                    <!-- Profile Picture -->
+                    <div class="settings-card">
+                        <h2>Profile Picture</h2>
+                        <p class="card-desc">Upload a photo to personalize your account</p>
+                        <div class="profile-pic-section">
+                            <div class="profile-pic-preview" id="profilePicPreview">U</div>
+                            <div class="profile-pic-actions">
+                                <div class="btn-row">
+                                    <button class="btn-upload" onclick="document.getElementById('picInput').click()">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload Photo
+                                    </button>
+                                    <button class="btn-remove-pic" id="btnRemovePic"
+                                        onclick="removeProfilePic()">Remove</button>
+                                </div>
+                                <p>JPG, PNG or GIF. Max 2 MB.</p>
+                                <input type="file" id="picInput" accept="image/*" class="hidden-input"
+                                    onchange="handlePicUpload(event)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personal Info -->
+                    <div class="settings-card">
+                        <h2>Personal Information</h2>
+                        <p class="card-desc">Update your name and email address</p>
+                        <form id="profileForm" onsubmit="saveProfile(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="fullName">Full Name</label>
+                                    <input type="text" id="fullName" placeholder="Enter your full name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="email">Email Address</label>
+                                    <input type="email" id="email" placeholder="Enter your email" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Account Created</label>
+                                    <input type="text" id="createdAt" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label>User ID</label>
+                                    <input type="text" id="userId" disabled>
+                                </div>
+                            </div>
+                            <div class="btn-row">
+                                <button type="submit" class="btn-primary" id="btnSaveProfile">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ===== SECURITY TAB ===== -->
+                <div class="settings-panel" id="panel-security">
+                    <!-- Change Password -->
+                    <div class="settings-card">
+                        <h2>Change Password</h2>
+                        <p class="card-desc">Ensure your account has a strong, unique password</p>
+                        <form id="passwordForm" onsubmit="changePassword(event)">
+                            <div class="form-row">
+                                <div class="form-group full">
+                                    <label for="currentPassword">Current Password</label>
+                                    <input type="password" id="currentPassword" placeholder="Enter current password"
+                                        required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="newPassword">New Password</label>
+                                    <input type="password" id="newPassword" placeholder="Enter new password" required
+                                        minlength="8" oninput="checkPasswordStrength()">
+                                    <div class="password-strength">
+                                        <div class="password-strength-bar" id="strengthBar"></div>
+                                    </div>
+                                    <span class="strength-label" id="strengthLabel"></span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirmPassword">Confirm New Password</label>
+                                    <input type="password" id="confirmPassword" placeholder="Confirm new password"
+                                        required minlength="8">
+                                </div>
+                            </div>
+                            <div class="btn-row">
+                                <button type="submit" class="btn-primary" id="btnChangePassword">
+                                    <i class="fa-solid fa-key"></i> Update Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Two-Factor Authentication -->
+                    <div class="settings-card">
+                        <h2>Two-Factor Authentication</h2>
+                        <p class="card-desc">Add an extra layer of security to your account</p>
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <h3>Email-based 2FA</h3>
+                                <p>Receive a verification code via email when logging in</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle2FA" onchange="prompt2FAPassword()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div id="twofa-status"></div>
+                    </div>
+
+                    <div class="settings-card" id="ocrHealthCard">
+                        <h2>OCR Runtime Health</h2>
+                        <p class="card-desc">Verify Tesseract and Ghostscript availability from the PHP runtime</p>
+                        <div class="ocr-health-actions">
+                            <button class="btn-primary" id="btnCheckOcrHealth" onclick="checkOcrHealth()">
+                                <i class="fa-solid fa-heart-pulse"></i> Run OCR Health Check
+                            </button>
+                            <span class="ocr-health-timestamp" id="ocrHealthTimestamp">Not checked yet</span>
+                        </div>
+                        <div class="ocr-health-result" id="ocrHealthResult">
+                            <div class="ocr-health-empty">Run the check to view OCR runtime status.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== SESSIONS TAB ===== -->
+                <div class="settings-panel" id="panel-sessions">
+                    <div class="settings-card">
+                        <h2>Active Sessions</h2>
+                        <p class="card-desc">Manage devices where you are currently logged in</p>
+                        <div class="sessions-table-wrapper">
+                            <table class="sessions-table" id="sessionsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Device / Browser</th>
+                                        <th>IP Address</th>
+                                        <th>Logged In</th>
+                                        <th>Expires</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sessionsBody">
+                                    <tr>
+                                        <td colspan="5" class="loading-cell">Loading…</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="btn-row btn-row-mt">
+                            <button class="btn-danger" onclick="revokeOtherSessions()">
+                                <i class="fa-solid fa-right-from-bracket"></i> Log Out All Other Sessions
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== FILES TAB ===== -->
+                <div class="settings-panel" id="panel-files">
+                    <div class="settings-card">
+                        <h2>File Management</h2>
+                        <p class="card-desc">Upload and manage your documents with detailed metadata</p>
+
+                        <!-- Toolbar: Add + Search -->
+                        <div class="files-toolbar">
+                            <button class="btn-primary" onclick="openFileUploadModal()">
+                                <i class="fa-solid fa-plus"></i> Add New File
+                            </button>
+                            <div class="files-search-box">
+                                <i class="fa-solid fa-search"></i>
+                                <input type="text" id="filesSearchInput" placeholder="Search files..."
+                                    oninput="filterFiles()">
+                                <button class="btn-clear-search" id="btnClearFilesSearch" onclick="clearFilesSearch()"
+                                    style="display:none;">
+                                    <i class="fa-solid fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Files List -->
+                        <div class="files-list-header">
+                            <h3>Uploaded Files</h3>
+                            <button class="btn-refresh" onclick="loadFiles()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="sessions-table-wrapper">
+                            <table class="sessions-table files-table" id="filesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Item No.</th>
+                                        <th>File Name</th>
+                                        <th>Location</th>
+                                        <th>Headings</th>
+                                        <th>Unit</th>
+                                        <th>Nature of Event</th>
+                                        <th>Status</th>
+                                        <th>QAME Report</th>
+                                        <th>Computation Files</th>
+                                        <th>Size</th>
+                                        <th>Uploaded</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="filesBody">
+                                    <tr>
+                                        <td colspan="12" class="loading-cell">Select the Files tab to load...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== RATING SCALES TAB ===== -->
+                <div class="settings-panel" id="panel-rating-scales">
+                    <div class="settings-card">
+                        <h2>QAME Rating Scales</h2>
+                        <p class="card-desc">Configure the rating scale thresholds used for evaluations</p>
+
+                        <!-- Scale Type Selector -->
+                        <div class="scale-type-selector">
+                            <button class="scale-type-btn active" data-type="category"
+                                onclick="selectScaleType('category')">
+                                <i class="fa-solid fa-list-check"></i> Category Scale
+                            </button>
+                            <button class="scale-type-btn" data-type="speaker" onclick="selectScaleType('speaker')">
+                                <i class="fa-solid fa-person-chalkboard"></i> Speaker Scale
+                            </button>
+                            <button class="scale-type-btn" data-type="overall" onclick="selectScaleType('overall')">
+                                <i class="fa-solid fa-chart-line"></i> Overall Scale
+                            </button>
+                        </div>
+
+                        <!-- Add New Scale Button -->
+                        <div class="btn-row" style="margin: 20px 0;">
+                            <button class="btn-primary" onclick="openAddScaleModal()">
+                                <i class="fa-solid fa-plus"></i> Add New Scale
+                            </button>
+                            <button class="btn-refresh" onclick="loadRatingScales()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                        </div>
+
+                        <!-- Scales Table -->
+                        <div class="sessions-table-wrapper">
+                            <table class="sessions-table rating-scales-table" id="ratingScalesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Level</th>
+                                        <th>Description</th>
+                                        <th>Min Value</th>
+                                        <th>Max Value</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ratingScalesBody">
+                                    <tr>
+                                        <td colspan="5" class="loading-cell">Select a scale type to view...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Scale Info -->
+                        <div class="scale-info-box">
+                            <div class="scale-info-icon"><i class="fa-solid fa-circle-info"></i></div>
+                            <div>
+                                <strong>Category Scale:</strong> SA (Strongly Agree) to SD (Strongly Disagree)<br>
+                                <strong>Speaker Scale:</strong> Satisfaction levels for speaker evaluations<br>
+                                <strong>Overall Scale:</strong> Excellent to Fair for final ratings
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== USER ROLES TAB ===== -->
+                <div class="settings-panel" id="panel-user-roles">
+                    <div class="settings-card">
+                        <h2>User Roles</h2>
+                        <p class="card-desc">Manage system user roles and their default permission sets (e.g., Admin,
+                            Facilitator, Evaluator, Viewer)</p>
+
+                        <!-- Add New Role Button -->
+                        <div class="btn-row" style="margin: 20px 0;">
+                            <button class="btn-primary" onclick="openAddUserRoleModal()">
+                                <i class="fa-solid fa-plus"></i> Add New Role
+                            </button>
+                            <button class="btn-refresh" onclick="loadUserRoles()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                        </div>
+
+                        <!-- User Roles Table -->
+                        <div class="sessions-table-wrapper">
+                            <table class="sessions-table" id="userRolesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Role Name</th>
+                                        <th>Description</th>
+                                        <th>Default Permissions</th>
+                                        <th>Users</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userRolesBody">
+                                    <tr>
+                                        <td colspan="5" class="loading-cell">Loading roles...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="scale-info-box">
+                            <div class="scale-info-icon"><i class="fa-solid fa-circle-info"></i></div>
+                            <div>
+                                <strong>User Roles</strong> control what system users can access.<br>
+                                Default permissions are applied automatically when a new user is assigned this role.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== QAME CATEGORIES TAB ===== -->
+                <!-- ===== SIGNATORIES TAB ===== -->
+                <div class="settings-panel" id="panel-signatories">
+                    <div class="settings-card">
+                        <h2>Report Signatories</h2>
+                        <p class="card-desc">Configure the names and titles that appear in the signatory block of
+                            generated QAME reports (Word exports). Changes here are reflected immediately on the next
+                            export.</p>
+
+                        <!-- Organisation Header -->
+                        <h3 class="sig-section-heading">Organisation Header</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Country</label>
+                                <input type="text" id="sig_org_country" placeholder="e.g., Republic of the Philippines">
+                            </div>
+                            <div class="form-group">
+                                <label>Department</label>
+                                <input type="text" id="sig_org_department" placeholder="e.g., Department of Education">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Division</label>
+                                <input type="text" id="sig_org_division" placeholder="e.g., Schools Division of Pampanga">
+                            </div>
+                            <div class="form-group">
+                                <label>Section / Unit</label>
+                                <input type="text" id="sig_org_section" placeholder="e.g., Schools Governance and Operations Division (SGOD)">
+                            </div>
+                        </div>
+
+                        <!-- Prepared By -->
+                        <h3 class="sig-section-heading">Prepared By</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input type="text" id="sig_prepared_name" placeholder="Full name in ALL CAPS">
+                            </div>
+                            <div class="form-group">
+                                <label>Title / Designation</label>
+                                <input type="text" id="sig_prepared_title" placeholder="e.g., EPS II-SMME">
+                            </div>
+                        </div>
+
+                        <!-- Checked By -->
+                        <h3 class="sig-section-heading">Checked By</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input type="text" id="sig_checked_name" placeholder="Full name in ALL CAPS">
+                            </div>
+                            <div class="form-group">
+                                <label>Title / Designation</label>
+                                <input type="text" id="sig_checked_title" placeholder="e.g., SEPS-SMME">
+                            </div>
+                        </div>
+
+                        <!-- Noted By -->
+                        <h3 class="sig-section-heading">Noted By</h3>
+                        <div class="form-row" id="sig_noted_1">
+                            <div class="form-group">
+                                <label>Name (1)</label>
+                                <input type="text" id="sig_noted1_name" placeholder="Full name in ALL CAPS">
+                            </div>
+                            <div class="form-group">
+                                <label>Title / Designation (1)</label>
+                                <input type="text" id="sig_noted1_title" placeholder="e.g., Chief Education Supervisor-SGOD">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Name (2)</label>
+                                <input type="text" id="sig_noted2_name" placeholder="Full name in ALL CAPS">
+                            </div>
+                            <div class="form-group">
+                                <label>Title / Designation (2)</label>
+                                <input type="text" id="sig_noted2_title" placeholder="e.g., Assistant Schools Division Superintendent">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Name (3)</label>
+                                <input type="text" id="sig_noted3_name" placeholder="Full name in ALL CAPS">
+                            </div>
+                            <div class="form-group">
+                                <label>Title / Designation (3)</label>
+                                <input type="text" id="sig_noted3_title" placeholder="e.g., Schools Division Superintendent">
+                            </div>
+                        </div>
+
+                        <div class="btn-row" style="margin-top:8px;">
+                            <button class="btn-primary" id="btnSaveSignatories" onclick="saveSignatories()">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                            </button>
+                            <button class="btn-refresh" onclick="loadSignatories()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                        </div>
+
+                        <div class="scale-info-box" style="margin-top:20px;">
+                            <div class="scale-info-icon"><i class="fa-solid fa-circle-info"></i></div>
+                            <div>
+                                <strong>Leave "Noted By" rows blank</strong> to exclude them from the report.
+                                Names are printed exactly as entered — use ALL CAPS for consistency with
+                                official documents.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-card" style="margin-top:1.5rem;">
+                        <h2>School Portal Signatories</h2>
+                        <p class="card-desc">Manage the signatories used by the School Calendar and Tuition Fee builders. Each role belongs to one builder (or both, if marked "Shared") — the group headings below show which. Use school-owned rows for private-school users, and office-managed rows for SDO/SMME-only signatories such as Regional Director and Schools Division Superintendent.</p>
+
+                        <div class="form-row">
+                            <div class="form-group full">
+                                <label>Scope</label>
+                                <select id="schoolSigScope" class="form-select" onchange="toggleSchoolSigScope(true); loadSchoolSignatories()">
+                                    <option value="school">School-owned signatories</option>
+                                    <option value="office">Office-managed signatories</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row" id="schoolSigSchoolRow">
+                            <div class="form-group full">
+                                <label>Private School</label>
+                                <select id="schoolSigSchool" class="form-select" onchange="cancelEditSchoolSignatory({skipReload:true}); loadSchoolSignatories()">
+                                    <option value="">Select a private school</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="editing-banner" id="schoolSigEditingBanner" style="display:none;">
+                            <i class="fa-solid fa-pen"></i>
+                            <span>Editing <strong id="schoolSigEditingName">this signatory</strong> — update the fields below and save, or cancel to add a new one instead.</span>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select id="schoolSigRole" class="form-select">
+                                    <optgroup label="Shared — used by both builders">
+                                        <option value="principal">Principal</option>
+                                    </optgroup>
+                                    <optgroup label="School Calendar builder only">
+                                        <option value="rd">Regional Director</option>
+                                        <option value="sds">Schools Division Superintendent (Thru — transmittal/LOI letters)</option>
+                                        <option value="recommending">Recommending Approval</option>
+                                        <option value="final_approver">Final Approver</option>
+                                        <option value="chk_checked_by">Checklist – Checked By</option>
+                                    </optgroup>
+                                    <optgroup label="Tuition Fee builder only">
+                                        <option value="reviewed_by">Processed and Evaluated By</option>
+                                        <option value="validated_by">Validated By</option>
+                                        <option value="noted_by">Noted By</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="schoolSigFullName" placeholder="Full name">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Position / Title</label>
+                                <input type="text" id="schoolSigPosition" placeholder="Position or designation">
+                            </div>
+                            <div class="form-group">
+                                <label>Office / Unit</label>
+                                <input type="text" id="schoolSigOffice" placeholder="Optional office or unit">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>City</label>
+                                <input type="text" id="schoolSigCity" placeholder="Optional city">
+                            </div>
+                            <div class="form-group">
+                                <label>Contact</label>
+                                <input type="text" id="schoolSigContact" placeholder="Optional contact number">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+                                <input type="checkbox" id="schoolSigDefault">
+                                Set as default for this role
+                            </label>
+                        </div>
+
+                        <div class="btn-row" style="margin-top:8px;">
+                            <button class="btn-primary" id="btnSaveSchoolSig" onclick="saveSchoolSignatory()">
+                                <i class="fa-solid fa-floppy-disk"></i> Save School Signatory
+                            </button>
+                            <button class="btn-secondary" id="btnCancelSchoolSig" onclick="cancelEditSchoolSignatory()" style="display:none;">
+                                <i class="fa-solid fa-xmark"></i> Cancel
+                            </button>
+                            <button class="btn-refresh" onclick="loadSchoolSignatories()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                        </div>
+
+                        <div class="sessions-table-wrapper" style="margin-top:18px;">
+                            <table class="settings-table">
+                                <thead>
+                                    <tr>
+                                        <th>Scope</th>
+                                        <th>Builder</th>
+                                        <th>Role</th>
+                                        <th>Name</th>
+                                        <th>Position</th>
+                                        <th>Office</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="schoolSignatoriesBody">
+                                    <tr><td colspan="7" style="text-align:center;color:#94a3b8;">Select a scope and school to load signatories.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="scale-info-box" style="margin-top:20px;">
+                            <div class="scale-info-icon"><i class="fa-solid fa-circle-info"></i></div>
+                            <div>School-owned rows are used by private schools. Office-managed rows are for SDO/SMME-only signatories such as Regional Director and Schools Division Superintendent (used for the "Thru" line on transmittal/LOI letters). "Processed and Evaluated By", "Validated By", and "Noted By" are Tuition Fee builder-only roles — they will not appear anywhere in the School Calendar builder. "Validated By" and "Noted By" are office-managed only (e.g., EPS/QAD and the Regional Director/CESO signatory on the tuition fee report) and won't show under the School-owned scope.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-panel" id="panel-qame-categories">
+                    <div class="settings-card">
+                        <h2>Super Categories</h2>
+                        <p class="card-desc">Create customizable super categories that group multiple evaluation
+                            sub-categories for combined average computation (e.g., QAME - Quality Assurance, Monitoring,
+                            and Evaluation)</p>
+
+                        <!-- Add New Super Category Button -->
+                        <div class="btn-row" style="margin: 20px 0;">
+                            <button class="btn-primary" onclick="openAddQameCategoryModal()">
+                                <i class="fa-solid fa-plus"></i> Add Super Category
+                            </button>
+                            <button class="btn-refresh" onclick="loadQameCategories()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                        </div>
+
+                        <!-- QAME Categories Grid -->
+                        <div class="qame-settings-grid" id="qameCategoriesGrid">
+                            <div class="loading-cell">Loading QAME categories...</div>
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="scale-info-box">
+                            <div class="scale-info-icon"><i class="fa-solid fa-circle-info"></i></div>
+                            <div>
+                                <strong>Super Categories</strong> let you group multiple evaluation sub-categories and
+                                compute their combined average.<br>
+                                Both the code (letter) and name are fully editable - create any naming convention that
+                                fits your reporting needs.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== SUPPORTING DOCUMENTS TAB ===== -->
+                <div class="settings-panel" id="panel-supporting-documents">
+                    <div class="settings-card">
+                        <h2>Supporting Document Requirements</h2>
+                        <p class="card-desc">Configure the supporting documents checklist shown in the Tuition
+                            Fee builder. The School Calendar builder does not use this checklist yet.</p>
+
+                        <!-- Doc Type Filter -->
+                        <div class="scale-type-selector">
+                            <button class="scale-type-btn active" data-doctype="all"
+                                onclick="selectDocTypeFilter('all')">
+                                <i class="fa-solid fa-layer-group"></i> Tuition Fee
+                            </button>
+                            <button class="scale-type-btn" data-doctype="tuition_increase"
+                                onclick="selectDocTypeFilter('tuition_increase')">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Tuition — Increase
+                            </button>
+                            <button class="scale-type-btn" data-doctype="tuition_no_increase"
+                                onclick="selectDocTypeFilter('tuition_no_increase')">
+                                <i class="fa-solid fa-money-bill-wave"></i> Tuition — No Increase
+                            </button>
+                            <button class="scale-type-btn" data-doctype="school_calendar"
+                                onclick="selectDocTypeFilter('school_calendar')">
+                                <i class="fa-solid fa-calendar-days"></i> School Calendar
+                            </button>
+                        </div>
+
+                        <!-- Add New Button -->
+                        <div class="btn-row" style="margin: 20px 0;">
+                            <button class="btn-primary" onclick="openAddSupportingDocModal()">
+                                <i class="fa-solid fa-plus"></i> Add Supporting Document
+                            </button>
+                            <button class="btn-refresh" onclick="loadSupportingDocs()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                        </div>
+
+                        <!-- Supporting Documents Table -->
+                        <div class="sessions-table-wrapper">
+                            <table class="sessions-table" id="supportingDocsTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width:60px;">Order</th>
+                                        <th>Type</th>
+                                        <th>Label</th>
+                                        <th>Slug</th>
+                                        <th>Hint</th>
+                                        <th style="width:70px;">Icon</th>
+                                        <th style="width:90px;">Status</th>
+                                        <th style="width:90px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="supportingDocsBody">
+                                    <tr>
+                                        <td colspan="8" class="loading-cell">Loading supporting documents...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="scale-info-box">
+                            <div class="scale-info-icon"><i class="fa-solid fa-circle-info"></i></div>
+                            <div>
+                                <strong>Doc Type</strong> controls where a requirement shows up:
+                                <strong>Tuition Fee</strong> (shared) items appear in the Tuition Fee builder
+                                regardless of mode, <strong>Tuition — Increase</strong> items appear only when the
+                                school is filing a fee increase, <strong>Tuition — No Increase</strong> items
+                                appear only when filing with no increase, and <strong>School Calendar</strong>
+                                items are specific to the School Calendar checklist.<br>
+                                <strong>Slug</strong> is the internal key referenced in code — use lowercase
+                                letters, numbers, and underscores only.<br>
+                                Toggle <strong>Status</strong> to temporarily hide a requirement without deleting
+                                it.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== PERMIT CHECKLIST TAB ===== -->
+                <div class="settings-panel" id="panel-permit-checklist">
+                    <div class="settings-card">
+                        <h2>School Permit Checklist Requirements</h2>
+                        <p class="card-desc">Configure the GPR-3 School Permit requirements checklist. Add, edit,
+                            reorder, or retire requirements here — no code changes or deploys needed.</p>
+
+                        <!-- Section Filter -->
+                        <div class="scale-type-selector" id="permitSectionFilter">
+                            <button class="scale-type-btn active" data-section="all" onclick="selectPermitSectionFilter('all')">
+                                <i class="fa-solid fa-layer-group"></i> All Sections
+                            </button>
+                        </div>
+
+                        <!-- Add New Button -->
+                        <div class="btn-row" style="margin: 20px 0;">
+                            <button class="btn-primary" onclick="openAddPermitChecklistModal()">
+                                <i class="fa-solid fa-plus"></i> Add Checklist Item
+                            </button>
+                            <button class="btn-refresh" onclick="loadPermitChecklist()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                        </div>
+
+                        <!-- Permit Checklist Table -->
+                        <div class="sessions-table-wrapper">
+                            <table class="sessions-table" id="permitChecklistTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width:60px;">Order</th>
+                                        <th>Section</th>
+                                        <th>Scope</th>
+                                        <th>Label</th>
+                                        <th>Item Key</th>
+                                        <th style="width:90px;">Status</th>
+                                        <th style="width:90px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="permitChecklistBody">
+                                    <tr>
+                                        <td colspan="7" class="loading-cell">Loading checklist items...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="scale-info-box">
+                            <div class="scale-info-icon"><i class="fa-solid fa-circle-info"></i></div>
+                            <div>
+                                <strong>Scope</strong> controls who sees the requirement: <strong>For All
+                                Applicants</strong> shows it on every application, while specific application
+                                types (New School, Recognition, New Course) show it only for matching applications.<br>
+                                <strong>Item Key</strong> is the internal key stored against submitted applications
+                                — it cannot be changed once set. To retire a requirement without breaking existing
+                                submissions, toggle <strong>Status</strong> off instead of deleting it.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== CONTACT US TAB ===== -->
+                <div class="settings-panel" id="panel-contact-us">
+                    <div class="settings-card">
+                        <h2>Contact Us Page Info</h2>
+                        <p class="card-desc">Update the contact information displayed on the public landing page. Changes here are reflected immediately on the QATALYST home page.</p>
+
+                        <form id="contactInfoForm" onsubmit="saveContactInfo(event)">
+                            <div class="form-row">
+                                <div class="form-group full">
+                                    <label for="ci_address">Office Address</label>
+                                    <textarea id="ci_address" rows="2" placeholder="e.g., Schools Division Office of Baliwag&#10;Baliwag, Bulacan" style="resize:vertical;min-height:70px;font-family:inherit;font-size:.875rem;width:100%;background:var(--input-bg,#f8fafc);border:1.5px solid var(--input-border,#e2e8f0);border-radius:9px;padding:.65rem .9rem;color:inherit;outline:none;transition:border-color .22s"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="ci_email">Email Address</label>
+                                    <input type="email" id="ci_email" placeholder="e.g., sdo.baliwag@deped.gov.ph">
+                                </div>
+                                <div class="form-group">
+                                    <label for="ci_phone">Phone Number</label>
+                                    <input type="text" id="ci_phone" placeholder="e.g., (044) 123-4567">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group full">
+                                    <label for="ci_hours">Office Hours</label>
+                                    <input type="text" id="ci_hours" placeholder="e.g., Monday – Friday, 8:00 AM – 5:00 PM">
+                                </div>
+                            </div>
+                            <div class="btn-row" style="margin-top:8px;">
+                                <button type="submit" class="btn-primary" id="btnSaveContactInfo">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Contact Info
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Contact Submissions -->
+                    <div class="settings-card" style="margin-top:1.5rem">
+                        <h2>Message Submissions</h2>
+                        <p class="card-desc">Messages sent through the public Contact Us form</p>
+                        <div class="files-toolbar" style="margin-bottom:1rem;">
+                            <button class="btn-refresh" onclick="loadContactSubmissions()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="sessions-table-wrapper">
+                            <table class="sessions-table" id="contactSubmissionsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>School / Org</th>
+                                        <th>Concern</th>
+                                        <th>Message</th>
+                                        <th>Submitted</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="contactSubmissionsBody">
+                                    <tr>
+                                        <td colspan="7" class="loading-cell">Select the Contact Us tab to load...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="twofaModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title" id="twofaModalTitle">Enable 2FA</h2>
+                <button class="modal-close-btn" onclick="close2FAModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-info-box">
+                    <div class="modal-info-icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div>
+                        <div class="modal-info-title" id="twofaModalDesc">Enable 2FA protection</div>
+                        <div class="modal-info-desc">A verification code will be sent to your email each time you log in
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-form-group">
+                    <label>Confirm your password</label>
+                    <input type="password" id="twofaPassword" placeholder="Enter your current password"
+                        onkeydown="if(event.key==='Enter')confirm2FAToggle()">
+                    <div class="modal-error" id="twofaPassError"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" onclick="close2FAModal()">Cancel</button>
+                <button class="modal-btn-confirm" id="btn2FAConfirm" onclick="confirm2FAToggle()">
+                    <i class="fa-solid fa-check"></i> Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== FILE UPLOAD MODAL ===== -->
+    <div class="modal-overlay" id="fileUploadModal">
+        <div class="modal-container modal-lg">
+            <div class="modal-header">
+                <h2 class="modal-title" id="fileModalTitle">Add New File</h2>
+                <button class="modal-close-btn" onclick="closeFileModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- File Upload Area -->
+                <div class="file-upload-area" id="fileUploadArea">
+                    <div class="file-upload-content">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>Drag & drop files here or click to browse</p>
+                        <span>Max 10 MB per file • Multiple files allowed</span>
+                    </div>
+                    <input type="file" id="fileInput" class="hidden-input" multiple onchange="handleFileSelect(event)">
+                </div>
+                <div id="selectedFilesList" class="selected-files-list"></div>
+
+                <!-- File Metadata Form -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fileItemNo">Item No.</label>
+                        <input type="text" id="fileItemNo" placeholder="e.g., ITEM-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="fileUnit">Unit</label>
+                        <input type="text" id="fileUnit" placeholder="e.g., HR Department">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fileHeadings">Headings</label>
+                        <input type="text" id="fileHeadings" placeholder="e.g., Training Report">
+                    </div>
+                    <div class="form-group">
+                        <label for="fileNatureOfEvent">Nature of Event</label>
+                        <input type="text" id="fileNatureOfEvent" placeholder="e.g., Workshop">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fileStatus">Status</label>
+                        <select id="fileStatus" class="form-select">
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fileQameReport">QAME Report</label>
+                        <input type="text" id="fileQameReport" placeholder="e.g., QR-2026-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="fileComputationFiles">Computation Files</label>
+                        <input type="text" id="fileComputationFiles" placeholder="e.g., Spreadsheet link or reference">
+                    </div>
+                </div>
+
+                <!-- Upload Progress -->
+                <div class="upload-progress-container" id="uploadProgress" style="display:none;">
+                    <div class="upload-progress-bar">
+                        <div class="upload-progress-fill" id="uploadProgressFill"></div>
+                    </div>
+                    <span class="upload-progress-text" id="uploadProgressText">Uploading...</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" onclick="closeFileModal()">Cancel</button>
+                <button class="modal-btn-confirm" id="btnUploadFile" onclick="uploadFileWithMetadata()">
+                    <i class="fa-solid fa-upload"></i> Upload File
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== EDIT FILE MODAL ===== -->
+    <div class="modal-overlay" id="editFileModal">
+        <div class="modal-container modal-lg">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit File Details</h2>
+                <button class="modal-close-btn" onclick="closeEditFileModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editFileId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editFileItemNo">Item No.</label>
+                        <input type="text" id="editFileItemNo" placeholder="e.g., ITEM-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="editFileUnit">Unit</label>
+                        <input type="text" id="editFileUnit" placeholder="e.g., HR Department">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editFileHeadings">Headings</label>
+                        <input type="text" id="editFileHeadings" placeholder="e.g., Training Report">
+                    </div>
+                    <div class="form-group">
+                        <label for="editFileNatureOfEvent">Nature of Event</label>
+                        <input type="text" id="editFileNatureOfEvent" placeholder="e.g., Workshop">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editFileStatus">Status</label>
+                        <select id="editFileStatus" class="form-select">
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editFileQameReport">QAME Report</label>
+                        <input type="text" id="editFileQameReport" placeholder="e.g., QR-2026-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="editFileComputationFiles">Computation Files</label>
+                        <input type="text" id="editFileComputationFiles"
+                            placeholder="e.g., Spreadsheet link or reference">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" onclick="closeEditFileModal()">Cancel</button>
+                <button class="modal-btn-confirm" onclick="saveFileMetadata()">
+                    <i class="fa-solid fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== RATING SCALE MODAL ===== -->
+    <div class="modal-overlay" id="ratingScaleModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title" id="ratingScaleModalTitle">Add Rating Scale</h2>
+                <button class="modal-close-btn" onclick="closeRatingScaleModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="ratingScaleId">
+                <input type="hidden" id="ratingScaleType">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ratingScaleLevel">Level</label>
+                        <input type="text" id="ratingScaleLevel" placeholder="e.g., SA, Excellent">
+                    </div>
+                    <div class="form-group">
+                        <label for="ratingScaleDescription">Description</label>
+                        <input type="text" id="ratingScaleDescription" placeholder="e.g., Strongly Agree">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ratingScaleMin">Min Value</label>
+                        <input type="number" step="0.01" id="ratingScaleMin" placeholder="e.g., 3.51">
+                    </div>
+                    <div class="form-group">
+                        <label for="ratingScaleMax">Max Value</label>
+                        <input type="number" step="0.01" id="ratingScaleMax" placeholder="e.g., 4.00">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" onclick="closeRatingScaleModal()">Cancel</button>
+                <button class="modal-btn-confirm" id="btnSaveRatingScale" onclick="saveRatingScale()">
+                    <i class="fa-solid fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== QAME SUPER CATEGORY MODAL ===== -->
+    <div class="modal-overlay" id="qameCategoryModal">
+        <div class="modal-container modal-lg">
+            <div class="modal-header">
+                <h2 class="modal-title" id="qameCategoryModalTitle">Add QAME Super Category</h2>
+                <button class="modal-close-btn" onclick="closeQameCategoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="qameCategoryId">
+                <div class="form-row">
+                    <div class="form-group" style="flex:0 0 100px;">
+                        <label for="qameCategoryCode">Code <span style="color:#ef4444">*</span></label>
+                        <input type="text" id="qameCategoryCode" placeholder="e.g., Q" maxlength="10"
+                            style="text-transform:uppercase;text-align:center;font-weight:bold;font-size:18px;">
+                        <small style="color:#94a3b8;font-size:11px;">Any letter/code</small>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="qameCategoryName">Name <span style="color:#ef4444">*</span></label>
+                        <input type="text" id="qameCategoryName" placeholder="e.g., Quality Assurance, Monitoring">
+                        <small style="color:#94a3b8;font-size:11px;">Fully customizable display name</small>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="qameCategoryDescription">Description</label>
+                        <input type="text" id="qameCategoryDescription" placeholder="e.g., Content & Delivery Quality">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="qameCategoryIcon">Icon</label>
+                        <select id="qameCategoryIcon" class="form-select">
+                            <option value="fa-star">⭐ Star</option>
+                            <option value="fa-bullseye">🎯 Bullseye</option>
+                            <option value="fa-gear">⚙️ Gear</option>
+                            <option value="fa-rocket">🚀 Rocket</option>
+                            <option value="fa-chart-line">📈 Chart</option>
+                            <option value="fa-graduation-cap">🎓 Graduation</option>
+                            <option value="fa-users">👥 Users</option>
+                            <option value="fa-lightbulb">💡 Lightbulb</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="qameCategoryColor">Color</label>
+                        <input type="color" id="qameCategoryColor" value="#3b82f6" style="height:38px;padding:4px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="qameCategoryOrder">Order</label>
+                        <input type="number" id="qameCategoryOrder" placeholder="1" value="0" min="0">
+                    </div>
+                </div>
+
+                <!-- Sub-Categories Selection -->
+                <div class="form-group full" style="margin-top:16px;">
+                    <label>Mapped Sub-Categories</label>
+                    <p class="card-desc" style="margin-bottom:10px;">Select which evaluation categories belong to this
+                        super category</p>
+                    <div class="subcategories-checklist" id="subcategoriesChecklist">
+                        <div class="loading-cell">Loading categories...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" onclick="closeQameCategoryModal()">Cancel</button>
+                <button class="modal-btn-confirm" id="btnSaveQameCategory" onclick="saveQameCategory()">
+                    <i class="fa-solid fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SUPPORTING DOCUMENT MODAL ===== -->
+    <div class="modal-overlay" id="supportingDocModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title" id="supportingDocModalTitle">Add Supporting Document</h2>
+                <button class="modal-close-btn" onclick="closeSupportingDocModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="supportingDocId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="supportingDocType">Doc Type <span style="color:#ef4444">*</span></label>
+                        <select id="supportingDocType" class="form-select">
+                            <option value="all">Tuition Fee (Shared — both modes)</option>
+                            <option value="tuition_increase">Tuition — Increase</option>
+                            <option value="tuition_no_increase">Tuition — No Increase</option>
+                            <option value="school_calendar">School Calendar</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="supportingDocOrder">Display Order</label>
+                        <input type="number" id="supportingDocOrder" placeholder="0" value="0" min="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="supportingDocLabel">Label <span style="color:#ef4444">*</span></label>
+                        <input type="text" id="supportingDocLabel"
+                            placeholder="e.g., Certificate of Registration">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="supportingDocSlug">Slug <span style="color:#ef4444">*</span></label>
+                        <input type="text" id="supportingDocSlug"
+                            placeholder="e.g., certificate_of_registration"
+                            style="font-family:monospace;">
+                        <small style="color:#94a3b8;font-size:11px;">Lowercase letters, numbers, and underscores
+                            only. Used as the internal key — avoid changing after schools start uploading.</small>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="supportingDocHint">Hint / Instructions</label>
+                        <textarea id="supportingDocHint" rows="2"
+                            placeholder="e.g., Upload a clear scanned copy, PDF format preferred"
+                            style="resize:vertical;min-height:60px;font-family:inherit;font-size:.875rem;width:100%;background:var(--input-bg,#f8fafc);border:1.5px solid var(--input-border,#e2e8f0);border-radius:9px;padding:.65rem .9rem;color:inherit;outline:none;transition:border-color .22s"></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="supportingDocIcon">Icon</label>
+                        <select id="supportingDocIcon" class="form-select">
+                            <option value="fa-file">📄 File</option>
+                            <option value="fa-file-pdf">📕 PDF</option>
+                            <option value="fa-file-image">🖼️ Image</option>
+                            <option value="fa-file-contract">📝 Contract</option>
+                            <option value="fa-calendar-days">📅 Calendar</option>
+                            <option value="fa-money-bill-wave">💵 Money</option>
+                            <option value="fa-id-card">🪪 ID Card</option>
+                            <option value="fa-stamp">🔖 Stamp</option>
+                            <option value="fa-building">🏢 Building</option>
+                            <option value="fa-shield-halved">🛡️ Shield</option>
+                            <option value="fa-certificate">🎖️ Certificate</option>
+                            <option value="fa-clipboard-check">✅ Clipboard</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <div class="toggle-row" style="padding:8px 0;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="supportingDocActive" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span style="margin-left:10px;font-size:13px;color:#64748b;">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" onclick="closeSupportingDocModal()">Cancel</button>
+                <button class="modal-btn-confirm" id="btnSaveSupportingDoc" onclick="saveSupportingDoc()">
+                    <i class="fa-solid fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PERMIT CHECKLIST ITEM MODAL ===== -->
+    <div class="modal-overlay" id="permitChecklistModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title" id="permitChecklistModalTitle">Add Checklist Item</h2>
+                <button class="modal-close-btn" onclick="closePermitChecklistModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="permitItemId">
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="permitSectionName">Section Name <span style="color:#ef4444">*</span></label>
+                        <input type="text" id="permitSectionName" list="permitSectionNameOptions"
+                            oninput="onPermitSectionNameInput()"
+                            placeholder="e.g., For All Applicants">
+                        <datalist id="permitSectionNameOptions">
+                            <option value="For All Applicants">
+                            <option value="For New Schools or Schools with Recent Changes">
+                            <option value="For New Courses / Programs">
+                        </datalist>
+                        <small id="permitSectionNameNotice" style="display:none;margin-top:6px;"></small>
+                    </div>
+                </div>
+                <div class="form-row" id="permitSectionPositionRow" style="display:none;">
+                    <div class="form-group full">
+                        <label for="permitSectionPositionSelect">Where should this new section appear?</label>
+                        <select id="permitSectionPositionSelect" class="form-select" onchange="onPermitOrderPickerChange()">
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="permitItemPositionSelect" id="permitItemPositionLabel">Where should this requirement appear in the section?</label>
+                        <select id="permitItemPositionSelect" class="form-select" onchange="onPermitOrderPickerChange()">
+                        </select>
+                        <small id="permitItemPositionNote" style="color:#94a3b8;font-size:11px;display:none;"></small>
+                    </div>
+                </div>
+                <input type="hidden" id="permitSectionOrder" value="0">
+                <input type="hidden" id="permitItemOrder" value="0">
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="permitItemKey">Item Key <span style="color:#ef4444">*</span></label>
+                        <input type="text" id="permitItemKey" placeholder="e.g., board_resolution"
+                            oninput="onPermitItemKeyManualEdit()"
+                            style="font-family:monospace;">
+                        <small style="color:#94a3b8;font-size:11px;">Auto-filled from the label as you type — feel
+                            free to adjust it before saving. Lowercase letters, numbers, and underscores only.
+                            Stored against submitted applications, so it cannot be changed after creation.</small>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="permitItemLabel">Label <span style="color:#ef4444">*</span></label>
+                        <textarea id="permitItemLabel" rows="2"
+                            oninput="onPermitItemLabelInput()"
+                            placeholder="e.g., Board Resolution — certified by the Corporate Secretary"
+                            style="resize:vertical;min-height:60px;font-family:inherit;font-size:.875rem;width:100%;background:var(--input-bg,#f8fafc);border:1.5px solid var(--input-border,#e2e8f0);border-radius:9px;padding:.65rem .9rem;color:inherit;outline:none;transition:border-color .22s"></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label>Applies To</label>
+                        <div class="toggle-row" style="padding:8px 0;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="permitAlwaysRequired" onchange="togglePermitAppTypesVisibility()" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span style="margin-left:10px;font-size:13px;color:#64748b;">For All Applicants</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row" id="permitAppTypesRow" style="display:none;">
+                    <div class="form-group full">
+                        <label>Application Types <span style="color:#ef4444">*</span></label>
+                        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#64748b;">
+                                <input type="checkbox" class="permit-app-type" value="new_school"> New School
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#64748b;">
+                                <input type="checkbox" class="permit-app-type" value="recognition"> Recognition
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#64748b;">
+                                <input type="checkbox" class="permit-app-type" value="new_course"> New Course
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Status</label>
+                        <div class="toggle-row" style="padding:8px 0;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="permitItemActive" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span style="margin-left:10px;font-size:13px;color:#64748b;">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" onclick="closePermitChecklistModal()">Cancel</button>
+                <button class="modal-btn-confirm" id="btnSavePermitChecklistItem" onclick="savePermitChecklistItem()">
+                    <i class="fa-solid fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== USER ROLE MODAL ===== -->
+    <div class="modal-overlay" id="userRoleModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title" id="userRoleModalTitle">Add User Role</h2>
+                <button class="modal-close-btn" onclick="closeUserRoleModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="userRoleId">
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="userRoleName">Role Name <span style="color:#ef4444">*</span></label>
+                        <input type="text" id="userRoleName" placeholder="e.g., Facilitator, Evaluator">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="userRoleDescription">Description</label>
+                        <input type="text" id="userRoleDescription"
+                            placeholder="e.g., Can manage programs and speakers">
+                    </div>
+                </div>
+
+                <!-- Default Permissions -->
+                <div class="form-group full" style="margin-top:16px;">
+                    <label>Default Permissions</label>
+                    <p class="card-desc" style="margin-bottom:10px;">Permissions automatically assigned to new users
+                        with this role</p>
+                    <div class="capabilities-grid" id="userRolePermissionsGrid">
+                        <label class="capability-checkbox">
+                            <input type="checkbox" id="urp_dashboard" name="urp">
+                            <div class="capability-info">
+                                <span class="cap-label"><i class="fa-solid fa-house"></i> View Dashboard</span>
+                                <span class="cap-desc">Access the main dashboard</span>
+                            </div>
+                        </label>
+                        <label class="capability-checkbox">
+                            <input type="checkbox" id="urp_certificates" name="urp">
+                            <div class="capability-info">
+                                <span class="cap-label"><i class="fa-solid fa-certificate"></i> Certificates</span>
+                                <span class="cap-desc">Generate and manage certificates</span>
+                            </div>
+                        </label>
+                        <label class="capability-checkbox">
+                            <input type="checkbox" id="urp_programs" name="urp">
+                            <div class="capability-info">
+                                <span class="cap-label"><i class="fa-solid fa-calendar-days"></i> Manage Programs</span>
+                                <span class="cap-desc">Create and manage programs/workshops</span>
+                            </div>
+                        </label>
+                        <label class="capability-checkbox">
+                            <input type="checkbox" id="urp_speakers" name="urp">
+                            <div class="capability-info">
+                                <span class="cap-label"><i class="fa-solid fa-person-chalkboard"></i> Speaker
+                                    Roster</span>
+                                <span class="cap-desc">Manage resource speakers</span>
+                            </div>
+                        </label>
+                        <label class="capability-checkbox">
+                            <input type="checkbox" id="urp_checklist" name="urp">
+                            <div class="capability-info">
+                                <span class="cap-label"><i class="fa-solid fa-clipboard-check"></i> Checklist</span>
+                                <span class="cap-desc">Access checklist features</span>
+                            </div>
+                        </label>
+                        <label class="capability-checkbox">
+                            <input type="checkbox" id="urp_school_submissions" name="urp">
+                            <div class="capability-info">
+                                <span class="cap-label"><i class="fa-solid fa-inbox"></i> School Submissions</span>
+                                <span class="cap-desc">View and manage school submissions</span>
+                            </div>
+                        </label>
+                        <label class="capability-checkbox">
+                            <input type="checkbox" id="urp_directory" name="urp">
+                            <div class="capability-info">
+                                <span class="cap-label"><i class="fa-solid fa-address-book"></i> Directory</span>
+                                <span class="cap-desc">Access the contacts directory</span>
+                            </div>
+                        </label>
+                        <label class="capability-checkbox">
+                            <input type="checkbox" id="urp_users" name="urp">
+                            <div class="capability-info">
+                                <span class="cap-label"><i class="fa-solid fa-users"></i> User Management</span>
+                                <span class="cap-desc">Add, edit and manage system users</span>
+                            </div>
+                        </label>
+                        <label class="capability-checkbox">
+                            <input type="checkbox" id="urp_audit_logs" name="urp">
+                            <div class="capability-info">
+                                <span class="cap-label"><i class="fa-solid fa-clipboard-list"></i> Audit Logs</span>
+                                <span class="cap-desc">View audit log activity history</span>
+                            </div>
+                        </label>
+                        <label class="capability-checkbox">
+                            <input type="checkbox" id="urp_settings" name="urp">
+                            <div class="capability-info">
+                                <span class="cap-label"><i class="fa-solid fa-gear"></i> System Settings</span>
+                                <span class="cap-desc">Access and configure system settings</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" onclick="closeUserRoleModal()">Cancel</button>
+                <button class="modal-btn-confirm" id="btnSaveUserRole" onclick="saveUserRole()">
+                    <i class="fa-solid fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v6"></script>
+    <script src="js/main-settings.js?v15"></script>
+</body>
+
+</html>

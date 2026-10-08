@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - School-Based Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&ampdisplay=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+        integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="css/programs.css?v6">
+    <link rel="stylesheet" href="css/notifications.css?v2">
+    <link rel="stylesheet" href="css/manual-help-btn.css">
+    <link rel="stylesheet" href="css/sequence-manager.css">
+    <style>
+        /* Source badge — system-created workshops */
+        .badge-system-entry {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 10px;
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #7dd3fc;
+        }
+
+        /* Button group — keeps Import Excel + Add New Program together on the right */
+        .controls-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: #ffffff;
+            color: #1e3a8a;
+            padding: 12px 24px;
+            border: 1.5px solid #1e3a8a;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-secondary:hover {
+            background: #eff6ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);
+        }
+
+        .summary-report-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 14px;
+            background: #ffffff;
+            color: #1e3a8a;
+            border: 1.5px solid #1e3a8a;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .summary-report-btn:hover {
+            background: #eff6ff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);
+        }
+    </style>
+    <!-- SheetJS for consolidated Excel export -->
+    <!-- xlsx-js-style: drop-in SheetJS replacement that supports cell .s styling -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <!-- <script src="js/exportConsolidated.js"></script> -->
+</head>
+
+<body>
+    <!-- JavaScript required for this application -->
+    <noscript>
+        <div style="padding:40px;text-align:center;font-family:sans-serif;background:#fef2f2;color:#991b1b;">
+            <h2>JavaScript Required</h2>
+            <p>This application requires JavaScript to function. Please enable JavaScript in your browser settings and
+                reload the page.</p>
+        </div>
+    </noscript>
+
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle active expanded" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow rotate" id="programs-arrow"></i>
+                </button>
+                <div class="submenu expanded" id="programs-submenu">
+                    <button class="submenu-toggle " onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu " id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn active" onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <!-- Mobile sidebar backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-calendar-days"></i> School-Based Management Programs</h1>
+                    <p>Manage all School-Based Management programs and evaluations</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="manual-help-btn" type="button" onclick="window.location.href='user-manual.html?page=programs.html'">
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <button class="summary-report-btn" type="button" onclick="window.location.href='program-summary.html?from=sbm'">
+                        <i class="fa-solid fa-chart-bar"></i><span>Summary Report</span>
+                    </button>
+                    <button class="btn-seq-manager" type="button" onclick="openSeqManager()" title="Manage Sequence Numbers">
+                        <i class="fa-solid fa-hashtag"></i>
+                        <span>Sequence Nos.</span>
+                        <span class="seq-badge" id="seqMissingBadge" style="display:none;"></span>
+                    </button>
+                    <button class="btn-combined-report" type="button" onclick="openMultiProgramReportModal()" title="Generate a combined Word report for multiple programs">
+                        <i class="fa-solid fa-file-word"></i><span>Combined Word Report</span>
+                    </button>
+                    <!-- Page Tools dropdown — mobile only -->
+                    <div class="page-tools-wrap" id="pageToolsWrap">
+                        <button class="page-tools-btn" id="pageToolsBtn" onclick="togglePageTools()" aria-label="Page Tools">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                            <span>Tools</span>
+                        </button>
+                        <div class="page-tools-dropdown" id="pageToolsDropdown">
+                            <button class="page-tools-item" onclick="window.location.href='user-manual.html?page=programs.html'">
+                                <i class="fa-solid fa-circle-question"></i> Help
+                            </button>
+                            <button class="page-tools-item" onclick="window.location.href='program-summary.html?from=sbm'">
+                                <i class="fa-solid fa-chart-bar"></i> Summary Report
+                            </button>
+                            <button class="page-tools-item" onclick="openSeqManager(); closePageTools()">
+                                <i class="fa-solid fa-hashtag"></i> Sequence Nos.
+                            </button>
+                            <button class="page-tools-item" onclick="openMultiProgramReportModal(); closePageTools()">
+                                <i class="fa-solid fa-file-word"></i> Combined Word Report
+                            </button>
+                        </div>
+                    </div>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()"
+                        aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+                </div>
+            </div>
+            <!-- Page-level tabs removed; single unified list -->
+            <!-- Programs controls toolbar — sits between header and scrollable content -->
+            <div class="programs-controls" id="programsControlsBar">
+                <div class="search-box">
+                    <span class="search-icon"><i class="fa-solid fa-search"></i></span>
+                    <input type="text" id="programSearch" placeholder="Search programs..."
+                        oninput="searchPrograms(this.value)">
+                </div>
+                <div class="controls-actions">
+                    <div class="layout-toggle" id="layoutToggle">
+                        <button class="layout-btn active" id="layoutBtnCard" onclick="setLayout('card')"
+                            title="Card View">
+                            <i class="fa-solid fa-grip"></i>
+                        </button>
+                        <button class="layout-btn" id="layoutBtnTable" onclick="setLayout('table')"
+                            title="Table View">
+                            <i class="fa-solid fa-list"></i>
+                        </button>
+                    </div>
+                    <button class="btn-secondary" onclick="navigate('importfile')">
+                        <i class="fa-solid fa-file-import"></i> Import Excel
+                    </button>
+                    <button class="btn-primary" onclick="openProgramModal('create')">
+                        <i class="fa-solid fa-plus"></i> Add New Program
+                    </button>
+                </div>
+            </div>
+
+            <!-- Date filter + sort toggle row -->
+            <div class="programs-filter-bar" id="programsFilterBar">
+                <div class="date-filter-group">
+                    <label for="filterDateFrom"><i class="fa-solid fa-calendar-day"></i> From</label>
+                    <input type="date" id="filterDateFrom" onchange="onDateFilterChange()">
+                    <label for="filterDateTo">To</label>
+                    <input type="date" id="filterDateTo" onchange="onDateFilterChange()">
+                    <button class="btn-clear-filter" id="clearDateFilterBtn" onclick="clearDateFilter()"
+                        title="Clear date filter" style="display:none;">
+                        <i class="fa-solid fa-xmark"></i> Clear
+                    </button>
+                </div>
+                <button class="sort-toggle-btn" id="sortToggleBtn" onclick="toggleSortOrder()"
+                    title="Toggle sort order">
+                    <i class="fa-solid fa-arrow-down-wide-short" id="sortToggleIcon"></i>
+                    <span id="sortToggleLabel">Newest First</span>
+                </button>
+            </div>
+
+            <div id="pageSectionPrograms" class="content-section">
+                <div id="programsAlert" class="alert"></div>
+                <div id="programCardGrid" class="program-card-grid"></div>
+                <div class="table-container" id="programTableContainer">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Division Memo</th>
+                                <th>Proponent/s</th>
+                                <th>Date Range</th>
+                                <th>Venue</th>
+                                <th>Days</th>
+                                <th>Respondents</th>
+                                <th>Expected Participants</th>
+                                <th>Source</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="programsTableBody">
+                            <tr>
+                                <td colspan="11" class="no-data">
+                                    <div class="no-data-icon"><i class="fa-solid fa-inbox"></i></div>
+                                    <p>Loading programs...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination bar -->
+                <div class="pagination-bar" id="paginationBar">
+                    <div class="pagination-info" id="paginationInfo"></div>
+                    <div class="pagination-controls" id="paginationControls"></div>
+                </div>
+            </div>
+
+            <!-- Records section (new) - MUST be sibling of pageSectionPrograms -->
+        </div>
+    </div>
+
+    <!-- ═══ CREATE / EDIT PROGRAM MODAL ═══════════════════════════════════════ -->
+    <div id="programModal" class="modal">
+        <div class="modal-content wide">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Program</h2>
+                <button class="close-btn" onclick="closeProgramModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Tabs -->
+                <div class="modal-tabs">
+                    <button class="tab-btn active" id="tabBtnDetails" onclick="switchTab('details')">
+                        <i class="fa-solid fa-circle-info"></i> Program Details
+                    </button>
+                </div>
+
+                <!-- TAB: Details -->
+                <div id="tabDetails" class="tab-panel active">
+                    <form id="programForm" onsubmit="saveProgramData(event)">
+                        <div class="form-grid">
+
+                            <!-- Title -->
+                            <div class="form-group full-width">
+                                <label>Program Title *</label>
+                                <input type="text" id="programTitle" required placeholder="Enter program title">
+                            </div>
+
+                            <!-- Division Memo & Status -->
+                            <div class="form-group">
+                                <label>Division Memo *</label>
+                                <input type="text" id="divisionMemo" required placeholder="DM No.XXX s.2026">
+                            </div>
+                            <div class="form-group">
+                                <label>Status *</label>
+                                <select id="programStatus" required>
+                                    <option value="upcoming">Upcoming</option>
+                                    <option value="ongoing">Ongoing</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+
+                            <!-- Unit & Nature of Event -->
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-building" style="color:#1e3a8a;margin-right:4px;"></i> Unit
+                                    *</label>
+                                <select id="programUnit" required>
+                                    <option value="">Loading…</option>
+                                </select>
+                                <div style="display:flex;gap:8px;margin-top:6px;">
+                                    <button type="button" class="btn-cancel" style="padding:6px 10px;font-size:12px;"
+                                        onclick="renameSelectedDropdownOption('programUnit')">Rename</button>
+                                    <button type="button" class="btn-delete" style="padding:6px 10px;font-size:12px;"
+                                        onclick="deleteSelectedDropdownOption('programUnit')">Delete</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-calendar-check"
+                                        style="color:#1e3a8a;margin-right:4px;"></i> Nature of Event *</label>
+                                <select id="programNatureOfEvent" required>
+                                    <option value="">Loading…</option>
+                                </select>
+                                <div style="display:flex;gap:8px;margin-top:6px;">
+                                    <button type="button" class="btn-cancel" style="padding:6px 10px;font-size:12px;"
+                                        onclick="renameSelectedDropdownOption('programNatureOfEvent')">Rename</button>
+                                    <button type="button" class="btn-delete" style="padding:6px 10px;font-size:12px;"
+                                        onclick="deleteSelectedDropdownOption('programNatureOfEvent')">Delete</button>
+                                </div>
+                            </div>
+
+                            <!-- ── PROPONENTS (new field) ── -->
+                            <div class="form-group full-width">
+                                <label><i class="fa-solid fa-user-tie" style="color:#1e3a8a;margin-right:4px;"></i>
+                                    Proponent/s *</label>
+                                <input type="text" id="programProponents" required
+                                    placeholder="e.g. Alvin J. Hernandez / Tiffany Joy P. Gonzales, EPS II-SMME">
+                                <span class="field-hint">Name/s of the person/s proposing this training program. Appears
+                                    in the QAME Analysis report.</span>
+                            </div>
+
+                            <!-- Dates -->
+                            <div class="form-group">
+                                <label>Start Date *</label>
+                                <input type="date" id="startDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label>End Date *</label>
+                                <input type="date" id="endDate" required>
+                            </div>
+
+                            <!-- Venue -->
+                            <div class="form-group full-width">
+                                <label>Venue *</label>
+                                <input type="text" id="programVenue" required placeholder="Training venue">
+                            </div>
+
+                            <!-- Expected Total Participants (Optional) -->
+                            <div class="form-group">
+                                <label>Expected Total Participants</label>
+                                <input type="number" id="programTotalParticipants" min="0" placeholder="e.g., 50">
+                                <span class="field-hint">Optional. Number of expected participants.</span>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="form-group full-width">
+                                <label>Description</label>
+                                <textarea id="programDescription" placeholder="Brief description"></textarea>
+                            </div>
+                        </div>
+                        <input type="hidden" id="programId">
+                        <!-- Hidden container kept for JS compatibility (workshop_days removed) -->
+                        <div id="workshopDaysContainer" style="display:none;"></div>
+                    </form>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeProgramModal()">Cancel</button>
+                <button type="submit" form="programForm" class="btn-submit" id="submitBtn">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Program
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced View Workshop Modal -->
+    <div id="viewProgramModal" class="modal">
+        <div class="modal-content wide view-modal-enhanced">
+            <div class="modal-header">
+                <h2 id="viewModalTitle">Workshop Details</h2>
+                <button class="close-btn" onclick="closeViewModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Tabs for different sections -->
+                <div class="view-modal-tabs">
+                    <button class="view-tab-btn active" data-tab="overview" onclick="switchViewTab('overview')">
+                        <i class="fa-solid fa-circle-info"></i> Overview
+                    </button>
+                    <button class="view-tab-btn" data-tab="responses" onclick="switchViewTab('responses')">
+                        <i class="fa-solid fa-comments"></i> Responses
+                        <span class="tab-badge" id="responsesCountBadge">0</span>
+                    </button>
+                    <button class="view-tab-btn" data-tab="reports" onclick="switchViewTab('reports')">
+                        <i class="fa-solid fa-file-lines"></i> Reports
+                    </button>
+                    <button class="view-tab-btn" data-tab="monitoring" onclick="switchViewTab('monitoring')">
+                        <i class="fa-solid fa-chart-line"></i> Monitoring
+                    </button>
+                </div>
+
+                <!-- Tab: Overview -->
+                <div class="view-tab-panel active" id="viewTabOverview">
+                    <div id="viewProgramContent" class="view-details"></div>
+                </div>
+
+                <!-- Tab: Responses -->
+                <div class="view-tab-panel" id="viewTabResponses">
+                    <div class="responses-toolbar">
+                        <div class="responses-filters">
+                            <select id="viewDaySelect" class="filter-select" onchange="loadWorkshopResponses(); if(State.workshopData?.program_type==='container'){const v=this.value;if(v)loadOverviewCategoryAverages(parseInt(v),true);}">
+                                <option value="">All Days</option>
+                            </select>
+                            <select id="viewGenderFilter" class="filter-select" onchange="filterResponses()">
+                                <option value="">All Genders</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="prefer_not_to_say">Prefer not to say</option>
+                            </select>
+                            <div class="search-input-wrap">
+                                <i class="fa-solid fa-search"></i>
+                                <input type="text" id="viewResponseSearch" placeholder="Search by name..."
+                                    oninput="filterResponses()">
+                            </div>
+                        </div>
+                        <button class="btn-export-responses" onclick="exportResponsesToExcel()">
+                            <i class="fa-solid fa-file-excel"></i> Export Excel
+                        </button>
+                    </div>
+                    <div class="responses-stats-row">
+                        <div class="stat-card-mini"><span class="stat-value" id="statTotalResponses">0</span><span
+                                class="stat-label">Total</span></div>
+                        <div class="stat-card-mini"><span class="stat-value" id="statAvgRating">-</span><span
+                                class="stat-label">Avg Rating</span></div>
+                        <div class="stat-card-mini"><span class="stat-value" id="statMaleCount">0</span><span
+                                class="stat-label">Male</span></div>
+                        <div class="stat-card-mini"><span class="stat-value" id="statFemaleCount">0</span><span
+                                class="stat-label">Female</span></div>
+                        <div class="stat-card-mini"><span class="stat-value" id="statPreferNotToSayCount">0</span><span
+                                class="stat-label">Prefer no to say</span></div>
+                    </div>
+                    <div class="responses-table-container">
+                        <table class="responses-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Sex</th>
+                                    <th>Type</th>
+                                    <th>Designation</th>
+                                    <th>Avg Rating</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="responsesTableBody">
+                                <tr>
+                                    <td colspan="6" class="no-data">Select a day or load responses</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Reports -->
+                <div class="view-tab-panel" id="viewTabReports">
+                    <div class="reports-actions-bar">
+                        <button class="btn-generate-report" onclick="generateQAMEReport()">
+                            <i class="fa-solid fa-file-lines"></i> Generate Preview
+                        </button>
+                        <button class="btn-export-word" onclick="exportReportToWord()">
+                            <i class="fa-solid fa-file-word"></i> Export Word
+                        </button>
+                        <button class="btn-export-consolidated" onclick="exportConsolidatedToExcel()">
+                            <i class="fa-solid fa-file-excel"></i> Export Consolidated
+                        </button>
+                        <button class="btn-export-ppt" onclick="exportReportToPPT()">
+                            <i class="fa-solid fa-file-powerpoint"></i> Export PowerPoint
+                        </button>
+                        <!--<button class="btn-ai-summary" onclick="generateAISummary()">-->
+                        <!--    <i class="fa-solid fa-robot"></i> AI Summary-->
+                        <!--</button>-->
+                    </div>
+                    <div id="aiSummaryContainer" style="display:none;margin-bottom:16px;"></div>
+                    <div class="report-day-selector">
+                        <label>Select Day:</label>
+                        <select id="reportDaySelect" onchange="generateQAMEReport()">
+                            <option value="">All Days Combined</option>
+                        </select>
+                        <label class="super-category-toggle-wrap" style="display:inline-flex;align-items:center;gap:8px;margin-left:20px;font-weight:normal;cursor:pointer;" title="When on, categories are grouped and averaged according to the QAME Super Category mappings (Settings → QAME Categories). When off, each raw category gets its own section, un-merged.">
+                            <input type="checkbox" id="superCategoryGroupingToggle" checked
+                                onchange="onSuperCategoryGroupingToggle(this)">
+                            <span>Group by Super Category</span>
+                        </label>
+                    </div>
+                    <div id="reportPreviewContainer" class="report-preview-container">
+                        <div class="report-placeholder">
+                            <i class="fa-solid fa-file-lines"></i>
+                            <p>Click "Generate Preview" to see the QAME report</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Monitoring -->
+                <div class="view-tab-panel" id="viewTabMonitoring">
+                    <div class="monitoring-stats-grid">
+                        <div class="monitoring-stat-card">
+                            <i class="fa-solid fa-users"></i>
+                            <div class="stat-info">
+                                <span class="stat-value" id="monitorTotalParticipants">0</span>
+                                <span class="stat-label">Total Participants</span>
+                            </div>
+                        </div>
+                        <div class="monitoring-stat-card completed">
+                            <i class="fa-solid fa-check-circle"></i>
+                            <div class="stat-info">
+                                <span class="stat-value" id="monitorCompleted">0</span>
+                                <span class="stat-label">Completed</span>
+                            </div>
+                        </div>
+                        <div class="monitoring-stat-card pending">
+                            <i class="fa-solid fa-clock"></i>
+                            <div class="stat-info">
+                                <span class="stat-value" id="monitorPending">0</span>
+                                <span class="stat-label">Pending</span>
+                            </div>
+                        </div>
+                        <div class="monitoring-stat-card rate">
+                            <i class="fa-solid fa-percent"></i>
+                            <div class="stat-info">
+                                <span class="stat-value" id="monitorCompletionRate">0%</span>
+                                <span class="stat-label">Completion Rate</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="monitoring-progress-section">
+                        <h4>Completion by Day</h4>
+                        <div id="dayCompletionBars"></div>
+                    </div>
+                    <div class="monitoring-actions">
+                        <button class="btn-remind-all" onclick="remindAllIncomplete()">
+                            <i class="fa-solid fa-envelope"></i> Remind All Incomplete
+                        </button>
+                    </div>
+                    <div class="monitoring-table-section">
+                        <div class="monitoring-filters">
+                            <select id="monitorStatusFilter" class="filter-select" onchange="filterMonitoringTable()">
+                                <option value="">All Status</option>
+                                <option value="completed">Completed</option>
+                                <option value="partial">Partial</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                            <input type="text" id="monitorSearchInput" placeholder="Search participant..."
+                                oninput="filterMonitoringTable()">
+                        </div>
+                        <table class="monitoring-table">
+                            <thead>
+                                <tr>
+                                    <th>Participant</th>
+                                    <th>Status</th>
+                                    <th>Participant Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monitoringTableBody">
+                                <tr>
+                                    <td colspan="4" class="no-data">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="viewInDashboard()">
+                    <i class="fa-solid fa-chart-pie"></i> View in Dashboard
+                </button>
+                <button class="btn-cancel" onclick="closeViewModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Response Detail Modal -->
+    <div id="responseDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Response Details</h2>
+                <button class="close-btn" onclick="closeResponseDetailModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="responseDetailContent" class="response-detail-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeResponseDetailModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Excel Record Modal -->
+    <div id="editRecordModal" class="modal">
+        <div class="modal-content" style="max-width:620px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-file-excel" style="color:#16a34a;margin-right:8px;"></i> Edit Excel Record
+                </h2>
+                <button class="close-btn" onclick="closeEditRecordModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid">
+                    <!-- Row 1: Title (full width) -->
+                    <div class="form-group full-width">
+                        <label>Program Title *</label>
+                        <input type="text" id="erTitle" required placeholder="Program title">
+                    </div>
+                    <!-- Row 2: Sequence Number + Division Memo + Status -->
+                    <div class="form-group">
+                        <label>Sequence Number</label>
+                        <input type="text" id="erSequenceNumber" placeholder="e.g. SDOCB-SMME-2025-047"
+                            style="font-family:monospace;">
+                        <small style="color:#64748b;font-size:11px;">Auto-generated if left blank on save.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Division Memo</label>
+                        <input type="text" id="erDivisionMemo" placeholder="e.g. DM No.XXX s.2026">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="erStatus">
+                            <option value="upcoming">Upcoming</option>
+                            <option value="ongoing">Ongoing</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <!-- Row 3: Proponents (full width) -->
+                    <div class="form-group full-width">
+                        <label>Proponent/s</label>
+                        <input type="text" id="erProponents" placeholder="e.g. Juan Dela Cruz, EPS II">
+                    </div>
+                    <!-- Row 4: QAME Associates (full width) -->
+                    <div class="form-group full-width">
+                        <label>QAME Associates</label>
+                        <input type="text" id="erQameAssociates" placeholder="e.g. Jane Santos">
+                    </div>
+                    <!-- Row 5: Unit + Nature of Event -->
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <select id="erUnit">
+                            <option value="">Loading...</option>
+                        </select>
+                        <div style="display:flex;gap:8px;margin-top:6px;">
+                            <button type="button" class="btn-cancel" style="padding:6px 10px;font-size:12px;"
+                                onclick="renameSelectedDropdownOption('erUnit')">Rename</button>
+                            <button type="button" class="btn-delete" style="padding:6px 10px;font-size:12px;"
+                                onclick="deleteSelectedDropdownOption('erUnit')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nature of Event</label>
+                        <select id="erNatureOfEvent">
+                            <option value="">Loading...</option>
+                        </select>
+                        <div style="display:flex;gap:8px;margin-top:6px;">
+                            <button type="button" class="btn-cancel" style="padding:6px 10px;font-size:12px;"
+                                onclick="renameSelectedDropdownOption('erNatureOfEvent')">Rename</button>
+                            <button type="button" class="btn-delete" style="padding:6px 10px;font-size:12px;"
+                                onclick="deleteSelectedDropdownOption('erNatureOfEvent')">Delete</button>
+                        </div>
+                    </div>
+                    <!-- Row 6: Training Venue + Inclusive Dates -->
+                    <div class="form-group">
+                        <label>Training Venue/s</label>
+                        <input type="text" id="erVenue" placeholder="e.g. SPED Center, Quezon City">
+                    </div>
+                    <div class="form-group">
+                        <label>Inclusive Dates</label>
+                        <input type="text" id="erDates" placeholder="e.g. June 10–14, 2025">
+                    </div>
+                    <!-- Row 7: Start Date + End Date -->
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="erStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" id="erEndDate">
+                    </div>
+                    <!-- Row 8: Total Participants (full width) -->
+                    <div class="form-group full-width">
+                        <label>Total Number of Participants</label>
+                        <input type="number" id="erTotalParticipants" min="0" placeholder="e.g. 50">
+                        <small style="color:#64748b;font-size:11px;">Used to compute the percentage of
+                            responses.</small>
+                    </div>
+                    <!-- Row 9: Description (full width) -->
+                    <div class="form-group full-width">
+                        <label>Description</label>
+                        <textarea id="erDescription" rows="3" placeholder="Optional notes about this training program"
+                            style="resize:vertical;"></textarea>
+                    </div>
+                    <!-- Row 10: Speaker Names (shown only if program has speakers) -->
+                    <div class="form-group full-width" id="erSpeakersSection" style="display:none;">
+                        <label style="display:flex;align-items:center;gap:6px;">
+                            <i class="fa-solid fa-microphone" style="color:#b45309;"></i> Resource Speaker Names
+                        </label>
+                        <div id="erSpeakersContainer"
+                            style="display:flex;flex-direction:column;gap:8px;margin-top:6px;"></div>
+                        <small style="color:#64748b;font-size:11px;margin-top:4px;display:block;">Edit speaker names per
+                            day. Changes are saved to the database.</small>
+                    </div>
+                </div>
+                <input type="hidden" id="erRecordId">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeEditRecordModal()">Cancel</button>
+                <button class="btn-save" id="erSaveBtn" onclick="saveRecordEdit()">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js"
+        integrity="sha384-zjTqOObJTD6OT6CUn8mSpDY+crIiP0cX457OjcZosSATiUFbmdXa9KRScjfLVxFH"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"
+        integrity="sha384-Cck14aA9cifjYolcnjebXRfWGkz5ltHMBiG4px/j8GS+xQcb7OhNQWZYyWjQ+UwQ"
+        crossorigin="anonymous"></script>
+
+    <!-- Application Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/permissions.js?v4"></script>
+    <script src="js/notifications.js?v6"></script>
+    <script>window.PAGE_KEY = 'sbm';</script>
+    <script src="js/programs.js?v15"></script>
+    <script src="js/multi-program-report.js?v3"></script>
+    <script src="js/sequence-manager.js"></script>
+    <script>
+        function togglePageTools() {
+            const dropdown = document.getElementById('pageToolsDropdown');
+            const btn = document.getElementById('pageToolsBtn');
+            const isOpen = dropdown.classList.contains('open');
+            if (isOpen) {
+                closePageTools();
+            } else {
+                dropdown.classList.add('open');
+                btn.classList.add('active');
+                // Close when clicking outside
+                setTimeout(() => {
+                    document.addEventListener('click', closePageToolsOutside);
+                }, 0);
+            }
+        }
+        function closePageTools() {
+            document.getElementById('pageToolsDropdown').classList.remove('open');
+            document.getElementById('pageToolsBtn').classList.remove('active');
+            document.removeEventListener('click', closePageToolsOutside);
+        }
+        function closePageToolsOutside(e) {
+            const wrap = document.getElementById('pageToolsWrap');
+            if (!wrap.contains(e.target)) closePageTools();
+        }
+    </script>
+    <script src="js/exportConsolidated.js"></script>
+    <!-- ── Custom Confirm Dialog ── -->
+    <div id="customConfirmModal" style="
+        display:none;position:fixed;inset:0;z-index:99999;
+        background:rgba(0,0,0,0.55);backdrop-filter:blur(3px);
+        align-items:center;justify-content:center;">
+        <div style="
+            background:#fff;border-radius:16px;padding:32px 28px;
+            max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.25);
+            animation:slideUpFade .2s ease;">
+            <div id="ccmIcon" style="
+                width:52px;height:52px;border-radius:50%;
+                display:flex;align-items:center;justify-content:center;
+                margin:0 auto 16px;font-size:22px;"></div>
+            <h3 id="ccmTitle" style="
+                margin:0 0 10px;font-size:17px;font-weight:700;
+                color:#1e293b;text-align:center;"></h3>
+            <p id="ccmMessage" style="
+                margin:0 0 24px;font-size:14px;color:#475569;
+                text-align:center;line-height:1.6;"></p>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button id="ccmCancel" style="
+                    flex:1;padding:10px 0;border-radius:8px;border:1.5px solid #e2e8f0;
+                    background:#f8fafc;color:#64748b;font-weight:600;font-size:14px;
+                    cursor:pointer;transition:all .15s;">Cancel</button>
+                <button id="ccmConfirm" style="
+                    flex:1;padding:10px 0;border-radius:8px;border:none;
+                    background:#dc2626;color:#fff;font-weight:600;font-size:14px;
+                    cursor:pointer;transition:all .15s;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Toast Notification ── -->
+    <div id="toastNotif" style="
+        position:fixed;bottom:28px;right:28px;z-index:99998;
+        display:flex;align-items:center;gap:12px;
+        padding:14px 20px;border-radius:12px;
+        box-shadow:0 8px 30px rgba(0,0,0,0.15);
+        font-size:14px;font-weight:500;color:#fff;
+        opacity:0;transform:translateY(12px);
+        transition:opacity .3s ease,transform .3s ease;
+        pointer-events:none;max-width:360px;">
+        <i id="toastIcon" class="fas"></i>
+        <span id="toastText"></span>
+    </div>
+
+    <style>
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+    <div id="summaryReportModal" class="modal">
+        <div class="modal-content" style="max-width:720px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-chart-bar" style="color:#1e3a8a;margin-right:8px;"></i> Activity Summary Report</h2>
+                <button class="close-btn" onclick="closeSummaryReportModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="summaryReportContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="exportSummaryReportToWord()">
+                    <i class="fa-solid fa-file-word"></i> Export Word
+                </button>
+                <button class="btn-cancel" onclick="closeSummaryReportModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="seqManagerModal">
+        <div class="seq-modal-box">
+    
+            <!-- Header -->
+            <div class="seq-modal-header">
+                <h2>
+                    <i class="fa-solid fa-hashtag"></i>
+                    Sequence Number Manager
+                </h2>
+                <button class="seq-modal-close" onclick="SeqManager.close()" title="Close">×</button>
+            </div>
+    
+            <!-- Stats bar -->
+            <div class="seq-stats-bar">
+                <span class="seq-stat-chip total">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span id="seqStatTotal">— Total</span>
+                </span>
+                <span class="seq-stat-chip assigned">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span id="seqStatAssigned">— Assigned</span>
+                </span>
+                <span class="seq-stat-chip missing">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="seqStatMissing">— Missing</span>
+                </span>
+                <span class="seq-stat-chip next">
+                    <i class="fa-solid fa-forward-step"></i>
+                    <span id="seqStatNext">Next: —</span>
+                </span>
+                <div class="seq-stats-actions">
+                    <button class="btn-bulk-assign" id="seqBulkBtn" onclick="SeqManager.bulkAssign()" style="display:none;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-assign Missing
+                    </button>
+                    <button class="btn-export-sn" onclick="SeqManager.exportCSV()">
+                        <i class="fa-solid fa-file-csv"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+    
+            <!-- Search / Filter toolbar -->
+            <div class="seq-toolbar">
+                <div class="seq-search-wrap">
+                    <i class="fa-solid fa-search"></i>
+                    <input
+                        type="text"
+                        id="seqSearch"
+                        placeholder="Search by title, DM no., sequence no…"
+                        oninput="SeqManager._searchChanged()"
+                    >
+                </div>
+                <select class="seq-filter-select" id="seqFilter" onchange="SeqManager._filterChanged()">
+                    <option value="all">All Records</option>
+                    <option value="missing">Missing SN Only</option>
+                    <option value="assigned">Assigned Only</option>
+                </select>
+            </div>
+    
+            <!-- Table -->
+            <div class="seq-table-wrap">
+                <table class="seq-table">
+                    <thead>
+                        <tr>
+                            <th class="seq-col-no">#</th>
+                            <th class="seq-col-sn">Sequence Number</th>
+                            <th class="seq-col-dm">DM No.</th>
+                            <th class="seq-col-title">Program / Workshop Name</th>
+                            <th class="seq-col-date">Inclusive Dates</th>
+                            <th class="seq-col-status">Status</th>
+                            <th class="seq-col-act">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="seqTableBody">
+                        <tr class="seq-empty-row">
+                            <td colspan="7">
+                                <i class="fa-solid fa-spinner" style="animation:spin 0.8s linear infinite;"></i>
+                                Loading…
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+    
+            <!-- Footer -->
+            <div class="seq-modal-footer">
+                <span class="seq-footer-info" id="seqFooterCount">—</span>
+                <button class="btn-seq-close" onclick="SeqManager.close()">Close</button>
+            </div>
+    
+        </div>
+    </div>
+</body>
+
+</html>

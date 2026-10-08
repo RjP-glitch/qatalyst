@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - School Portal User Manual</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: linear-gradient(145deg, #f8fafc 0%, #eef6ff 100%);
+            --card: #ffffff;
+            --line: #d9e2f1;
+            --text: #16243e;
+            --muted: #465b80;
+            --accent: #1d4ed8;
+            --accent-soft: #eaf1ff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            min-height: 100vh;
+        }
+
+        .manual-shell {
+            max-width: 980px;
+            margin: 24px auto;
+            padding: 0 16px 28px;
+        }
+
+        .manual-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .title-wrap h1 {
+            margin: 0;
+            font-size: clamp(1.3rem, 2.1vw, 1.8rem);
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title-wrap p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 0.94rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-secondary {
+            border-color: var(--line);
+            background: #fff;
+            color: var(--text);
+        }
+
+        .manual-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            box-shadow: 0 14px 34px rgba(26, 49, 96, 0.08);
+            overflow: hidden;
+        }
+
+        .manual-card-top {
+            padding: 14px 18px;
+            background: var(--accent-soft);
+            border-bottom: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        .manual-content {
+            padding: 20px;
+            line-height: 1.65;
+            font-size: 0.96rem;
+        }
+
+        .manual-content h1,
+        .manual-content h2,
+        .manual-content h3 {
+            color: #17388f;
+            margin-top: 22px;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .manual-content h1 {
+            font-size: 1.6rem;
+            margin-top: 4px;
+        }
+
+        .manual-content h2 {
+            font-size: 1.22rem;
+        }
+
+        .manual-content h3 {
+            font-size: 1.05rem;
+        }
+
+        .manual-content p {
+            margin: 8px 0;
+        }
+
+        .manual-content ul,
+        .manual-content ol {
+            margin: 8px 0 12px 22px;
+            padding: 0;
+        }
+
+        .manual-content li {
+            margin: 4px 0;
+        }
+
+        .manual-content code {
+            background: #eef3ff;
+            border: 1px solid #d9e3fe;
+            padding: 1px 5px;
+            border-radius: 6px;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.88em;
+        }
+
+        .manual-content .error {
+            color: #9f1239;
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 640px) {
+            .manual-shell {
+                margin-top: 14px;
+            }
+
+            .manual-content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="manual-shell">
+        <header class="manual-header">
+            <div class="title-wrap">
+                <h1><i class="fa-solid fa-book-open"></i> School Portal User Manual</h1>
+                <p>Guide for school-side registration, submissions, and calendar workflows.</p>
+            </div>
+            <div class="actions">
+                <a class="btn btn-secondary" href="school-portal-dashboard.html"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+                <a class="btn btn-primary" href="SCHOOL_PORTAL_USER_MANUAL.md" target="_blank" rel="noopener"><i class="fa-solid fa-file-lines"></i> Open Raw Manual</a>
+            </div>
+        </header>
+
+        <section class="manual-card" aria-live="polite">
+            <div class="manual-card-top">Source: SCHOOL_PORTAL_USER_MANUAL.md</div>
+            <article id="manualContent" class="manual-content">
+                <p>Loading manual...</p>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        function escapeHtml(value) {
+            return value
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function renderInline(text) {
+            let html = escapeHtml(text);
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            return html;
+        }
+
+        function markdownToHtml(markdown) {
+            const lines = markdown.split(/\r?\n/);
+            const out = [];
+            let inUl = false;
+            let inOl = false;
+
+            function closeLists() {
+                if (inUl) {
+                    out.push('</ul>');
+                    inUl = false;
+                }
+                if (inOl) {
+                    out.push('</ol>');
+                    inOl = false;
+                }
+            }
+
+            for (const rawLine of lines) {
+                const line = rawLine.trim();
+
+                if (!line) {
+                    closeLists();
+                    continue;
+                }
+
+                if (line.startsWith('### ')) {
+                    closeLists();
+                    out.push('<h3>' + renderInline(line.slice(4)) + '</h3>');
+                    continue;
+                }
+
+                if (line.startsWith('## ')) {
+                    closeLists();
+                    out.push('<h2>' + renderInline(line.slice(3)) + '</h2>');
+                    continue;
+                }
+
+                if (line.startsWith('# ')) {
+                    closeLists();
+                    out.push('<h1>' + renderInline(line.slice(2)) + '</h1>');
+                    continue;
+                }
+
+                if (line.startsWith('- ')) {
+                    if (inOl) {
+                        out.push('</ol>');
+                        inOl = false;
+                    }
+                    if (!inUl) {
+                        out.push('<ul>');
+                        inUl = true;
+                    }
+                    out.push('<li>' + renderInline(line.slice(2)) + '</li>');
+                    continue;
+                }
+
+                if (/^\d+\.\s+/.test(line)) {
+                    if (inUl) {
+                        out.push('</ul>');
+                        inUl = false;
+                    }
+                    if (!inOl) {
+                        out.push('<ol>');
+                        inOl = true;
+                    }
+                    out.push('<li>' + renderInline(line.replace(/^\d+\.\s+/, '')) + '</li>');
+                    continue;
+                }
+
+                closeLists();
+                out.push('<p>' + renderInline(line) + '</p>');
+            }
+
+            closeLists();
+            return out.join('');
+        }
+
+        async function loadManual() {
+            const holder = document.getElementById('manualContent');
+            try {
+                const response = await fetch('SCHOOL_PORTAL_USER_MANUAL.md?ts=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error('Could not load SCHOOL_PORTAL_USER_MANUAL.md');
+                const markdown = await response.text();
+                holder.innerHTML = markdownToHtml(markdown);
+            } catch (error) {
+                holder.innerHTML = '<p class="error"><i class="fa-solid fa-circle-exclamation"></i> Unable to load the manual right now.</p>';
+                console.error(error);
+            }
+        }
+
+        loadManual();
+    </script>
+</body>
+</html>

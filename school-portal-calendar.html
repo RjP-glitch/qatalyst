@@ -1,0 +1,1910 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+	<title>QATALYST – School Calendar Document Builder</title>
+	<link
+		href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+		rel="stylesheet" />
+	<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+	<link rel="stylesheet" href="css/school-portal-calendar.css?v5" />
+	<style>
+		/* Supporting-document upload widget (Checklist tab). Kept inline since
+		   these classes are new and css/school-portal-calendar.css is a
+		   separately-maintained file this change doesn't otherwise touch. */
+		.chk-upload-status { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; font-size: 11.5px; }
+		.chk-upload-filename { font-weight: 600; color: #1f2937; }
+		.chk-upload-meta { color: #6b7280; font-size: 10.5px; }
+		.chk-upload-btn {
+			display: inline-flex; align-items: center; gap: 5px;
+			font-size: 10.5px; font-weight: 600; color: #1e3a8a;
+			background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 6px;
+			padding: 4px 9px; margin: 2px 6px 2px 0; cursor: pointer;
+		}
+		.chk-upload-btn:hover { background: #e0e7ff; }
+		.chk-upload-btn-danger { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+		.chk-upload-btn-danger:hover { background: #fee2e2; }
+	</style>
+</head>
+
+<body>
+	<div class="main-container">
+
+		<!-- ══ SIDEBAR ══ -->
+		<aside class="sidebar" id="sidebar">
+			<div class="logo-section">
+				<div class="logo-icon">Q</div>
+				<div class="logo-text">
+					<h1>QATALYST</h1>
+					<p>School Portal</p>
+				</div>
+			</div>
+			<div class="school-pill-sidebar">
+				<div class="school-pill-label">Your School</div>
+				<div class="school-pill-name" id="sidebarSchoolName">—</div>
+				<div class="school-pill-dist" id="sidebarDistrict">—</div>
+			</div>
+			<nav class="nav-menu">
+				<div class="nav-section-label">Main</div>
+				<button class="nav-btn" data-portal-nav="dashboard" onclick="window.location.href='school-portal-dashboard.html'"><i
+						class="fa-solid fa-house nav-icon"></i><span>Dashboard</span></button>
+				<button class="nav-btn" data-portal-nav="submissions" onclick="window.location.href='school-portal-submissions.html'"><i
+						class="fa-solid fa-folder-open nav-icon"></i><span>My Submissions</span><span class="nav-badge"
+						id="pendingBadge" style="display:none;"></span></button>
+				<button class="nav-btn" data-portal-nav="tracker" onclick="window.location.href='school-portal-tracker.html'"><i
+						class="fa-solid fa-chart-gantt nav-icon"></i><span>Document Tracker</span></button>
+				<div class="nav-section-label">Tools</div>
+				<button class="nav-btn active" data-portal-nav="calendar" onclick="window.location.href='school-portal-calendar.html'"><i
+						class="fa-solid fa-calendar-days nav-icon"></i><span>School Calendar</span></button>
+				<button class="nav-btn" data-portal-nav="tuition" onclick="window.location.href='school-portal-tuition.html'">
+                    <i class="fa-solid fa-file-invoice-dollar nav-icon"></i><span>School Tuition Fee</span>
+    			</button>
+    			<button class="nav-btn" data-portal-nav="permit" onclick="window.location.href='school-portal-permit.html'">
+                    <i class="fa-solid fa-file-shield nav-icon"></i><span>School Permit</span>
+                </button>
+				<div class="nav-section-label">Account</div>
+				<button class="nav-btn" data-portal-nav="audit" onclick="window.location.href='school-portal-audit.html'"><i
+						class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span></button>
+				<button class="nav-btn" data-portal-nav="profile" onclick="window.location.href='school-portal-profile.html'"><i
+						class="fa-solid fa-user-circle nav-icon"></i><span>Profile</span></button>
+			</nav>
+			<div class="user-info-sidebar">
+				<div class="user-avatar-sidebar" id="sidebarAvatar">?</div>
+				<div class="user-details">
+					<h3 id="sidebarName">Loading...</h3>
+					<p id="sidebarRole">—</p>
+				</div>
+			</div>
+			<button class="sidebar-logout-btn" onclick="handleLogout()"><i
+					class="fa-solid fa-right-from-bracket"></i><span>Logout</span></button>
+		</aside>
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+		<!-- ══ MAIN CONTENT ══ -->
+		<div class="main-content">
+			<div class="page-header">
+				<div class="page-header-left">
+					<h1><i class="fa-solid fa-calendar-days"></i> School Calendar</h1>
+					<p>Manage your school calendar documents and build new entries</p>
+				</div>
+				<div class="page-header-right">
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+			</div>
+
+			<!-- SAVED DOCS VIEW -->
+			<div class="saved-docs-view" id="savedDocsView">
+				<div class="saved-docs-header">
+					<div class="saved-docs-header-main">
+						<div>
+							<h2><i class="fa-solid fa-folder-open"></i> My Saved Calendar Documents</h2>
+							<p>Showing saved school calendar submissions for your account.</p>
+						</div>
+						<div class="saved-docs-create-group">
+							<select id="newCalLevelSelect" class="new-cal-level-select" style="display:none;"
+								onchange="syncCreateNewButtonState()" title="Choose which department level to create a calendar for"></select>
+							<button class="tba-btn tba-primary saved-docs-create-btn" id="btnCreateNewCalendar" onclick="handleCreateNewCalendarClick()">
+								<i class="fa-solid fa-plus"></i> Create New Calendar Document
+							</button>
+						</div>
+					</div>
+				<div class="filter-row">
+					<button class="filter-btn active" onclick="filterSavedDocs('all')"      id="f-all"><i class="fa-solid fa-border-all"></i> All</button>
+					<button class="filter-btn" onclick="filterSavedDocs('draft')"            id="f-draft"><i class="fa-solid fa-pen"></i> Draft</button>
+					<button class="filter-btn" onclick="filterSavedDocs('pending')"          id="f-pending"><i class="fa-solid fa-clock"></i> Pending</button>
+					<button class="filter-btn" onclick="filterSavedDocs('review')"           id="f-review"><i class="fa-solid fa-hourglass-half"></i> Under Review</button>
+					<button class="filter-btn" onclick="filterSavedDocs('approved')"         id="f-approved"><i class="fa-solid fa-circle-check"></i> Approved</button>
+					<button class="filter-btn" onclick="filterSavedDocs('returned')"         id="f-returned"><i class="fa-solid fa-rotate-left"></i> Returned</button>
+					<div class="sub-search-wrap">
+						<i class="fa-solid fa-magnifying-glass"></i>
+						<input id="savedDocsSearch" type="search" placeholder="Search by title or status"
+							oninput="handleSavedDocsSearch(this.value)" />
+					</div>
+				</div>
+			</div>
+				<div id="savedDocsContent" class="saved-docs-content">
+					<div class="saved-docs-empty"><i class="fa-solid fa-spinner fa-spin"></i>
+						<p>Loading your saved documents...</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- ══ BUILDER SHELL ══ -->
+			<div id="builderShell" style="display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden;">
+
+				<!-- TOP BAR — streamlined: back · title · autosave · actions -->
+				<div class="top-bar">
+					<div class="top-bar-left">
+						<button class="tba-btn tba-ghost" onclick="backToSavedDocs()" title="Back to My Documents"
+							style="padding:7px 10px;">
+							<i class="fa-solid fa-arrow-left"></i>
+						</button>
+						<div class="top-bar-icon"><i class="fa-solid fa-file-lines"></i></div>
+						<div>
+							<div class="top-bar-title">School Calendar Document Builder</div>
+							<div class="top-bar-sub" id="topBarSchoolName">—</div>
+						</div>
+					</div>
+					<div class="top-bar-actions">
+						<!-- Autosave status — dynamically updated by _renderSaveStatus() (UX Issue B) -->
+						<span class="cal-save-status status-saved" id="calSaveStatusLabel">
+							<span class="css-dot">●</span> Draft
+						</span>
+						<!-- Export PDF surfaced as visible action (UX Issue D) -->
+						<button class="tba-btn tba-ghost" id="calBtnExportPdf" title="Export as PDF" style="display:none;" onclick="exportCalendarPDF()">
+							<i class="fa-solid fa-file-pdf"></i> Export PDF
+						</button>
+						<!-- Save button (primary action) -->
+						<button class="tba-btn tba-primary" id="calBtnSave" onclick="calSaveCalendar()">
+							<i class="fa-solid fa-floppy-disk"></i> Save
+						</button>
+						<!-- More actions dropdown -->
+						<div class="tba-more-wrap">
+							<button class="tba-btn tba-ghost tba-more-btn" onclick="toggleTopBarMenu()"
+								title="More actions">
+								<i class="fa-solid fa-ellipsis-vertical"></i>
+							</button>
+							<div class="tba-dropdown" id="topBarMenu">
+								<button class="tba-drop-item tba-drop-item-submit"
+									onclick="showFinalSubmitDialog();closeTopBarMenu()">
+									<i class="fa-solid fa-paper-plane"></i> Final Submit
+								</button>
+								<div class="tba-drop-divider"></div>
+								<button class="tba-drop-item" onclick="openCalPicker();closeTopBarMenu()">
+									<i class="fa-solid fa-calendar-plus"></i> Calendar Picker
+								</button>
+								<button class="tba-drop-item" onclick="openHelp();closeTopBarMenu()">
+									<i class="fa-solid fa-circle-question"></i> Help / Tutorial
+								</button>
+								<div class="tba-drop-divider"></div>
+								<button class="tba-drop-item" onclick="exportCalendarPDF();closeTopBarMenu()">
+									<i class="fa-solid fa-file-pdf"></i> Export PDF
+								</button>
+								<button class="tba-drop-item" onclick="exportCalendarWord();closeTopBarMenu()">
+									<i class="fa-solid fa-file-word"></i> Export Word
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- PROGRESS STEPPER — compact pill row -->
+				<div id="calBuilderStepper"></div>
+				<div id="calStepperSubBar" style="display:none;"></div>
+
+				<!-- WORKSPACE: left-nav | preview | form -->
+				<div class="workspace" style="flex:1;min-height:0;overflow:hidden;">
+
+					<!-- ══ LEFT DOC-NAV (replaces 8-tab strip) ══ -->
+					<nav class="doc-side-nav" id="docSideNav">
+						<div class="doc-side-nav-label">Documents</div>
+						<button class="dsn-btn active" onclick="switchPage('pg-cover')" data-page="pg-cover">
+							<i class="fa-solid fa-book-open"></i> Cover Page
+						</button>
+						<button class="dsn-btn" onclick="switchPage('pg-transmittal')" data-page="pg-transmittal">
+							<i class="fa-solid fa-envelope"></i> Transmittal Letter
+						</button>
+						<button class="dsn-btn" onclick="switchPage('pg-loi-cover')" data-page="pg-loi-cover">
+							<i class="fa-solid fa-file-signature"></i> LOI Cover
+						</button>
+						<button class="dsn-btn" onclick="switchPage('pg-loi')" data-page="pg-loi">
+							<i class="fa-solid fa-pen-nib"></i> Letter of Intent
+						</button>
+						<button class="dsn-btn" onclick="switchPage('pg-cal-cover')" data-page="pg-cal-cover">
+							<i class="fa-solid fa-calendar"></i> Cal Cover
+						</button>
+						<button class="dsn-btn" onclick="switchPage('pg-summary')" data-page="pg-summary">
+							<i class="fa-solid fa-table-list"></i> Summary
+						</button>
+						<button class="dsn-btn" onclick="switchPage('pg-checklist')" data-page="pg-checklist">
+							<i class="fa-solid fa-clipboard-list"></i> Checklist
+						</button>
+						<button class="dsn-btn" onclick="switchPage('pg-monthly')" data-page="pg-monthly">
+							<i class="fa-solid fa-calendar-days"></i> Monthly Detail
+						</button>
+						<button class="dsn-btn" onclick="switchPage('all')" data-page="all">
+							<i class="fa-solid fa-list-ul"></i> Show All Fields
+						</button>
+
+						<div class="doc-side-nav-label" style="margin-top:8px;">Actions</div>
+						<button class="dsn-action-btn dsn-save-continue-btn" onclick="saveAndContinueDocFlow()">
+							<i class="fa-solid fa-floppy-disk"></i> Save &amp; Continue
+						</button>
+						<button class="dsn-action-btn" onclick="openCalPicker()">
+							<i class="fa-solid fa-calendar-plus"></i> Calendar Picker
+						</button>
+					</nav>
+
+					<!-- ══ FORM PANEL ══ -->
+					<div class="form-panel" id="formPanel">
+						<div class="fs-empty-notice" id="fsEmptyNotice">
+							<i class="fa-solid fa-sliders"></i>
+							No editable fields for this page.<br />
+							Use the <strong>Calendar Picker</strong> to mark dates, or switch pages.
+						</div>
+
+						<!-- SCHOOL INFO -->
+						<div class="form-section"
+							data-tabs="pg-cover pg-transmittal pg-loi-cover pg-loi pg-cal-cover pg-summary pg-summary-term pg-checklist pg-monthly all">
+							<div class="form-section-hdr"><i class="fa-solid fa-school"></i>School Information</div>
+							<div class="form-section-hdr"
+								style="font-size:9.5px;color:#6b7280;margin-bottom:7px;border:none;padding-bottom:0;">
+								Logo (appears top-left of all pages)</div>
+							<div class="logo-upload-area" id="logoUploadArea"
+								onclick="document.getElementById('logoFile').click()">
+								<input type="file" id="logoFile" accept="image/*" onchange="handleLogo(event)" onclick="event.stopPropagation()" />
+								<img id="logoPreview" class="logo-preview" src="" style="display:none" />
+								<div class="logo-placeholder-icon" id="logoIcon"><i class="fa-solid fa-image"></i></div>
+								<div class="logo-upload-text">Click to upload school logo<br /><span
+										style="font-size:10px;color:#9ca3af">PNG, JPG recommended · 80×80 ideal</span>
+								</div>
+							</div>
+							<div class="fg"><label><i class="fa-solid fa-building-columns"></i> School
+										Name</label><input id="f_school" oninput="liveUpdate()" /></div>
+							<div class="fg"><label><i class="fa-solid fa-layer-group"></i> School / Grade /
+									Department</label>
+								<select id="f_dept" onchange="liveUpdate()">
+									<option>Kindergarten</option>
+									<option>Preschool</option>
+									<option value="Elementary School" selected>Elementary School</option>
+									<option>Junior High School</option>
+									<option>Senior High School</option>
+									<option>College</option>
+									<option>SPED</option>
+									<option>Other</option>
+								</select>
+							</div>
+							<div class="fg-pair">
+								<div class="fg"><label>School ID</label><input id="f_sid" oninput="liveUpdate()" /></div>
+								<div class="fg"><label>Gov. Recog. No.</label><input id="f_gov"
+										oninput="liveUpdate()" /></div>
+							</div>
+								<div class="fg-pair">
+								<div class="fg"><label>SY From</label><input id="f_sy1" value=""
+										oninput="liveUpdate()" /></div>
+								<div class="fg"><label>SY To</label><input id="f_sy2" value=""
+										oninput="liveUpdate()" /></div>
+							</div>
+						</div>
+
+						<div class="form-divider" data-tabs="pg-loi pg-summary pg-summary-term pg-monthly"></div>
+
+						<!-- CLASS DATES -->
+						<div class="form-section" data-tabs="pg-loi pg-summary pg-summary-term pg-monthly">
+							<div class="form-section-hdr"><i class="fa-solid fa-calendar-days"></i>Class Dates</div>
+							<div class="fg-pair">
+								<div class="fg"><label>Start of Classes</label><input type="date" id="f_opening"
+										value="2026-06-08" oninput="liveUpdate()" /></div>
+								<div class="fg"><label>End of Classes</label><input type="date" id="f_closing"
+										value="2027-04-30" oninput="liveUpdate()" /></div>
+							</div>
+						</div>
+
+						<div class="form-divider" data-tabs="pg-checklist"></div>
+
+						<!-- CHECKLIST INFO -->
+						<div class="form-section" data-tabs="pg-checklist">
+							<div class="form-section-hdr"><i class="fa-solid fa-clipboard-list"></i>Checklist Info</div>
+							<div class="fg"><label>Name of School</label><input id="f_chk_school"
+										oninput="liveUpdate()" /></div>
+							<div class="fg"><label>Location / Address</label><input id="f_chk_address"
+										oninput="liveUpdate()" /></div>
+							<div class="fg"><label>School ID</label><input id="f_chk_school_id"
+										oninput="liveUpdate()" /></div>
+							<div class="fg"><label>Proposed</label><input id="f_chk_proposed"
+									value="School Calendar for 2026-2027" oninput="liveUpdate()" /></div>
+							<input type="hidden" id="f_chk_checked_by" value="" />
+							<div class="form-section-hdr"
+								style="font-size:9.5px;color:#6b7280;margin:9px 0 7px;border:none;padding-bottom:0;">
+								Checklist Items</div>
+							<div id="chkItemsFields">
+								<div class="fg" style="color:#6b7280;font-size:11px;">Loading checklist items…</div>
+							</div>
+							<div class="fg" style="color:#6b7280;font-size:10px;margin-top:4px;">
+								Requirements are managed by SDO under Settings → Supporting Docs (School Calendar).
+								Add a remark to note how each is satisfied.
+							</div>
+						</div>
+
+
+						<div class="form-divider" data-tabs="pg-transmittal pg-loi"></div>
+
+						<!-- REGIONAL DIRECTOR -->
+						<div class="form-section" data-tabs="pg-transmittal pg-loi">
+							<div class="form-section-hdr">
+								<i class="fa-solid fa-user-tie"></i>Regional Director
+								<button type="button" class="sig-load-btn" onclick="openSignatoryPicker('rd','Regional Director')" title="Load from saved signatories">
+									<i class="fa-solid fa-address-book"></i> Load
+								</button>
+							</div>
+							<div id="sig-picker-rd" class="sig-picker-bar" style="display:none;"></div>
+							<span class="sig-locked-note"><i class="fa-solid fa-lock"></i> Managed by the SDO/SMME office — use Load to select</span>
+							<div class="fg"><label>Full Name & Credentials</label><input id="f_rd_name"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+							<div class="fg"><label>Position / Title</label><input id="f_rd_pos"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+							<div class="fg"><label>Office</label><input id="f_rd_office"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+						</div>
+
+						<div class="form-divider" data-tabs="pg-transmittal pg-loi"></div>
+
+						<!-- SDS -->
+						<div class="form-section" data-tabs="pg-transmittal pg-loi">
+							<div class="form-section-hdr">
+								<i class="fa-solid fa-user-graduate"></i>Schools Division Superintendent
+								<button type="button" class="sig-load-btn" onclick="openSignatoryPicker('sds','Schools Division Superintendent')" title="Load from saved signatories">
+									<i class="fa-solid fa-address-book"></i> Load
+								</button>
+							</div>
+							<div id="sig-picker-sds" class="sig-picker-bar" style="display:none;"></div>
+							<span class="sig-locked-note"><i class="fa-solid fa-lock"></i> Managed by the SDO/SMME office — use Load to select</span>
+							<div class="fg"><label>Full Name & Credentials</label><input id="f_sds_name"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+							<div class="fg"><label>Position</label><input id="f_sds_pos"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+							<div class="fg"><label>Office</label><input id="f_sds_office"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" />
+							</div>
+							<div class="fg"><label>City / Location</label><input id="f_sds_city"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+						</div>
+
+						<div class="form-divider" data-tabs="pg-transmittal"></div>
+
+						<!-- TRANSMITTAL BODY -->
+						<div class="form-section" data-tabs="pg-transmittal">
+							<div class="form-section-hdr"><i class="fa-solid fa-envelope-open-text"></i>Transmittal
+								Letter Body</div>
+							<div class="fg"><label>Attached Documents (one per line)</label>
+								<textarea id="f_attached" oninput="liveUpdate()">Letter of Intent
+School Calendar for S.Y. 2026-2027
+Board Resolution
+Photocopy of SEC Registration
+Photocopy of Government Recognition/Permit</textarea>
+							</div>
+						</div>
+
+						<div class="form-divider" data-tabs="pg-loi"></div>
+
+						<!-- LOI BODY -->
+						<div class="form-section" data-tabs="pg-loi">
+							<div class="form-section-hdr"><i class="fa-solid fa-pen-nib"></i>Letter of Intent — Body
+							</div>
+							<div class="fg"><label>Paragraph 1 (Indent)</label><textarea id="f_loi_p1"
+									oninput="liveUpdate()">I am writing to express our intent regarding the reopening of classes on June 8, 2026. I respectfully enclose the Elementary School Calendar for the School Year 2026-2027 to your good office for your perusal.</textarea>
+							</div>
+							<div class="fg"><label>Paragraph 2 (Indent)</label><textarea id="f_loi_p2"
+									oninput="liveUpdate()">As we embark on this academic year, Marian College of Baliuag, Inc. pledges its full cooperation, engagement, and support to facilitate a smooth transition and successful resumption of classes.</textarea>
+							</div>
+							<div class="fg"><label>Closing Line</label><input id="f_loi_closing"
+									value="Thank you for your kind attention. May the grace of our Lord be upon you always!"
+									oninput="liveUpdate()" /></div>
+						</div>
+
+						<div class="form-divider" data-tabs="pg-summary pg-summary-term"></div>
+
+						<!-- TERM STRUCTURE — controls how the Page 7 (Days per Quarter)
+						     table groups the 11 academic months. Defaults to "Auto"
+						     (derived from the selected department/level), but can be
+						     overridden manually here. -->
+						<div class="form-section" data-tabs="pg-summary pg-summary-term">
+							<div class="form-section-hdr">
+								<i class="fa-solid fa-layer-group"></i>Term Structure
+							</div>
+							<div class="fg">
+								<label><i class="fa-solid fa-calendar-week"></i> Grouping</label>
+								<select id="f_period_override" onchange="handlePeriodOverrideChange()">
+									<option value="">Auto (based on level)</option>
+									<option value="quarter:4">4 Quarters</option>
+									<option value="trimester:3">3 Trimesters</option>
+									<option value="semester:2">2 Semesters</option>
+								</select>
+							</div>
+							<div class="fg-hint" style="font-size:11px;color:#6b7280;margin-top:-4px;">
+								Leave on "Auto" to follow the DepEd convention (4 Quarters for Kinder–JHS, 2 Semesters for SHS/College), or pick a fixed grouping yourself.
+							</div>
+						</div>
+
+						<div class="form-divider" data-tabs="pg-transmittal pg-loi pg-summary pg-summary-term"></div>
+
+						<!-- SIGNATORIES -->
+						<div class="form-section" data-tabs="pg-transmittal pg-loi pg-summary pg-summary-term">
+							<div class="form-section-hdr">
+								<i class="fa-solid fa-signature"></i>Signatories
+								<button type="button" class="sig-load-btn" onclick="openSignatoryPicker('principal','Principal')" title="Load from saved signatories">
+									<i class="fa-solid fa-address-book"></i> Load
+								</button>
+							</div>
+							<div id="sig-picker-principal" class="sig-picker-bar" style="display:none;"></div>
+							<div class="fg"><label><i class="fa-solid fa-user-pen"></i> Prepared By
+										(Principal)</label><input id="f_principal"
+									oninput="liveUpdate()" /></div>
+							<div class="fg"><label>Principal Title</label><input id="f_principal_title"
+									value="Principal" oninput="liveUpdate()" /></div>
+							<div class="fg"><label><i class="fa-solid fa-phone"></i> Contact Number</label><input
+									id="f_principal_contact" value="" placeholder="e.g. 09xx xxx xxxx"
+									oninput="liveUpdate()" /></div>
+							<div class="sig-save-row">
+								<button type="button" class="sig-save-btn" onclick="saveCurrentSignatory('principal','Principal')">
+									<i class="fa-solid fa-floppy-disk"></i> Save as Signatory
+								</button>
+							</div>
+						</div>
+
+						<div class="form-divider" data-tabs="pg-summary pg-summary-term"></div>
+
+						<div class="form-section" data-tabs="pg-summary pg-summary-term">
+							<div class="form-section-hdr">
+								<i class="fa-solid fa-thumbs-up"></i>Recommending Approval
+								<button type="button" class="sig-load-btn" onclick="openSignatoryPicker('recommending','Recommending Approval')" title="Load from saved signatories">
+									<i class="fa-solid fa-address-book"></i> Load
+								</button>
+							</div>
+							<div id="sig-picker-recommending" class="sig-picker-bar" style="display:none;"></div>
+							<span class="sig-locked-note"><i class="fa-solid fa-lock"></i> Managed by the SDO/SMME office — use Load to select</span>
+							<div class="fg"><label>Name</label><input id="f_recommending"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+							<div class="fg"><label>Position</label><input id="f_rec_pos"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+							<div class="fg"><label>Organization</label><input id="f_rec_org"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" />
+							</div>
+						</div>
+
+						<div class="form-divider" data-tabs="pg-summary pg-summary-term"></div>
+
+						<div class="form-section" data-tabs="pg-summary pg-summary-term">
+							<div class="form-section-hdr">
+								<i class="fa-solid fa-check-double"></i>Final Approval
+								<button type="button" class="sig-load-btn" onclick="openSignatoryPicker('final_approver','Final Approver')" title="Load from saved signatories">
+									<i class="fa-solid fa-address-book"></i> Load
+								</button>
+							</div>
+							<div id="sig-picker-final_approver" class="sig-picker-bar" style="display:none;"></div>
+							<span class="sig-locked-note"><i class="fa-solid fa-lock"></i> Managed by the SDO/SMME office — use Load to select</span>
+							<div class="fg"><label>Approved By</label><input id="f_approved"
+									value="JESSIE L. AMIN, EdD, CESO V" oninput="liveUpdate()" readonly tabindex="-1" /></div>
+							<div class="fg"><label>Position</label><input id="f_app_pos"
+									value="Assistant Regional Director" oninput="liveUpdate()" readonly tabindex="-1" /></div>
+							<div class="fg"><label>Organization</label><input id="f_app_org"
+									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+						</div>
+
+						<div class="form-section-last" style="padding-top:14px">
+							<div
+								style="background:#fffbeb;border:1px solid #fde047;border-radius:7px;padding:11px;font-size:11px;color:#713f12;font-family:var(--font);line-height:1.6;">
+								<strong><i class="fa-solid fa-lightbulb"></i> Tip:</strong>
+								Use the <strong>Calendar Picker</strong> button in the left panel to mark holidays,
+								school activities, and exams. The monthly detail and summary will auto-generate.
+							</div>
+						</div>
+					</div>
+					<!-- /form-panel -->
+
+					<!-- ══ PREVIEW PANEL ══ -->
+					<div class="preview-panel">
+
+						<!-- PAGE 1: COVER -->
+						<div class="doc-page active" id="pg-cover">
+							<div class="paper-section-label"><i class="fa-solid fa-book-open"></i> Page 1 — Cover Page
+							</div>
+							<div class="paper">
+								<div class="lh">
+									<div class="lh-left"><img id="lhLogo1" class="lh-logo" src=""
+											style="display:none" />
+										<div class="lh-logo-placeholder" id="lhLogoPlaceholder1"><i
+												class="fa-solid fa-school"></i></div>
+										<div class="lh-text">
+											<h3 id="pv_school">MARIAN COLLEGE OF BALIUAG, INC.</h3>
+											<p id="pv_dept">Elementary School</p>
+											<p id="pv_meta">School ID: 400679 &nbsp; Gov. Recog. No. E – 025 s. 1996</p>
+										</div>
+									</div>
+								</div>
+								<div class="cover-body">
+									<div class="cover-title" id="pv_cover_dept">Elementary<br>School Calendar</div>
+									<div class="cover-sy" id="pv_cover_sy">S.Y. 2026–2027</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- PAGE 2: TRANSMITTAL -->
+						<div class="doc-page" id="pg-transmittal">
+							<div class="paper-section-label"><i class="fa-solid fa-envelope"></i> Page 2 — Transmittal
+								Letter</div>
+							<div class="paper">
+								<div class="lh">
+									<div class="lh-left"><img id="lhLogo2" class="lh-logo" src=""
+											style="display:none" />
+										<div class="lh-logo-placeholder" id="lhLogoPlaceholder2"><i
+												class="fa-solid fa-school"></i></div>
+										<div class="lh-text">
+											<h3 id="pv_school2"></h3>
+											<p id="pv_dept2"></p>
+											<p id="pv_meta2"></p>
+										</div>
+									</div>
+								</div>
+								<div class="doc-body">
+									<div class="addressee-block">
+										<div class="adname" id="pv_rd_name"></div>
+										<div class="adpos" id="pv_rd_pos"></div>
+										<div class="adpos" id="pv_rd_office"></div>
+									</div>
+									<div class="thru-block"><span class="thru-lbl">Thru: </span><span class="adname"
+											id="pv_sds_name"></span>
+										<div class="adpos" id="pv_sds_pos"></div>
+										<div class="adpos" id="pv_sds_office"></div>
+										<div class="adpos" id="pv_sds_city"></div>
+									</div>
+									<p class="salutation">Dear Sir/Ma'am,</p>
+									<p>Greetings in Christ!</p>
+									<p class="indent">We are pleased to submit to your good office the documents listed
+										below of for the School Year <strong id="pv_sy_ltr">2026–2027</strong> for your
+										review and consideration.</p>
+									<p style="margin-top:14px">The following documents are attached:</p>
+									<ul class="doc-list" id="pv_attached_list">
+										<li>Letter of Intent</li>
+										<li>School Calendar for S.Y. 2026-2027</li>
+										<li>Board Resolution</li>
+										<li>Photocopy of SEC Registration</li>
+										<li>Photocopy of Government Recognition/Permit</li>
+									</ul>
+									<p class="indent">We are pleased to inform your good office that will commence its
+										school year <strong id="pv_sy_ltr2">2026–2027</strong> on <span
+											id="pv_trans_opening">June 8, 2026</span>, and conclude on <span
+											id="pv_trans_closing">April 8, 2027</span>. Our primary mode of instruction will
+										be full face-to-face learning. This calendar ensures a total of <span
+											id="pv_trans_total_days">—</span> days in full compliance with Department of
+										Education policies. Thank you so much and God bless!</p>
+									<div class="closing-block">
+										<div class="closing">Sincerely,</div>
+										<div class="sig-name" id="pv_principal">YOLANDA R. MALLO, LPT</div>
+										<div class="sig-title" id="pv_principal_title">Principal</div>
+										<div class="sig-contact" id="pv_principal_contact"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- PAGE 3: LOI COVER -->
+						<div class="doc-page" id="pg-loi-cover">
+							<div class="paper-section-label"><i class="fa-solid fa-file-signature"></i> Page 3 — Letter
+								of Intent (Cover)</div>
+							<div class="paper">
+								<div class="lh">
+									<div class="lh-left"><img id="lhLogo3" class="lh-logo" src=""
+											style="display:none" />
+										<div class="lh-logo-placeholder" id="lhLogoPlaceholder3"><i
+												class="fa-solid fa-school"></i></div>
+										<div class="lh-text">
+											<h3 id="pv_school3"></h3>
+											<p id="pv_dept3"></p>
+											<p id="pv_meta3"></p>
+										</div>
+									</div>
+								</div>
+								<div class="loi-cover-body">
+									<div class="loi-cover-title">Letter of Intent</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- PAGE 4: LOI -->
+						<div class="doc-page" id="pg-loi">
+							<div class="paper-section-label"><i class="fa-solid fa-pen-nib"></i> Page 4 — Letter of
+								Intent</div>
+							<div class="paper">
+								<div class="lh">
+									<div class="lh-left"><img id="lhLogo4" class="lh-logo" src=""
+											style="display:none" />
+										<div class="lh-logo-placeholder" id="lhLogoPlaceholder4"><i
+												class="fa-solid fa-school"></i></div>
+										<div class="lh-text">
+											<h3 id="pv_school4"></h3>
+											<p id="pv_dept4"></p>
+											<p id="pv_meta4"></p>
+										</div>
+									</div>
+								</div>
+								<div class="doc-body">
+									<div class="addressee-block">
+										<div class="adname" id="pv_rd_name2"></div>
+										<div class="adpos" id="pv_rd_pos2"></div>
+										<div class="adpos" id="pv_rd_office2"></div>
+									</div>
+									<div class="thru-block"><span class="thru-lbl">Thru: </span><span class="adname"
+											id="pv_sds_name2"></span>
+										<div class="adpos" id="pv_sds_pos2"></div>
+										<div class="adpos" id="pv_sds_office2"></div>
+										<div class="adpos" id="pv_sds_city2"></div>
+									</div>
+									<p class="salutation">Dear Sir/Ma'am,</p>
+									<p>Greetings of peace!</p>
+									<p class="indent" id="pv_loi_p1">I am writing to express our intent regarding the
+										reopening of classes on June 8, 2026. I respectfully enclose the Elementary
+										School Calendar for the School Year 2026-2027 to your good office for your
+										perusal.</p>
+									<p class="indent" id="pv_loi_p2">As we embark on this academic year, Marian College
+										of Baliuag, Inc. pledges its full cooperation, engagement, and support to
+										facilitate a smooth transition and successful resumption of classes.</p>
+									<p id="pv_loi_closing">Thank you for your kind attention. May the grace of our Lord
+										be upon you always!</p>
+									<div class="closing-block">
+										<div class="closing">Truly yours,</div>
+										<div class="sig-name" id="pv_principal2"></div>
+										<div class="sig-title" id="pv_principal_title2"></div>
+										<div class="sig-contact" id="pv_principal_contact2"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- PAGE 5: CAL COVER -->
+						<div class="doc-page" id="pg-cal-cover">
+							<div class="paper-section-label"><i class="fa-solid fa-calendar"></i> Page 5 — School
+								Calendar Cover</div>
+							<div class="paper">
+								<div class="lh">
+									<div class="lh-left"><img id="lhLogo5" class="lh-logo" src=""
+											style="display:none" />
+										<div class="lh-logo-placeholder" id="lhLogoPlaceholder5"><i
+												class="fa-solid fa-school"></i></div>
+										<div class="lh-text">
+											<h3 id="pv_school5"></h3>
+											<p id="pv_dept5"></p>
+											<p id="pv_meta5"></p>
+										</div>
+									</div>
+								</div>
+								<div class="cal-cover-body">
+									<div class="cal-cover-title" id="pv_cal_cover_title">School Calendar<br>for</div>
+									<div class="cal-cover-sy" id="pv_cal_cover_sy">S.Y. 2026–2027</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- PAGE 6: SUMMARY -->
+						<div class="doc-page" id="pg-summary">
+							<div class="paper-section-label"><i class="fa-solid fa-table-list"></i> Page 6 — Calendar
+								Summary</div>
+							<div class="paper">
+								<div class="lh">
+									<div class="lh-left"><img id="lhLogo6" class="lh-logo" src=""
+											style="display:none" />
+										<div class="lh-logo-placeholder" id="lhLogoPlaceholder6"><i
+												class="fa-solid fa-school"></i></div>
+										<div class="lh-text">
+											<h3 id="pv_school6"></h3>
+											<p id="pv_dept6"></p>
+											<p id="pv_meta6"></p>
+										</div>
+									</div>
+								</div>
+								<div class="summary-table-wrap" style="padding-top:22px">
+									<div class="summary-heading" id="pv_sum_heading">ELEMENTARY SCHOOL CALENDAR<br>FOR
+										SCHOOL YEAR 2026–2027</div>
+									<table class="summary-table">
+										<thead>
+											<tr>
+												<th style="width:60%">MONTH</th>
+												<th>SCHOOL DAYS</th>
+											</tr>
+										</thead>
+										<tbody id="pv_sum_simple"></tbody>
+									</table>
+									<div class="sig-grid" style="margin-top:22px">
+										<div class="sig-col">
+											<div class="sig-role">Prepared By:</div>
+											<div class="sig-name" id="pv_sum_principal"></div>
+											<div class="sig-pos" id="pv_sum_principal_title"></div>
+										</div>
+									</div>
+									<div style="padding:0 32px 7px">
+										<div style="font-family:var(--serif);font-size:12.5px;margin-bottom:18px;">
+											Recommending Approval:</div>
+										<div class="sig-name" id="pv_recommending"></div>
+										<div class="sig-pos" id="pv_rec_pos"></div>
+										<div class="sig-org" id="pv_rec_org"></div>
+										<div style="font-family:var(--serif);font-size:12.5px;margin:22px 0 18px;">
+											Approved:</div>
+										<div class="sig-name" id="pv_approved"></div>
+										<div class="sig-pos" id="pv_app_pos"></div>
+										<div class="sig-org" id="pv_app_org"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- PAGE 7: SCHOOL DAYS PER TERM (combined table, styled like DepEd sample)
+						     Auto-shown directly under Page 6 (Summary) — see _switchPageBase() in
+						     school-portal-calendar.js. No longer has its own sidebar nav item. -->
+						<div class="doc-page" id="pg-summary-term" style="margin-top:34px;">
+							<div class="paper-section-label"><i class="fa-solid fa-table-list"></i> Page 7 —
+								School Days per Quarter</div>
+							<div class="paper">
+								<div class="lh">
+									<div class="lh-left"><img id="lhLogo7" class="lh-logo" src=""
+											style="display:none" />
+										<div class="lh-logo-placeholder" id="lhLogoPlaceholder7"><i
+												class="fa-solid fa-school"></i></div>
+										<div class="lh-text">
+											<h3 id="pv_school7"></h3>
+											<p id="pv_dept7"></p>
+											<p id="pv_meta7"></p>
+										</div>
+									</div>
+								</div>
+								<div class="summary-table-wrap" style="padding-top:22px">
+									<div class="summary-heading" id="pv_sum_heading7">ELEMENTARY SCHOOL CALENDAR<br>FOR
+										SCHOOL YEAR 2026–2027</div>
+									<table class="summary-table">
+										<thead>
+											<tr>
+												<th style="width:60%">MONTH</th>
+												<th>SCHOOL DAYS</th>
+											</tr>
+										</thead>
+										<tbody id="pv_sum_term_page"></tbody>
+									</table>
+									<div class="sig-grid" style="margin-top:22px">
+										<div class="sig-col">
+											<div class="sig-role">Prepared By:</div>
+											<div class="sig-name" id="pv_sum_principal7"></div>
+											<div class="sig-pos" id="pv_sum_principal_title7"></div>
+										</div>
+									</div>
+									<div style="padding:0 32px 7px">
+										<div style="font-family:var(--serif);font-size:12.5px;margin-bottom:18px;">
+											Recommending Approval:</div>
+										<div class="sig-name" id="pv_recommending7"></div>
+										<div class="sig-pos" id="pv_rec_pos7"></div>
+										<div class="sig-org" id="pv_rec_org7"></div>
+										<div style="font-family:var(--serif);font-size:12.5px;margin:22px 0 18px;">
+											Approved:</div>
+										<div class="sig-name" id="pv_approved7"></div>
+										<div class="sig-pos" id="pv_app_pos7"></div>
+										<div class="sig-org" id="pv_app_org7"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- PAGE 8: CHECKLIST -->
+						<div class="doc-page" id="pg-checklist">
+							<div class="paper-section-label"><i class="fa-solid fa-clipboard-list"></i> Page 8 —
+								Checklist</div>
+							<div class="paper">
+								<div class="lh">
+									<div class="lh-left"><img id="lhLogo10" class="lh-logo" src=""
+											style="display:none" />
+										<div class="lh-logo-placeholder" id="lhLogoPlaceholder10"><i
+												class="fa-solid fa-school"></i></div>
+										<div class="lh-text">
+											<h3 id="pv_school10"></h3>
+											<p id="pv_dept10"></p>
+											<p id="pv_meta10"></p>
+										</div>
+									</div>
+								</div>
+								<div class="checklist-meta">
+									<div class="checklist-meta-row"><span class="chk-label">Name of School:</span><span
+											class="chk-value" id="pv_chk_school"></span></div>
+									<div class="checklist-meta-row"><span
+											class="chk-label">Location/Address:</span><span class="chk-value"
+											id="pv_chk_address"></span></div>
+									<div class="checklist-meta-row"><span class="chk-label">School ID:</span><span
+											class="chk-value" id="pv_chk_school_id"></span></div>
+									<div class="checklist-meta-row"><span class="chk-label">Proposed:</span><span
+											class="chk-value" id="pv_chk_proposed"></span></div>
+								</div>
+								<div class="checklist-rule"></div>
+								<div class="checklist-table-title">CHECKLIST FOR SUBMISSION OF CALENDAR ACTIVITIES</div>
+								<table class="checklist-table">
+									<thead>
+										<tr>
+											<th style="width:40px">No.</th>
+											<th>Requirements</th>
+											<th style="width:150px">Remarks</th>
+										</tr>
+									</thead>
+									<tbody id="pv_chk_items_tbody">
+										<tr>
+											<td colspan="3" style="text-align:center;color:#9ca3af;">Loading…</td>
+										</tr>
+									</tbody>
+								</table>
+								<div class="checklist-footer">
+									<div class="checklist-checked-label">Checked by:</div>
+									<div class="checklist-checked-line"><span id="pv_chk_checked_by"></span></div>
+								</div>
+							</div>
+						</div>
+
+						<!-- PAGES 9–10: MONTHLY -->
+						<div class="doc-page" id="pg-monthly">
+							<div class="paper-section-label"><i class="fa-solid fa-calendar-days"></i> Pages 9–10 —
+								Monthly Calendar Detail</div>
+							<div class="paper">
+								<div class="lh">
+									<div class="lh-left"><img id="lhLogo8" class="lh-logo" src=""
+											style="display:none" />
+										<div class="lh-logo-placeholder" id="lhLogoPlaceholder8"><i
+												class="fa-solid fa-school"></i></div>
+										<div class="lh-text">
+											<h3 id="pv_school8"></h3>
+											<p id="pv_dept8"></p>
+											<p id="pv_meta8"></p>
+										</div>
+									</div>
+								</div>
+
+								<div class="monthly-wrap" style="padding-top:14px">
+									<div class="monthly-heading" id="pv_monthly_heading_1">SCHOOL CALENDAR FOR SCHOOL
+										YEAR 2026–2027</div>
+									<div id="pv_monthly_grid_1"></div>
+								</div>
+							</div>
+							<div class="paper">
+								<div class="lh">
+									<div class="lh-left"><img id="lhLogo9" class="lh-logo" src=""
+											style="display:none" />
+										<div class="lh-logo-placeholder" id="lhLogoPlaceholder9"><i
+												class="fa-solid fa-school"></i></div>
+										<div class="lh-text">
+											<h3 id="pv_school9"></h3>
+											<p id="pv_dept9"></p>
+											<p id="pv_meta9"></p>
+										</div>
+									</div>
+								</div>
+								<div class="monthly-wrap" style="padding-top:14px">
+									<div class="monthly-heading" id="pv_monthly_heading_2">SCHOOL CALENDAR FOR SCHOOL
+										YEAR 2026–2027</div>
+									<div id="pv_monthly_grid_2"></div>
+									<div class="legend-box" style="margin-top:18px">
+										<div class="leg-title">Legend:</div>
+										<div class="legend-item"><svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><rect x="1" y="1" width="16" height="16" fill="none" stroke="#dc2626" stroke-width="1.8"/><line x1="1" y1="1" x2="17" y2="17" stroke="#dc2626" stroke-width="1.8"/><line x1="17" y1="1" x2="1" y2="17" stroke="#dc2626" stroke-width="1.8"/></svg>
+											— Declared Holidays</div>
+										<div class="legend-item"><svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><rect x="1" y="1" width="16" height="16" fill="none" stroke="#374151" stroke-width="1.8"/></svg>
+											— School activities for teachers, personnel, and other stakeholders</div>
+										<div class="legend-item"><svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><polygon points="9,1 17,17 1,17" fill="none" stroke="#854d0e" stroke-width="1.8" stroke-linejoin="round"/></svg> —
+											Administration of Quarter examination</div>
+										<div class="legend-item"><span
+												style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#0a1f3d;color:#fff;font-size:8px;font-weight:900;">★</span>
+											— Start of Classes</div>
+										<div class="legend-item"><span
+												style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#991b1b;color:#fff;font-size:8px;font-weight:900;">■</span>
+											— End of Classes</div>
+										<!-- Custom legends from the Calendar Picker are injected here at render time -->
+										<div id="pv_legend_custom"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+					</div><!-- /preview-panel -->
+				</div><!-- /workspace -->
+
+				<!-- CALENDAR PICKER MODAL -->
+				<div class="cp-overlay" id="cpOverlay">
+					<div class="cp-modal">
+						<div class="cp-modal-head">
+							<div class="cp-head-left">
+								<h2><i class="fa-solid fa-calendar-plus"></i> Calendar Picker</h2>
+								<p>Mark holidays, school activities, and exams for S.Y. <span
+										id="cp_sy_label">2026–2027</span></p>
+							</div>
+							<div class="cp-head-right">
+								<button class="cp-head-action" id="cpToggleCategoriesBtn"
+									onclick="cpToggleCategoryList()"><i class="fa-solid fa-list"></i> Hide
+									Categories</button>
+								<button class="cp-add-btn cp-add-btn-head" onclick="openCpAddCategoryModal()"><i
+										class="fa-solid fa-plus"></i> Add Category</button>
+								<button class="cp-close" onclick="closeCalPicker()"><i
+										class="fa-solid fa-xmark"></i></button>
+							</div>
+						</div>
+						<div class="cp-addcat-overlay" id="cpAddCatOverlay" onclick="closeCpAddCategoryModal(event)">
+							<div class="cp-addcat-modal" onclick="event.stopPropagation()">
+								<h4 id="cp_addcat_title"><i class="fa-solid fa-plus"></i> Add Custom Category</h4>
+								<div class="cp-add-row"><input class="cp-add-input" id="cp_custom_name"
+										placeholder="Category name" />
+									<div class="cp-color-wrap"><input type="color" id="cp_custom_color"
+											value="#7c3aed" /></div>
+								</div>
+								<label class="cp-addcat-toggle" for="cp_custom_counts_schoolday"><input type="checkbox"
+										id="cp_custom_counts_schoolday" checked /><span>Count this category as school
+										day</span></label>
+								<div class="cp-addcat-actions"><button class="cp-addcat-cancel"
+										onclick="closeCpAddCategoryModal()">Cancel</button><button class="cp-add-btn"
+										id="cp_addcat_submit" onclick="cpAddLegend()"><i class="fa-solid fa-plus"></i>
+										Add Category</button></div>
+							</div>
+						</div>
+						<div class="cp-body">
+							<div class="cp-left" id="cpLeftPanel">
+								<div>
+									<div class="cp-panel-title">Categories</div>
+									<div class="cp-modes" id="cp_modes"></div>
+								</div>
+								<div class="cp-total-card cp-total-card-below">
+									<div class="cp-total-label">Total Days (Month)</div>
+									<div class="cp-total-value" id="cpTotalDays">0</div>
+									<div class="cp-total-sub">Base Weekdays: <strong id="cpWeekdays">0</strong></div>
+									<div class="cp-total-sub">School Days (Live): <strong id="cpSchoolDays">0</strong>
+									</div>
+									<div class="cp-total-sub">Marked Days: <strong id="cpMarkedDays">0</strong></div>
+								</div>
+								<div class="cp-total-card cp-total-card-schooldays">
+									<div class="cp-total-label">Total School Days (Year)</div>
+									<div class="cp-total-value cp-total-value-schooldays" id="cpYearSchoolDays">0</div>
+									<div class="cp-total-sub">Target: <strong>200–220 days</strong></div>
+									<div class="cp-year-days-status" id="cpYearDaysStatus"></div>
+								</div>
+							</div>
+							<div class="cp-right">
+								<div class="cp-cal-toolbar">
+									<div class="cp-toolbar-stack">
+										<div class="cp-month-nav"><button class="cp-nav-btn" onclick="cpPrevMonth()"><i
+													class="fa-solid fa-chevron-left"></i></button><span
+												class="cp-month-nav-label" id="cp_month_label">June 2026</span><button
+												class="cp-nav-btn" onclick="cpNextMonth()"><i
+													class="fa-solid fa-chevron-right"></i></button></div>
+										<div class="cp-bound-row">
+											<label class="cp-bound-field"><span>Start of Classes</span><input
+													type="date" id="cpBoundStart"
+													oninput="cpUpdateBoundsFromPicker()" /></label>
+											<label class="cp-bound-field"><span>End of Classes</span><input type="date"
+													id="cpBoundEnd" oninput="cpUpdateBoundsFromPicker()" /></label>
+										</div>
+										<div class="cp-range-hint" id="cp_range_label">Editable range: set Opening and
+											Closing dates</div>
+									</div>
+								</div>
+								<div class="cp-main-row">
+									<div class="cp-grid" id="cp_grid"></div>
+								</div>
+							</div>
+						</div>
+						<div class="cp-summary" id="cp_summary"></div>
+						<div class="cp-footer">
+							<div class="cp-footer-left">
+								<button class="cp-head-action cp-head-action-danger" onclick="cpClearAll()"><i
+										class="fa-solid fa-trash"></i> Clear All</button>
+								<button class="cp-head-action" onclick="cpRevertLegends()"><i
+										class="fa-solid fa-rotate-left"></i> Revert Legends</button>
+							</div>
+							<div class="cp-footer-right"><button class="cp-head-action cp-head-action-primary"
+									onclick="cpSaveAndApply()"><i class="fa-solid fa-floppy-disk"></i> Save &amp;
+									Apply</button></div>
+						</div>
+					</div>
+				</div><!-- /cp-overlay -->
+
+				<div class="toast" id="toast"></div>
+			</div><!-- /builderShell -->
+		</div><!-- /main-content -->
+	</div><!-- /main-container -->
+
+	<script>
+        /* ── Top bar menu helpers ── */
+        function toggleTopBarMenu() {
+            const m = document.getElementById('topBarMenu');
+            if (!m) return;
+            // Remove any stale outside-click listener before re-opening
+            document.removeEventListener('click', _closeTopBarOutside);
+            m.classList.toggle('open');
+            if (m.classList.contains('open')) {
+                setTimeout(() => document.addEventListener('click', _closeTopBarOutside, { once: true }), 30);
+            }
+        }
+        function closeTopBarMenu() { document.getElementById('topBarMenu')?.classList.remove('open'); }
+        function _closeTopBarOutside(e) {
+            const m = document.getElementById('topBarMenu');
+            if (m && !m.contains(e.target)) closeTopBarMenu();
+            else if (m) document.addEventListener('click', _closeTopBarOutside, { once: true });
+        }
+    
+        /* ── Patch switchPage to also update the side nav buttons ── */
+        const _origSwitchPage = window.switchPage;
+        window.switchPage = function (id) {
+            _origSwitchPage?.(id);
+            if (typeof currentActivePage !== 'undefined' && id && id !== 'all') {
+                currentActivePage = id;
+            }
+            document.querySelectorAll('.dsn-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.page === id);
+            });
+            if (id === 'pg-summary' && typeof openCalPicker === 'function') {
+                setTimeout(openCalPicker, 150);
+            }
+        };
+
+		function ensureExportSourceBadges() {
+			document.querySelectorAll('.paper').forEach((paper) => {
+				if (paper.querySelector('.export-source-badge')) return;
+				const badge = document.createElement('div');
+				badge.className = 'export-source-badge';
+				badge.innerHTML = '<span class="export-badge-icon">Q</span><span>QATALYST SYSTEM</span>';
+				paper.appendChild(badge);
+			});
+		}
+    
+		/* NOTE: exportCalendarPDF() itself now lives in school-portal-calendar.js
+		   (loaded further down the page) — that's the version that actually
+		   runs, since later <script> declarations override earlier ones for
+		   same-named global functions. This file used to also define a
+		   print()-based exportCalendarPDF() here, but having two definitions
+		   of the same function was confusing and the unused one could mask
+		   bugs in the real one, so it's been removed. ensureExportSourceBadges()
+		   is still used (the real exportCalendarPDF() calls it). */
+
+		async function exportCalendarWord() {
+			closeTopBarMenu();
+			if (typeof window.docx === 'undefined' || typeof window.html2canvas === 'undefined') {
+				showToast('Word export needs the docx and html2canvas libraries.', 'fa-triangle-exclamation');
+				return;
+			}
+
+			const {
+				Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+				WidthType, AlignmentType, BorderStyle, ShadingType, PageBreak, Footer, Header, ImageRun,
+				HeightRule, VerticalAlign
+			} = window.docx;
+
+			const PAGE_W = 11906;
+			const PAGE_H = 16838;
+			const MARGIN = 720;
+			const CONTENT_W = PAGE_W - MARGIN * 2;
+			const HEADER_H = 1200;
+			const BODY_H = PAGE_H - (MARGIN * 2) - HEADER_H - 200;
+			const COL_LOGO = 900;
+			const COL_TEXT = CONTENT_W - COL_LOGO;
+			const BODY_TEXT_SIZE = 20;
+			const BODY_BOLD_SIZE = 22;
+			const CELL_MARGIN = { top: 80, bottom: 80, left: 120, right: 120 };
+			const CAL_CELL_MARGIN = { top: 40, bottom: 40, left: 40, right: 40 };
+			const border = { style: BorderStyle.SINGLE, size: 4, color: '374151' };
+			const thinBorder = { style: BorderStyle.SINGLE, size: 2, color: 'CBD5E1' };
+			const nil = { style: BorderStyle.NIL };
+			const noBorders = { top: nil, bottom: nil, left: nil, right: nil, insideH: nil, insideV: nil };
+			const cellBorders = (b) => ({ top: b, bottom: b, left: b, right: b });
+			const noCellBorders = cellBorders(nil);
+			const defaultFont = 'Times New Roman';
+			const contentWidthPx = (PAGE_W - (MARGIN * 2)) / 1440 * 96;
+			const contentHeightPx = (PAGE_H - (MARGIN * 2)) / 1440 * 96;
+
+			const run = (text, opts = {}) => new TextRun({ text: String(text ?? ''), font: defaultFont, ...opts });
+			const para = (text, opts = {}) => new Paragraph({ children: [run(text, opts.run || {})], ...opts });
+			const paraRuns = (runs, opts = {}) => new Paragraph({ children: runs, ...opts });
+			const emptyPara = (after = 120) => new Paragraph({ children: [run('')], spacing: { after } });
+			const bodyPara = (text, opts = {}) => new Paragraph({
+				children: [run(text, { size: BODY_TEXT_SIZE, ...(opts.run || {}) })],
+				spacing: opts.spacing || { after: 120, line: 360 },
+				indent: opts.indent,
+			});
+
+			const textFrom = (id, fallback = '') => (document.getElementById(id)?.textContent || '').trim() || fallback;
+			const inputFrom = (id, fallback = '') => (document.getElementById(id)?.value || '').trim() || fallback;
+
+			const schoolName = textFrom('pv_school', inputFrom('f_school', 'School'));
+			const dept = textFrom('pv_dept', inputFrom('f_dept', ''));
+			const sid = inputFrom('f_sid', '');
+			const gov = inputFrom('f_gov', '');
+			const meta = textFrom('pv_meta', `School ID: ${sid}${gov ? '   ' + gov : ''}`.trim());
+			const sy1 = inputFrom('f_sy1', '20__');
+			const sy2 = inputFrom('f_sy2', '20__');
+			const syText = `S.Y. ${sy1}-${sy2}`;
+
+			const markStore = Object.keys(savedMarks || {}).length ? savedMarks : marks;
+			const remarkStore = Object.keys(savedRemarks || {}).length ? savedRemarks : remarks;
+
+			const dataUrlToUint8 = (dataUrl) => {
+				const base64 = (dataUrl || '').split(',')[1] || '';
+				if (!base64) return null;
+				const binary = atob(base64);
+				const len = binary.length;
+				const bytes = new Uint8Array(len);
+				for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+				return bytes;
+			};
+
+			const logoData = (typeof logoDataUrl === 'string' && logoDataUrl)
+				|| localStorage.getItem('edu_school_logo') || '';
+			const logoBytes = logoData ? dataUrlToUint8(logoData) : null;
+
+			const buildMonthlyImagePages = async () => {
+				const monthlyPage = document.getElementById('pg-monthly');
+				if (!monthlyPage) return [];
+				const originalDisplay = monthlyPage.style.display;
+				monthlyPage.style.display = 'block';
+
+				const lhNodes = Array.from(monthlyPage.querySelectorAll('.lh'));
+				const lhDisplays = lhNodes.map(node => node.style.display);
+				lhNodes.forEach(node => { node.style.display = 'none'; });
+
+				const paperNodes = Array.from(monthlyPage.querySelectorAll('.paper'));
+				const images = [];
+				for (const paper of paperNodes) {
+					const canvas = await html2canvas(paper, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+					images.push({ dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height });
+				}
+
+				lhNodes.forEach((node, idx) => { node.style.display = lhDisplays[idx] || ''; });
+				monthlyPage.style.display = originalDisplay || '';
+				return images.map((img) => {
+					const scale = Math.min(contentWidthPx / img.width, contentHeightPx / img.height);
+					const width = Math.round(img.width * scale);
+					const height = Math.round(img.height * scale);
+					const data = dataUrlToUint8(img.dataUrl);
+					return [new Paragraph({
+						children: [new ImageRun({ data, transformation: { width, height } })],
+						alignment: AlignmentType.CENTER,
+						spacing: { before: 0, after: 0 },
+					})];
+				});
+			};
+
+
+			const buildLetterhead = () => new Table({
+				width: { size: CONTENT_W, type: WidthType.DXA },
+				columnWidths: [COL_LOGO, COL_TEXT],
+				borders: noBorders,
+				rows: [new TableRow({
+					children: [
+						new TableCell({
+							width: { size: COL_LOGO, type: WidthType.DXA },
+							borders: noCellBorders,
+							margins: { top: 60, bottom: 60, left: 0, right: 0 },
+							children: logoBytes ? [new Paragraph({
+								alignment: AlignmentType.CENTER,
+								children: [new ImageRun({ data: logoBytes, transformation: { width: 52, height: 52 } })]
+							})] : [emptyPara(0)],
+						}),
+						new TableCell({
+							width: { size: COL_TEXT, type: WidthType.DXA },
+							borders: noCellBorders,
+							margins: { top: 40, bottom: 40, left: 0, right: 0 },
+							children: [
+								para(schoolName, { alignment: AlignmentType.CENTER, run: { bold: true, size: 24 } }),
+								para(dept, { alignment: AlignmentType.CENTER, run: { size: 20 } }),
+								para(meta, { alignment: AlignmentType.CENTER, run: { size: 18 } }),
+							]
+						}),
+					]
+				})],
+			});
+
+			const buildHeaderDivider = () => new Table({
+				width: { size: CONTENT_W, type: WidthType.DXA },
+				columnWidths: [CONTENT_W],
+				borders: noBorders,
+				rows: [new TableRow({
+					children: [new TableCell({
+						width: { size: CONTENT_W, type: WidthType.DXA },
+						borders: { top: nil, left: nil, right: nil, bottom: { style: BorderStyle.SINGLE, size: 8, color: '2456A4' } },
+						margins: { top: 0, bottom: 0, left: 0, right: 0 },
+						children: [new Paragraph({ children: [run(' ')], spacing: { before: 0, after: 0 } })],
+					})],
+				})],
+			});
+
+			const buildHeader = () => new Header({
+				children: [buildLetterhead(), buildHeaderDivider()],
+			});
+
+			const buildCenteredCoverBlock = (lines) => new Table({
+				width: { size: CONTENT_W, type: WidthType.DXA },
+				columnWidths: [CONTENT_W],
+				borders: noBorders,
+				rows: [new TableRow({
+					height: { value: BODY_H, rule: HeightRule.ATLEAST },
+					children: [new TableCell({
+						width: { size: CONTENT_W, type: WidthType.DXA },
+						borders: noCellBorders,
+						verticalAlign: VerticalAlign.CENTER,
+						children: lines.map(line => new Paragraph({
+							alignment: AlignmentType.CENTER,
+							children: [run(line.text, line.run || {})],
+							spacing: line.spacing || { after: 80 },
+						})),
+					})],
+				})]
+			});
+
+			const getDateLabel = (value) => {
+				const v = value ? new Date(value + 'T00:00') : null;
+				return v && !isNaN(v.getTime())
+					? v.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+					: '';
+			};
+
+			const opening = inputFrom('f_opening', '');
+			const closing = inputFrom('f_closing', '');
+			const openingDate = getDateLabel(opening);
+			const closingDate = getDateLabel(closing);
+
+			const calcSchoolDaysInMonth = (y, m) => {
+				const bounds = getPickerDateBounds();
+				const total = daysInMonth(y, m);
+				let count = 0;
+				for (let d = 1; d <= total; d++) {
+					if (!isDateWithinPickerRange(y, m, d, bounds)) continue;
+					const isWknd = isWeekend(y, m, d);
+					const k = mkKey(y, m, d);
+					const markKey = markStore[k];
+					if (!markKey) { if (!isWknd) count++; continue; }
+					const legend = legends[markKey];
+					const inc = legend ? legend.includeInSchoolDays !== false : true;
+					if (inc) count++;
+				}
+				return count;
+			};
+
+			const buildMiniCalendarTable = (y, m, width) => {
+				const totalDays = daysInMonth(y, m);
+				const firstDow = new Date(y, m, 1).getDay();
+				const colW = Math.floor(width / 7);
+				const rows = [];
+				rows.push(new TableRow({
+					children: DAY_SHORT.map((d) => new TableCell({
+						width: { size: colW, type: WidthType.DXA },
+						borders: noCellBorders,
+						margins: CAL_CELL_MARGIN,
+						children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [run(d, { size: 16, bold: true })], spacing: { after: 0 } })],
+					}))
+				}));
+
+				let cells = [];
+				for (let i = 0; i < firstDow; i++) {
+					cells.push(new TableCell({ width: { size: colW, type: WidthType.DXA }, borders: cellBorders(thinBorder), margins: CAL_CELL_MARGIN, children: [emptyPara(0)] }));
+				}
+				for (let d = 1; d <= totalDays; d++) {
+					const k = mkKey(y, m, d);
+					const markKey = markStore[k];
+					const legend = markKey ? legends[markKey] : null;
+					const symbol = legend?.symbol || '';
+					const dayRuns = [run(String(d), { size: 16, bold: true, strike: markKey === 'holiday' })];
+					if (symbol) dayRuns.push(run(' ' + symbol, { size: 14, color: '64748B' }));
+					cells.push(new TableCell({
+						width: { size: colW, type: WidthType.DXA },
+						borders: cellBorders(thinBorder),
+						margins: CAL_CELL_MARGIN,
+						children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: dayRuns })],
+					}));
+					if (cells.length === 7) {
+						rows.push(new TableRow({ children: cells }));
+						cells = [];
+					}
+				}
+				if (cells.length) {
+					while (cells.length < 7) {
+						cells.push(new TableCell({ width: { size: colW, type: WidthType.DXA }, borders: cellBorders(thinBorder), margins: CAL_CELL_MARGIN, children: [emptyPara(0)] }));
+					}
+					rows.push(new TableRow({ children: cells }));
+				}
+				return new Table({ width: { size: width, type: WidthType.DXA }, columnWidths: new Array(7).fill(colW), rows });
+			};
+
+			const getMonthEntries = (y, m) => {
+				const monthMarks = Object.entries(markStore).filter(([k]) => {
+					const [ky, km] = k.split('-').map(Number);
+					return ky === y && km === m;
+				}).sort((a, b) => parseInt(a[0].split('-')[2], 10) - parseInt(b[0].split('-')[2], 10));
+				const monthNotes = Object.entries(remarkStore).filter(([k]) => {
+					const [ky, km] = k.split('-').map(Number);
+					return ky === y && km === m && !markStore[k];
+				}).map(([k]) => [k, '__note_only__']);
+
+				const combined = [...monthMarks, ...monthNotes];
+				const openingDateObj = parseDateOnly(opening);
+				const closingDateObj = parseDateOnly(closing);
+				const sameStartEnd = openingDateObj && closingDateObj && openingDateObj.getTime() === closingDateObj.getTime();
+				if (openingDateObj && openingDateObj.getFullYear() === y && openingDateObj.getMonth() === m) {
+					const key = mkKey(y, m, openingDateObj.getDate());
+					combined.push([key, sameStartEnd ? '__start_end__' : '__start__']);
+				}
+				if (!sameStartEnd && closingDateObj && closingDateObj.getFullYear() === y && closingDateObj.getMonth() === m) {
+					const key = mkKey(y, m, closingDateObj.getDate());
+					combined.push([key, '__end__']);
+				}
+				combined.sort((a, b) => parseInt(a[0].split('-')[2], 10) - parseInt(b[0].split('-')[2], 10));
+
+				const grouped = [];
+				combined.forEach(([k, type]) => {
+					const day = parseInt(k.split('-')[2], 10);
+					const remark = remarkStore[k] || '';
+					const last = grouped[grouped.length - 1];
+					const canMerge = last
+						&& last.type === type
+						&& last.remark === remark
+						&& day === last.endDay + 1
+						&& !['__start__', '__end__', '__start_end__'].includes(type);
+					if (canMerge) { last.endDay = day; return; }
+					grouped.push({ type, remark, startDay: day, endDay: day });
+				});
+				return grouped;
+			};
+
+			const buildMonthActivityParagraphs = (y, m) => {
+				const entries = getMonthEntries(y, m);
+				if (!entries.length) {
+					return [para('No activities marked', { run: { italics: true, size: 18 }, spacing: { after: 40 } })];
+				}
+				return entries.map((entry) => {
+					const dayLabel = entry.startDay === entry.endDay
+						? String(entry.startDay)
+						: `${entry.startDay}-${entry.endDay}`;
+					let label = '';
+					if (entry.type === '__start_end__') label = 'Start and End of Classes';
+					else if (entry.type === '__start__') label = 'Start of Classes';
+					else if (entry.type === '__end__') label = 'End of Classes';
+					else if (entry.type === '__note_only__') label = entry.remark ? `Note - ${entry.remark}` : 'Note';
+					else {
+						const leg = legends[entry.type] || { label: entry.type };
+						label = entry.remark || leg.label;
+					}
+					return new Paragraph({
+						children: [run(`${dayLabel}: ${label}`, { size: 18 })],
+						bullet: { level: 0 },
+						spacing: { after: 40 },
+					});
+				});
+			};
+
+			const buildMonthBlock = (y, m) => {
+				const leftW = Math.floor(CONTENT_W * 0.42);
+				const rightW = CONTENT_W - leftW;
+				const monthName = MONTH_NAMES[m].toUpperCase();
+				const monthHeading = para(monthName, { run: { bold: true, size: 20 }, spacing: { after: 60 } });
+				const activityList = buildMonthActivityParagraphs(y, m);
+				const calTable = buildMiniCalendarTable(y, m, rightW);
+				const classDays = calcSchoolDaysInMonth(y, m);
+				return new Table({
+					width: { size: CONTENT_W, type: WidthType.DXA },
+					columnWidths: [leftW, rightW],
+					borders: noBorders,
+					rows: [new TableRow({
+						children: [
+							new TableCell({
+								width: { size: leftW, type: WidthType.DXA },
+								borders: noCellBorders,
+								children: [monthHeading, ...activityList],
+							}),
+							new TableCell({
+								width: { size: rightW, type: WidthType.DXA },
+								borders: noCellBorders,
+								children: [
+									calTable,
+									para(`Class days: ${classDays}`, { run: { size: 18 }, spacing: { before: 40 } }),
+								],
+							}),
+						]
+					})]
+				});
+			};
+
+			const buildSummaryTable = () => {
+				const colMonth = Math.floor(CONTENT_W * 0.6);
+				const colDays = CONTENT_W - colMonth;
+				const rows = [new TableRow({
+					children: [
+						new TableCell({
+							width: { size: colMonth, type: WidthType.DXA },
+							borders: cellBorders(border),
+							shading: { type: ShadingType.CLEAR, fill: 'F1F5F9' },
+							margins: CELL_MARGIN,
+							children: [para('MONTH', { alignment: AlignmentType.CENTER, run: { bold: true, size: 18 } })],
+						}),
+						new TableCell({
+							width: { size: colDays, type: WidthType.DXA },
+							borders: cellBorders(border),
+							shading: { type: ShadingType.CLEAR, fill: 'F1F5F9' },
+							margins: CELL_MARGIN,
+							children: [para('SCHOOL DAYS', { alignment: AlignmentType.CENTER, run: { bold: true, size: 18 } })],
+						}),
+					]
+				})];
+				let grandTotal = 0;
+				ACAD_MONTHS.forEach(({ y, m }) => {
+					const days = calcSchoolDaysInMonth(y, m);
+					grandTotal += days;
+					rows.push(new TableRow({
+						children: [
+							new TableCell({
+								width: { size: colMonth, type: WidthType.DXA },
+								borders: cellBorders(border),
+								margins: CELL_MARGIN,
+								children: [para(MONTH_NAMES[m], { run: { size: 18 } })],
+							}),
+							new TableCell({
+								width: { size: colDays, type: WidthType.DXA },
+								borders: cellBorders(border),
+								margins: CELL_MARGIN,
+								children: [para(String(days), { alignment: AlignmentType.CENTER, run: { size: 18 } })],
+							}),
+						]
+					}));
+				});
+				rows.push(new TableRow({
+					children: [
+						new TableCell({
+							width: { size: colMonth, type: WidthType.DXA },
+							borders: cellBorders(border),
+							margins: CELL_MARGIN,
+							children: [para('TOTAL', { run: { bold: true, size: 18 } })],
+						}),
+						new TableCell({
+							width: { size: colDays, type: WidthType.DXA },
+							borders: cellBorders(border),
+							margins: CELL_MARGIN,
+							children: [para(String(grandTotal), { alignment: AlignmentType.CENTER, run: { bold: true, size: 18 } })],
+						}),
+					]
+				}));
+				return new Table({ width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: [colMonth, colDays], rows });
+			};
+
+			const buildChecklistTable = () => {
+				const colNo = 700;
+				const colReq = Math.floor((CONTENT_W - colNo) * 0.65);
+				const colRem = CONTENT_W - colNo - colReq;
+				const rows = [new TableRow({
+					children: [
+						new TableCell({
+							width: { size: colNo, type: WidthType.DXA },
+							borders: cellBorders(border),
+							shading: { type: ShadingType.CLEAR, fill: 'F1F5F9' },
+							margins: CELL_MARGIN,
+							children: [para('No.', { alignment: AlignmentType.CENTER, run: { bold: true, size: 18 } })],
+						}),
+						new TableCell({
+							width: { size: colReq, type: WidthType.DXA },
+							borders: cellBorders(border),
+							shading: { type: ShadingType.CLEAR, fill: 'F1F5F9' },
+							margins: CELL_MARGIN,
+							children: [para('Requirements', { alignment: AlignmentType.CENTER, run: { bold: true, size: 18 } })],
+						}),
+						new TableCell({
+							width: { size: colRem, type: WidthType.DXA },
+							borders: cellBorders(border),
+							shading: { type: ShadingType.CLEAR, fill: 'F1F5F9' },
+							margins: CELL_MARGIN,
+							children: [para('Remarks', { alignment: AlignmentType.CENTER, run: { bold: true, size: 18 } })],
+						}),
+					]
+				})];
+				for (let i = 1; i <= 5; i++) {
+					rows.push(new TableRow({
+						children: [
+							new TableCell({
+								width: { size: colNo, type: WidthType.DXA },
+								borders: cellBorders(border),
+								margins: CELL_MARGIN,
+								children: [para(String(i), { alignment: AlignmentType.CENTER, run: { size: 18 } })],
+							}),
+							new TableCell({
+								width: { size: colReq, type: WidthType.DXA },
+								borders: cellBorders(border),
+								margins: CELL_MARGIN,
+								children: [para(textFrom('pv_chk_req' + i), { run: { size: 18 } })],
+							}),
+							new TableCell({
+								width: { size: colRem, type: WidthType.DXA },
+								borders: cellBorders(border),
+								margins: CELL_MARGIN,
+								children: [para(textFrom('pv_chk_remark' + i), { run: { size: 18 } })],
+							}),
+						]
+					}));
+				}
+				return new Table({ width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: [colNo, colReq, colRem], rows });
+			};
+
+			const buildCoverPage = () => {
+				const deptShort = (dept || '').replace(/\s*school$/i, '') || dept || 'School';
+				return [
+					buildCenteredCoverBlock([
+						{ text: deptShort, run: { bold: true, size: 64 }, spacing: { after: 56 } },
+						{ text: 'School Calendar', run: { bold: true, size: 55 }, spacing: { after: 192 } },
+						{ text: syText, run: { bold: true, size: 49 }, spacing: { after: 0 } },
+					]),
+				];
+			};
+
+			const buildTransmittalPage = () => {
+				const totalDays = ACAD_MONTHS.reduce((sum, { y, m }) => sum + calcSchoolDaysInMonth(y, m), 0);
+				return [
+					emptyPara(140),
+					bodyPara(textFrom('pv_rd_name'), { run: { bold: true, size: BODY_BOLD_SIZE } }),
+					bodyPara(textFrom('pv_rd_pos')),
+					bodyPara(textFrom('pv_rd_office')),
+					emptyPara(80),
+					bodyPara(`Thru: ${textFrom('pv_sds_name')}`, { run: { bold: true, size: BODY_BOLD_SIZE } }),
+					bodyPara(textFrom('pv_sds_pos')),
+					bodyPara(textFrom('pv_sds_office')),
+					bodyPara(textFrom('pv_sds_city')),
+					emptyPara(80),
+					bodyPara('Dear Sir/Ma\'am,'),
+					bodyPara('Greetings in Christ!'),
+					bodyPara(
+						`We are pleased to submit to your good office the documents listed below for the School Year ${sy1}-${sy2} for your review and consideration.`,
+						{ indent: { firstLine: 720 } }
+					),
+					bodyPara('The following documents are attached:'),
+					...Array.from(document.querySelectorAll('#pv_attached_list li')).map(li => new Paragraph({
+						children: [run(li.textContent || '', { size: BODY_TEXT_SIZE })],
+						bullet: { level: 0 },
+						spacing: { after: 80, line: 360 },
+					})),
+					bodyPara(
+						`We are pleased to inform your good office that will commence its school year ${sy1}-${sy2} on ${openingDate || textFrom('pv_trans_opening')}, and conclude on ${closingDate || textFrom('pv_trans_closing')}. Our primary mode of instruction will be full face-to-face learning. This calendar ensures a total of ${textFrom('pv_trans_total_days') || totalDays} days in full compliance with Department of Education policies. Thank you so much and God bless!`,
+						{ indent: { firstLine: 720 } }
+					),
+					emptyPara(140),
+					bodyPara('Sincerely,'),
+					bodyPara(textFrom('pv_principal'), { run: { bold: true, size: BODY_BOLD_SIZE } }),
+					bodyPara(textFrom('pv_principal_title')),
+					textFrom('pv_principal_contact') ? bodyPara(textFrom('pv_principal_contact')) : emptyPara(0),
+				];
+			};
+
+			const buildLoiCoverPage = () => [
+				buildCenteredCoverBlock([
+					{ text: 'Letter of Intent', run: { bold: true, size: 55 }, spacing: { after: 0 } },
+				]),
+			];
+
+			const buildLoiPage = () => [
+				emptyPara(140),
+				bodyPara(textFrom('pv_rd_name2'), { run: { bold: true, size: BODY_BOLD_SIZE } }),
+				bodyPara(textFrom('pv_rd_pos2')),
+				bodyPara(textFrom('pv_rd_office2')),
+				emptyPara(80),
+				bodyPara(`Thru: ${textFrom('pv_sds_name2')}`, { run: { bold: true, size: BODY_BOLD_SIZE } }),
+				bodyPara(textFrom('pv_sds_pos2')),
+				bodyPara(textFrom('pv_sds_office2')),
+				bodyPara(textFrom('pv_sds_city2')),
+				emptyPara(80),
+				bodyPara('Dear Sir/Ma\'am,'),
+				bodyPara('Greetings of peace!'),
+				bodyPara(textFrom('pv_loi_p1'), { indent: { firstLine: 720 } }),
+				bodyPara(textFrom('pv_loi_p2'), { indent: { firstLine: 720 } }),
+				bodyPara(textFrom('pv_loi_closing')),
+				emptyPara(140),
+				bodyPara('Truly yours,'),
+				bodyPara(textFrom('pv_principal2'), { run: { bold: true, size: BODY_BOLD_SIZE } }),
+				bodyPara(textFrom('pv_principal_title2')),
+				textFrom('pv_principal_contact2') ? bodyPara(textFrom('pv_principal_contact2')) : emptyPara(0),
+			];
+
+			const buildCalCoverPage = () => [
+				buildCenteredCoverBlock([
+					{ text: 'School Calendar for', run: { bold: true, size: 49 }, spacing: { after: 86 } },
+					{ text: syText, run: { bold: true, size: 49 }, spacing: { after: 0 } },
+				]),
+			];
+
+			const buildSummaryPage = () => {
+				const headingText = textFrom('pv_sum_heading');
+				const headingLines = headingText.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+				const headingParas = headingLines.length
+					? headingLines.map(line => new Paragraph({ alignment: AlignmentType.CENTER, children: [run(line, { bold: true, size: 22 })], spacing: { after: 20 } }))
+					: [new Paragraph({ alignment: AlignmentType.CENTER, children: [run(`SCHOOL CALENDAR FOR SCHOOL YEAR ${sy1}-${sy2}`, { bold: true, size: 22 })], spacing: { after: 20 } })];
+				return [
+					emptyPara(80),
+					...headingParas,
+					emptyPara(60),
+					buildSummaryTable(),
+					emptyPara(120),
+					para('Prepared By:', { run: { size: 18 } }),
+					para(textFrom('pv_sum_principal'), { run: { bold: true, size: 20 } }),
+					para(textFrom('pv_sum_principal_title'), { run: { size: 18 } }),
+					emptyPara(80),
+					para('Recommending Approval:', { run: { size: 18 } }),
+					para(textFrom('pv_recommending'), { run: { bold: true, size: 20 } }),
+					para(textFrom('pv_rec_pos'), { run: { size: 18 } }),
+					para(textFrom('pv_rec_org'), { run: { size: 18 } }),
+					emptyPara(80),
+					para('Approved:', { run: { size: 18 } }),
+					para(textFrom('pv_approved'), { run: { bold: true, size: 20 } }),
+					para(textFrom('pv_app_pos'), { run: { size: 18 } }),
+					para(textFrom('pv_app_org'), { run: { size: 18 } }),
+				];
+			};
+
+			const buildChecklistPage = () => [
+				emptyPara(80),
+				para(`Name of School: ${textFrom('pv_chk_school')}`, { run: { size: 18 } }),
+				para(`Location/Address: ${textFrom('pv_chk_address')}`, { run: { size: 18 } }),
+				para(`School ID: ${textFrom('pv_chk_school_id')}`, { run: { size: 18 } }),
+				para(`Proposed: ${textFrom('pv_chk_proposed')}`, { run: { size: 18 }, spacing: { after: 120 } }),
+				new Paragraph({ alignment: AlignmentType.CENTER, children: [run('CHECKLIST FOR SUBMISSION OF CALENDAR ACTIVITIES', { bold: true, size: 18 })], spacing: { after: 80 } }),
+				buildChecklistTable(),
+				emptyPara(120),
+				para('Checked by:', { run: { size: 18 } }),
+				para(textFrom('pv_chk_checked_by'), { run: { bold: true, size: 20 } }),
+			];
+
+			const buildMonthlyPage = (months, headingId) => {
+				const heading = textFrom(headingId) || `SCHOOL CALENDAR FOR SCHOOL YEAR ${sy1}-${sy2}`;
+				const monthBlocks = [];
+				months.forEach(({ y, m }) => {
+					monthBlocks.push(buildMonthBlock(y, m));
+					monthBlocks.push(emptyPara(120));
+				});
+				if (monthBlocks.length) monthBlocks.pop();
+				return [
+					emptyPara(80),
+					new Paragraph({ alignment: AlignmentType.CENTER, children: [run(heading, { bold: true, size: 20 })], spacing: { after: 120 } }),
+					...monthBlocks,
+				];
+			};
+
+			try {
+				const pages = [
+					buildCoverPage(),
+					buildTransmittalPage(),
+					buildLoiCoverPage(),
+					buildLoiPage(),
+					buildCalCoverPage(),
+					buildSummaryPage(),
+					buildChecklistPage(),
+				];
+
+				const monthlyImagePages = await buildMonthlyImagePages();
+				if (monthlyImagePages.length) {
+					monthlyImagePages.forEach(page => pages.push(page));
+				} else {
+					pages.push(buildMonthlyPage(ACAD_MONTHS.slice(0, 6), 'pv_monthly_heading_1'));
+					pages.push(buildMonthlyPage(ACAD_MONTHS.slice(6), 'pv_monthly_heading_2'));
+				}
+
+				const children = [];
+				pages.forEach((page, idx) => {
+					children.push(...page);
+					if (idx < pages.length - 1) {
+						children.push(new Paragraph({ children: [new PageBreak()] }));
+					}
+				});
+
+				const header = buildHeader();
+				const doc = new Document({
+					sections: [{
+						properties: {
+							page: {
+								size: { width: PAGE_W, height: PAGE_H },
+								margin: { top: MARGIN, right: MARGIN, bottom: MARGIN, left: MARGIN, header: 360, footer: 360 },
+							},
+						},
+						headers: { default: header },
+						children,
+					}],
+				});
+
+				const blob = await Packer.toBlob(doc);
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				const safeTitle = (typeof buildCalendarDocumentTitle === 'function')
+					? buildCalendarDocumentTitle()
+					: (document.getElementById('f_school')?.value || 'school-calendar');
+				a.href = url;
+				a.download = safeTitle.replace(/[\\/?:%*|"<>]/g, '-') + '.docx';
+				a.click();
+				URL.revokeObjectURL(url);
+				showToast('Word document exported (editable).', 'fa-file-word');
+			} catch (err) {
+				showToast('Word export failed: ' + (err.message || 'Unknown error'), 'fa-circle-xmark');
+			}
+		}
+    
+        /* ══════════════════════════════════════════════════════
+           FINAL SUBMIT VISIBILITY
+           Hide Final Submit until all doc-flow pages are saved
+        ══════════════════════════════════════════════════════ */
+        function _isAllPagesUnlocked() {
+            const lastRequiredIndex = (typeof DOC_FLOW_PAGES !== 'undefined')
+                ? DOC_FLOW_PAGES.indexOf('pg-monthly')
+                : -1;
+            return lastRequiredIndex >= 0
+                && typeof docFlowUnlockedIndex !== 'undefined'
+                && docFlowUnlockedIndex >= lastRequiredIndex;
+        }
+    
+        function syncFinalSubmitVisibility() {
+            const allUnlocked = _isAllPagesUnlocked();
+    
+            /* 1. Dropdown menu item */
+            const dropItem = document.querySelector('.tba-drop-item-submit');
+            if (dropItem) dropItem.style.display = allUnlocked ? '' : 'none';
+    
+            /* 2. Injected top-bar button (added by injectSubmitFinalButton) */
+            const finalBtn = document.getElementById('calBtnFinalSubmit');
+            if (finalBtn) finalBtn.style.display = allUnlocked ? '' : 'none';
+        }
+    
+        /* Hook into syncDocFlowNavLocks so visibility updates on every nav change */
+        (function () {
+            const _orig = window.syncDocFlowNavLocks;
+            window.syncDocFlowNavLocks = function () {
+                _orig?.();
+                syncFinalSubmitVisibility();
+            };
+        })();
+    
+        /* ══════════════════════════════════════════════════════
+           CALENDAR ELIGIBILITY GUARD
+        ══════════════════════════════════════════════════════ */
+        function getTotalSchoolDaysForGuard() {
+            const bounds = getPickerDateBounds();
+            let total = 0;
+            ACAD_MONTHS.forEach(({ y, m }) => {
+                const days = daysInMonth(y, m);
+                for (let d = 1; d <= days; d++) {
+                    if (!isDateWithinPickerRange(y, m, d, bounds)) continue;
+                    const k = mkKey(y, m, d);
+                    const mark = savedMarks[k];
+                    const isWknd = isWeekend(y, m, d);
+                    if (!mark) { if (!isWknd) total++; }
+                    else {
+                        const leg = legends[mark];
+                        if (leg ? leg.includeInSchoolDays !== false : true) total++;
+                    }
+                }
+            });
+            return total;
+        }
+    
+        function isSchoolDaysEligible() {
+            const total = getTotalSchoolDaysForGuard();
+            return total >= 200 && total <= 220;
+        }
+    
+        function showCalPickerEligibilityBanner(total) {
+            document.getElementById('cpEligibilityBanner')?.remove();
+            const banner = document.createElement('div');
+            banner.id = 'cpEligibilityBanner';
+            let msg, color, bg, border;
+            if (total === 0) {
+                msg = `<strong>No school days have been marked yet.</strong> Please use the Calendar Picker to mark your school days, holidays, and activities. You need <strong>200–220 school days</strong> to proceed.`;
+                color = '#1e40af'; bg = '#eff6ff'; border = '#93c5fd';
+            } else if (total < 200) {
+                msg = `<strong>Only ${total} school days marked</strong> — you need at least <strong>200</strong>. Please add more school days before proceeding.`;
+                color = '#991b1b'; bg = '#fef2f2'; border = '#fca5a5';
+            } else {
+                msg = `<strong>${total} school days marked</strong> — maximum is <strong>220</strong>. Please mark more holidays or reduce activities to proceed.`;
+                color = '#92400e'; bg = '#fffbeb'; border = '#fcd34d';
+            }
+            banner.style.cssText = `margin:0 0 12px;padding:12px 16px;background:${bg};border:1.5px solid ${border};border-radius:8px;color:${color};font-size:13px;line-height:1.55;display:flex;align-items:flex-start;gap:10px;`;
+            banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="margin-top:2px;flex-shrink:0;font-size:15px;"></i><span>${msg}</span>`;
+            const cpBody = document.querySelector('.cp-body');
+            if (cpBody) cpBody.insertAdjacentElement('beforebegin', banner);
+        }
+    
+        function checkCalendarEligibilityBeforeProceeding(actionCallback) {
+            const total = getTotalSchoolDaysForGuard();
+            if (total >= 200 && total <= 220) { actionCallback(); return; }
+            openCalPicker();
+            setTimeout(() => showCalPickerEligibilityBanner(total), 180);
+            showToast(
+                total === 0
+                    ? 'Please mark school days in the Calendar Picker first.'
+                    : total < 200
+                        ? `Only ${total} days marked — minimum is 200. Adjust in Calendar Picker.`
+                        : `${total} days marked — maximum is 220. Mark more holidays.`,
+                'fa-triangle-exclamation'
+            );
+        }
+    
+        /* ── Patch saveAndContinueDocFlow ── */
+        (function () {
+            const _orig = window.saveAndContinueDocFlow;
+            window.saveAndContinueDocFlow = async function () {
+                const activePage = (function getActivePage() {
+                    const el = document.querySelector('.doc-page.active');
+                    if (el?.id) return el.id;
+                    if (typeof docFlowCurrentIndex !== 'undefined' && Array.isArray(DOC_FLOW_PAGES)) {
+                        return DOC_FLOW_PAGES[docFlowCurrentIndex] || '';
+                    }
+                    return '';
+                })();
+    
+                const gatedPages = ['pg-summary', 'pg-checklist', 'pg-monthly', 'all'];
+                if (gatedPages.includes(activePage)) {
+                    const total = getTotalSchoolDaysForGuard();
+                    if (total < 200 || total > 220) {
+                        openCalPicker();
+                        setTimeout(() => showCalPickerEligibilityBanner(total), 180);
+                        showToast(
+                            total === 0
+                                ? 'Please mark school days in the Calendar Picker first.'
+                                : total < 200
+                                    ? `Only ${total} days marked — minimum is 200. Adjust in Calendar Picker.`
+                                    : `${total} days marked — maximum is 220. Mark more holidays.`,
+                            'fa-triangle-exclamation'
+                        );
+                        return;
+                    }
+                }
+    
+                await _orig?.();
+    
+                /* After saving, re-check visibility in case pg-monthly just got unlocked */
+                syncFinalSubmitVisibility();
+            };
+        })();
+    
+        // /* ── Patch showFinalSubmitDialog ── */
+        // (function () {
+        //     const _orig = window.showFinalSubmitDialog;
+        //     window.showFinalSubmitDialog = function () {
+        //         /* Guard 1: all pages must be unlocked */
+        //         if (!_isAllPagesUnlocked()) {
+        //             const lastIdx = DOC_FLOW_PAGES?.indexOf('pg-monthly') ?? -1;
+        //             const remaining = lastIdx >= 0
+        //                 ? lastIdx - (typeof docFlowUnlockedIndex !== 'undefined' ? docFlowUnlockedIndex : 0)
+        //                 : '?';
+        //             showToast(
+        //                 `Please save all document pages first — ${remaining} page${remaining !== 1 ? 's' : ''} remaining.`,
+        //                 'fa-lock'
+        //             );
+        //             syncDocFlowNavLocks?.();
+        //             return;
+        //         }
+        //         /* Guard 2: school days eligibility */
+        //         checkCalendarEligibilityBeforeProceeding(() => _orig?.());
+        //     };
+        // })();
+    
+        /* ── Patch calSubmitCalendar (direct submit path) ── */
+        (function () {
+            const _orig = window.calSubmitCalendar;
+            window.calSubmitCalendar = function () {
+                checkCalendarEligibilityBeforeProceeding(() => _orig?.());
+            };
+        })();
+    
+        /* ── Remove banner when picker is closed ── */
+        (function () {
+            const _orig = window.closeCalPicker;
+            window.closeCalPicker = function () {
+                _orig?.();
+                document.getElementById('cpEligibilityBanner')?.remove();
+            };
+        })();
+    
+    </script>
+	<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+	<script src="js/config.js?v4"></script>
+	<script src="js/school-portal-permissions.js"></script>
+	<script src="js/school-portal-calendar.js?v10"></script>
+</body>
+
+</html>

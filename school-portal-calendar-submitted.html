@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>QATALYST – Submitted Calendar</title>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="css/school-portal-calendar.css?v3" />
+    <style>
+        /* ─── Reset layout for scrollable full-page view ─── */
+        html, body { height: auto; overflow-y: auto; background: #e8edf4; }
+
+        /* Hide ALL builder chrome */
+        .sidebar,
+        .sidebar-backdrop,
+        .page-header,
+        .top-bar,
+        #calBuilderStepper,
+        #calStepperSubBar,
+        .doc-side-nav,
+        #formPanel,
+        #savedDocsView,
+        .cp-overlay,
+        #calSubmitOverlay,
+        #globalToast,
+        .cal-locked-banner,
+        .paper-section-label,
+        .tba-dropdown,
+        #calPickerModal,
+        #calHelpOverlay,
+        #monthHealthPanel,
+        #calLockedBanner { display: none !important; }
+
+        /* Flatten layout — the banner becomes a fixed-width left column that
+           sits side-by-side with the scrollable preview area, matching the
+           tuition fee submitted view. .main-content is the flex row that
+           pairs the banner and the builder shell as real siblings. */
+        .main-container { display: block; height: 100vh; overflow: hidden; }
+        .main-content   { height: 100vh; overflow: hidden;
+                          display: flex; flex-direction: row; align-items: stretch;
+                          padding: 0; }
+
+        /* Builder shell: the scrollable sibling next to the banner. Still
+           needs to override height/overflow from the shared stylesheet, but
+           now owns its own fixed height + scroll since .main-content no
+           longer scrolls itself. */
+        #builderShell {
+            display: block !important;
+            flex: 1 1 auto;
+            min-width: 0;
+            height: 100vh !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            padding: 0 !important;
+        }
+        .workspace {
+            display: block !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+            width: 100%;
+        }
+
+        /* All doc pages stacked and centred */
+        .preview-panel {
+            display: flex !important; flex-direction: column; align-items: center;
+            width: 100%; padding: 36px 20px 60px; gap: 32px; background: #e8edf4;
+            height: auto !important; min-height: 0 !important; overflow: visible !important;
+        }
+        .doc-page {
+            display: block !important; width: 100% !important; max-width: 860px;
+            opacity: 1 !important; visibility: visible !important;
+            position: relative !important; height: auto !important;
+        }
+
+        /* ─── Left-hand banner sidebar ─── */
+        #submittedBanner {
+            position: sticky; top: 0; z-index: 999;
+            background: linear-gradient(180deg,#0a1f3d 0%,#1a3a6b 100%);
+            color: #fff; display: flex; flex-direction: column;
+            align-items: stretch; gap: 20px;
+            width: 220px; flex: 0 0 220px; height: 100vh; overflow-y: auto;
+            padding: 22px 18px; box-shadow: 2px 0 12px rgba(0,0,0,.25);
+        }
+        .banner-left  { display:flex; flex-direction:column; align-items:flex-start; gap:10px;
+                        font-family:var(--font); }
+        .banner-icon  { width:34px; height:34px; border-radius:50%; background:#059669;
+                        display:flex; align-items:center; justify-content:center;
+                        flex-shrink:0; font-size:16px; }
+        .banner-title { font-weight:700; font-size:15px; line-height:1.3; }
+        .banner-sub   { font-size:12.5px; opacity:.78; margin-top:1px; }
+        .banner-right { display:flex; flex-direction:column; gap:10px; align-items:stretch; }
+        .banner-btn {
+            display:inline-flex; align-items:center; gap:7px; padding:9px 14px;
+            border-radius:7px; font-size:13px; font-weight:600; cursor:pointer;
+            border:none; font-family:var(--font); transition:opacity .15s; text-decoration:none;
+            width:100%;
+        }
+        .banner-btn:hover { opacity:.85; }
+        .banner-btn-ghost   { background:rgba(255,255,255,.12); color:#fff;
+                              border:1.5px solid rgba(255,255,255,.25); }
+        .banner-btn-primary { background:#f5d800; color:#0a1f3d; }
+
+        /* Thin divider between the title block and the action buttons,
+           same treatment as the tuition fee left banner. */
+        .banner-right::before {
+            content: '';
+            display: block;
+            border-top: 1px solid rgba(255,255,255,.18);
+            margin-bottom: 4px;
+        }
+
+        /* ─── Loading overlay ─── */
+        #viewLoader {
+            position:fixed; inset:0; background:#e8edf4;
+            display:flex; flex-direction:column; align-items:center;
+            justify-content:center; gap:18px; z-index:9999;
+            font-family:var(--font); color:#0a1f3d;
+        }
+        .loader-icon {
+            width:56px; height:56px; border-radius:14px;
+            background:linear-gradient(135deg,#0a1f3d,#2456a4);
+            display:flex; align-items:center; justify-content:center;
+            font-size:24px; color:#fff;
+        }
+        #viewLoader h2 { font-size:18px; font-weight:700; }
+        #viewLoader p  { font-size:13px; color:#4a5568; }
+
+        /* ─── Error overlay ─── */
+        #viewError {
+            display:none; position:fixed; inset:0; background:#e8edf4;
+            align-items:center; justify-content:center; flex-direction:column;
+            gap:14px; font-family:var(--font); color:#0a1f3d; z-index:9998;
+        }
+        #viewError i  { font-size:40px; color:#dc2626; }
+        #viewError h2 { font-size:20px; font-weight:700; }
+        #viewError p  { font-size:14px; color:#6b7280; }
+
+        /* ─── Request Edit Modal ─── */
+        #reqEditOverlay {
+            display:none; position:fixed; inset:0; z-index:10000;
+            background:rgba(10,31,61,.55); backdrop-filter:blur(3px);
+            align-items:center; justify-content:center;
+        }
+        #reqEditOverlay.open { display:flex; }
+        #reqEditModal {
+            background:#fff; border-radius:14px; padding:32px 28px 24px;
+            width:100%; max-width:460px; box-shadow:0 20px 60px rgba(0,0,0,.28);
+            font-family:var(--font); animation:slideUp .2s ease;
+        }
+        @keyframes slideUp {
+            from { transform:translateY(20px); opacity:0; }
+            to   { transform:translateY(0);    opacity:1; }
+        }
+        .req-modal-icon {
+            width:48px; height:48px; border-radius:12px;
+            background:linear-gradient(135deg,#0a1f3d,#2456a4);
+            display:flex; align-items:center; justify-content:center;
+            color:#fff; font-size:20px; margin-bottom:16px;
+        }
+        .req-modal-title { font-size:17px; font-weight:700; color:#0a1f3d; margin-bottom:4px; }
+        .req-modal-sub   { font-size:13px; color:#6b7280; margin-bottom:20px; line-height:1.5; }
+        .req-modal-label { font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; display:block; }
+        #reqEditReason {
+            width:100%; box-sizing:border-box; border:1.5px solid #d1d5db;
+            border-radius:8px; padding:10px 12px; font-family:var(--font);
+            font-size:13.5px; resize:vertical; min-height:96px; color:#111827;
+            outline:none; transition:border-color .15s;
+        }
+        #reqEditReason:focus { border-color:#2456a4; }
+        .req-char-count { font-size:11.5px; color:#9ca3af; text-align:right; margin-top:4px; }
+        .req-modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+        .req-btn {
+            display:inline-flex; align-items:center; gap:7px; padding:9px 18px;
+            border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;
+            border:none; font-family:var(--font); transition:opacity .15s, background .15s;
+        }
+        .req-btn:hover:not(:disabled) { opacity:.87; }
+        .req-btn:disabled { opacity:.5; cursor:not-allowed; }
+        .req-btn-cancel  { background:#f3f4f6; color:#374151; }
+        .req-btn-submit  { background:#0a1f3d; color:#fff; }
+        /* Status badge next to button */
+        #reqEditStatusBadge {
+            display:none; align-items:center; justify-content:center; gap:6px; padding:6px 12px;
+            border-radius:20px; font-size:12px; font-weight:600;
+            background:rgba(255,255,255,.15); color:#fff;
+            border:1.5px solid rgba(255,255,255,.3);
+            width:100%; box-sizing:border-box;
+        }
+        #reqEditStatusBadge.visible { display:flex; }
+        #reqEditStatusBadge.pending { background:rgba(245,216,0,.18); border-color:#f5d800; color:#f5d800; }
+        #reqEditStatusBadge.approved { background:rgba(5,150,105,.22); border-color:#059669; color:#6ee7b7; }
+        #reqEditStatusBadge.denied   { background:rgba(220,38,38,.2); border-color:#dc2626; color:#fca5a5; }
+
+        /* ─── Print ─── */
+        @media print {
+            #submittedBanner { display:none !important; }
+            #reqEditOverlay  { display:none !important; }
+            .preview-panel   { padding:0; gap:0; background:#fff; }
+            .doc-page        { max-width:100%; page-break-after:always; }
+            body             { background:#fff; }
+        }
+    </style>
+
+    <!--
+      ╔══════════════════════════════════════════════════════════════╗
+      ║  VIEW-ONLY GUARD — runs BEFORE school-portal-calendar.js    ║
+      ║  Stubs out functions that would show the builder / docs UI. ║
+      ╚══════════════════════════════════════════════════════════════╝
+    -->
+    <script>
+        window.__SUBMITTED_VIEW__ = true;   // flag checked by bootstrap below
+
+        // These are called by DOMContentLoaded inside the main JS.
+        // Override them as harmless no-ops so the builder never opens.
+        window.loadSavedCalendarDocs = function() { return Promise.resolve(); };
+        window.setBuilderModeUi      = function() {};
+        window.renderBuilderStepper  = function() {};
+        window.renderMonthHealthPanel= function() {};
+        window.injectSubmitFinalButton= function() {};
+        window.syncFinalSubmitVisibility = function() {};
+
+        // loadDashboard does useful auth + localStorage work — keep it,
+        // but prevent it from triggering further builder-side rendering.
+        // We wrap it after it's defined by the main JS (see bottom script).
+    </script>
+</head>
+
+<body>
+
+<!-- Loading overlay -->
+<div id="viewLoader">
+    <div class="loader-icon"><i class="fa-solid fa-calendar-days"></i></div>
+    <h2>Loading Submitted Calendar&hellip;</h2>
+    <p>Please wait while we fetch your document.</p>
+</div>
+
+<!-- Error overlay -->
+<div id="viewError">
+    <i class="fa-solid fa-circle-exclamation"></i>
+    <h2>Document Not Found</h2>
+    <p id="viewErrorMsg">Could not load the submitted calendar document.</p>
+    <a href="school-portal-calendar.html" class="banner-btn banner-btn-primary" style="margin-top:8px;">
+        <i class="fa-solid fa-arrow-left"></i> Back to My Calendars
+    </a>
+</div>
+
+<div class="main-container">
+
+    <!-- Sidebar stub — hidden by CSS, left so JS element lookups don't crash -->
+    <aside class="sidebar" id="sidebar">
+        <div class="school-pill-sidebar">
+            <div class="school-pill-name" id="sidebarSchoolName"></div>
+            <div class="school-pill-dist" id="sidebarDistrict"></div>
+        </div>
+        <div class="user-info-sidebar">
+            <div class="user-avatar-sidebar" id="sidebarAvatar"></div>
+            <div class="user-details">
+                <h3 id="sidebarName"></h3>
+                <p id="sidebarRole"></p>
+            </div>
+        </div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <div class="main-content">
+
+        <!-- Sticky approval banner -->
+        <div id="submittedBanner">
+            <div class="banner-left">
+                <div class="banner-icon"><i class="fa-solid fa-circle-check"></i></div>
+                <div>
+                    <div class="banner-title">
+                        <i class="fa-solid fa-lock" style="font-size:12px;margin-right:5px;"></i>
+                        Calendar Submitted for Final Approval
+                    </div>
+                    <div class="banner-sub" id="bannerDocTitle">This document is read-only and under review.</div>
+                </div>
+            </div>
+
+                <!-- ══ SUPPORTING DOCUMENTS MODAL ══ -->
+                <div id="docsModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,31,61,.55);backdrop-filter:blur(3px);align-items:center;justify-content:center;z-index:10000;">
+                    <div id="docsModal" style="background:#fff;border-radius:12px;padding:18px;max-width:680px;width:92%;max-height:80vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.28);">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                            <h3 style="margin:0;font-size:16px;color:#0a1f3d;">Uploaded Documents</h3>
+                            <button id="docsModalClose" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#6b7280">&times;</button>
+                        </div>
+                        <div id="docsModalBody">
+                            <div style="padding:20px;text-align:center;color:#6b7280">Loading…</div>
+                        </div>
+                    </div>
+                </div>
+            <div class="banner-right">
+                <!--<button class="banner-btn banner-btn-ghost" onclick="window.print()">-->
+                <!--    <i class="fa-solid fa-print"></i> Print-->
+                <!--</button>-->
+                <button class="banner-btn banner-btn-ghost" id="btnExportPdf">
+                    <i class="fa-solid fa-file-pdf"></i> Export PDF
+                </button>
+                <button class="banner-btn banner-btn-ghost" id="btnExportWord">
+                    <i class="fa-solid fa-file-word"></i> Export Word
+                </button>
+                <button class="banner-btn banner-btn-ghost" id="btnViewDocs">
+                    <i class="fa-solid fa-folder-open"></i> Documents
+                </button>
+                <span id="reqEditStatusBadge">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span id="reqEditStatusText">Edit Requested</span>
+                </span>
+                <button class="banner-btn banner-btn-ghost" id="btnRequestEdit">
+                    <i class="fa-solid fa-pen-to-square"></i> Request Edit
+                </button>
+                <a href="school-portal-calendar.html" class="banner-btn banner-btn-ghost">
+                    <i class="fa-solid fa-arrow-left"></i> My Calendars
+                </a>
+                <a href="school-portal-dashboard.html" class="banner-btn banner-btn-primary">
+                    <i class="fa-solid fa-house"></i> Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Page header stub (hidden) -->
+        <div class="page-header" style="display:none!important"></div>
+
+        <!-- Saved docs view stub (hidden) -->
+        <div class="saved-docs-view" id="savedDocsView" style="display:none!important">
+            <div id="savedDocsContent"></div>
+        </div>
+
+        <!-- ══ BUILDER SHELL ══ -->
+        <div id="builderShell" style="display:block!important;">
+
+            <!-- Stepper stubs — hidden -->
+            <div id="calBuilderStepper" style="display:none!important"></div>
+            <div id="calStepperSubBar"  style="display:none!important"></div>
+
+            <div class="workspace">
+
+                <!-- Form + doc-nav stubs — hidden -->
+                <nav class="doc-side-nav" id="docSideNav" style="display:none!important"></nav>
+                <div id="formPanel" style="display:none!important"></div>
+
+                <!-- ══ ALL PREVIEW PAGES ══ -->
+                <div class="preview-panel">
+
+                    <!-- PAGE 1: COVER -->
+                    <div class="doc-page active" id="pg-cover">
+                        <div class="paper-section-label">Page 1 — Cover Page</div>
+                        <div class="paper">
+                            <div class="lh">
+                                <div class="lh-left">
+                                    <img id="lhLogo1" class="lh-logo" src="" style="display:none" />
+                                    <div class="lh-logo-placeholder" id="lhLogoPlaceholder1"><i class="fa-solid fa-school"></i></div>
+                                    <div class="lh-text">
+                                        <h3 id="pv_school">—</h3>
+                                        <p id="pv_dept">—</p>
+                                        <p id="pv_meta">—</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="cover-body">
+                                <div class="cover-title" id="pv_cover_dept">School Calendar</div>
+                                <div class="cover-sy" id="pv_cover_sy">S.Y. 2026–2027</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAGE 2: TRANSMITTAL -->
+                    <div class="doc-page" id="pg-transmittal">
+                        <div class="paper-section-label">Page 2 — Transmittal Letter</div>
+                        <div class="paper">
+                            <div class="lh"><div class="lh-left">
+                                <img id="lhLogo2" class="lh-logo" src="" style="display:none" />
+                                <div class="lh-logo-placeholder" id="lhLogoPlaceholder2"><i class="fa-solid fa-school"></i></div>
+                                <div class="lh-text"><h3 id="pv_school2"></h3><p id="pv_dept2"></p><p id="pv_meta2"></p></div>
+                            </div></div>
+                            <div class="doc-body">
+                                <div class="addressee-block">
+                                    <div class="adname" id="pv_rd_name"></div>
+                                    <div class="adpos"  id="pv_rd_pos"></div>
+                                    <div class="adpos"  id="pv_rd_office"></div>
+                                </div>
+                                <div class="thru-block">
+                                    <span class="thru-lbl">Thru: </span><span class="adname" id="pv_sds_name"></span>
+                                    <div class="adpos" id="pv_sds_pos"></div>
+                                    <div class="adpos" id="pv_sds_office"></div>
+                                    <div class="adpos" id="pv_sds_city"></div>
+                                </div>
+                                <p class="salutation">Dear Sir/Ma'am,</p>
+                                <p>Greetings in Christ!</p>
+                                <p class="indent">We are pleased to submit to your good office the documents listed below for the School Year <strong id="pv_sy_ltr">2026–2027</strong> for your review and consideration.</p>
+                                <p style="margin-top:14px">The following documents are attached:</p>
+                                <ul class="doc-list" id="pv_attached_list">
+                                    <li>Letter of Intent</li>
+                                    <li>School Calendar for S.Y. 2026-2027</li>
+                                    <li>Board Resolution</li>
+                                    <li>Photocopy of SEC Registration</li>
+                                    <li>Photocopy of Government Recognition/Permit</li>
+                                </ul>
+                                <p class="indent">We will commence the school year <strong id="pv_sy_ltr2">2026–2027</strong> on <span id="pv_trans_opening">—</span>, and conclude on <span id="pv_trans_closing">—</span>. Our primary mode of instruction will be full face-to-face learning. This calendar ensures a total of <span id="pv_trans_total_days">—</span> days in full compliance with DepEd policies. Thank you so much and God bless!</p>
+                                <div class="closing-block">
+                                    <div class="closing">Sincerely,</div>
+                                    <div class="sig-name"    id="pv_principal"></div>
+                                    <div class="sig-title"   id="pv_principal_title"></div>
+                                    <div class="sig-contact" id="pv_principal_contact"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAGE 3: LOI COVER -->
+                    <div class="doc-page" id="pg-loi-cover">
+                        <div class="paper-section-label">Page 3 — Letter of Intent Cover</div>
+                        <div class="paper">
+                            <div class="lh"><div class="lh-left">
+                                <img id="lhLogo3" class="lh-logo" src="" style="display:none" />
+                                <div class="lh-logo-placeholder" id="lhLogoPlaceholder3"><i class="fa-solid fa-school"></i></div>
+                                <div class="lh-text"><h3 id="pv_school3"></h3><p id="pv_dept3"></p><p id="pv_meta3"></p></div>
+                            </div></div>
+                            <div class="loi-cover-body">
+                                <div class="loi-cover-title">Letter of Intent</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAGE 4: LOI -->
+                    <div class="doc-page" id="pg-loi">
+                        <div class="paper-section-label">Page 4 — Letter of Intent</div>
+                        <div class="paper">
+                            <div class="lh"><div class="lh-left">
+                                <img id="lhLogo4" class="lh-logo" src="" style="display:none" />
+                                <div class="lh-logo-placeholder" id="lhLogoPlaceholder4"><i class="fa-solid fa-school"></i></div>
+                                <div class="lh-text"><h3 id="pv_school4"></h3><p id="pv_dept4"></p><p id="pv_meta4"></p></div>
+                            </div></div>
+                            <div class="doc-body">
+                                <div class="addressee-block">
+                                    <div class="adname" id="pv_rd_name2"></div>
+                                    <div class="adpos"  id="pv_rd_pos2"></div>
+                                    <div class="adpos"  id="pv_rd_office2"></div>
+                                </div>
+                                <div class="thru-block">
+                                    <span class="thru-lbl">Thru: </span><span class="adname" id="pv_sds_name2"></span>
+                                    <div class="adpos" id="pv_sds_pos2"></div>
+                                    <div class="adpos" id="pv_sds_office2"></div>
+                                    <div class="adpos" id="pv_sds_city2"></div>
+                                </div>
+                                <p class="salutation">Dear Sir/Ma'am,</p>
+                                <p>Greetings of peace!</p>
+                                <p class="indent" id="pv_loi_p1"></p>
+                                <p class="indent" id="pv_loi_p2"></p>
+                                <p id="pv_loi_closing"></p>
+                                <div class="closing-block">
+                                    <div class="closing">Truly yours,</div>
+                                    <div class="sig-name"    id="pv_principal2"></div>
+                                    <div class="sig-title"   id="pv_principal_title2"></div>
+                                    <div class="sig-contact" id="pv_principal_contact2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAGE 5: CAL COVER -->
+                    <div class="doc-page" id="pg-cal-cover">
+                        <div class="paper-section-label">Page 5 — School Calendar Cover</div>
+                        <div class="paper">
+                            <div class="lh"><div class="lh-left">
+                                <img id="lhLogo5" class="lh-logo" src="" style="display:none" />
+                                <div class="lh-logo-placeholder" id="lhLogoPlaceholder5"><i class="fa-solid fa-school"></i></div>
+                                <div class="lh-text"><h3 id="pv_school5"></h3><p id="pv_dept5"></p><p id="pv_meta5"></p></div>
+                            </div></div>
+                            <div class="cal-cover-body">
+                                <div class="cal-cover-title" id="pv_cal_cover_title">School Calendar<br>for</div>
+                                <div class="cal-cover-sy"    id="pv_cal_cover_sy">S.Y. 2026–2027</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAGE 6: SUMMARY -->
+                    <div class="doc-page" id="pg-summary">
+                        <div class="paper-section-label">Page 6 — Calendar Summary</div>
+                        <div class="paper">
+                            <div class="lh"><div class="lh-left">
+                                <img id="lhLogo6" class="lh-logo" src="" style="display:none" />
+                                <div class="lh-logo-placeholder" id="lhLogoPlaceholder6"><i class="fa-solid fa-school"></i></div>
+                                <div class="lh-text"><h3 id="pv_school6"></h3><p id="pv_dept6"></p><p id="pv_meta6"></p></div>
+                            </div></div>
+                            <div class="summary-table-wrap" style="padding-top:22px">
+                                <div class="summary-heading" id="pv_sum_heading">SCHOOL CALENDAR<br>FOR SCHOOL YEAR 2026–2027</div>
+                                <table class="summary-table">
+                                    <thead><tr><th style="width:60%">MONTH</th><th>SCHOOL DAYS</th></tr></thead>
+                                    <tbody id="pv_sum_simple"></tbody>
+                                </table>
+                                <div class="sig-grid" style="margin-top:22px">
+                                    <div class="sig-col">
+                                        <div class="sig-role">Prepared By:</div>
+                                        <div class="sig-name" id="pv_sum_principal"></div>
+                                        <div class="sig-pos"  id="pv_sum_principal_title"></div>
+                                    </div>
+                                </div>
+                                <div style="padding:0 32px 7px">
+                                    <div style="font-family:var(--serif);font-size:12.5px;margin-bottom:18px;">Recommending Approval:</div>
+                                    <div class="sig-name" id="pv_recommending"></div>
+                                    <div class="sig-pos"  id="pv_rec_pos"></div>
+                                    <div class="sig-org"  id="pv_rec_org"></div>
+                                    <div style="font-family:var(--serif);font-size:12.5px;margin:22px 0 18px;">Approved:</div>
+                                    <div class="sig-name" id="pv_approved"></div>
+                                    <div class="sig-pos"  id="pv_app_pos"></div>
+                                    <div class="sig-org"  id="pv_app_org"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAGE 7: SCHOOL DAYS PER QUARTER/SEMESTER (mirrors builder's pg-summary-term) -->
+                    <div class="doc-page" id="pg-summary-term" style="margin-top:34px;">
+                        <div class="paper-section-label">Page 7 — School Days per Quarter</div>
+                        <div class="paper">
+                            <div class="lh"><div class="lh-left">
+                                <img id="lhLogo7" class="lh-logo" src="" style="display:none" />
+                                <div class="lh-logo-placeholder" id="lhLogoPlaceholder7"><i class="fa-solid fa-school"></i></div>
+                                <div class="lh-text"><h3 id="pv_school7"></h3><p id="pv_dept7"></p><p id="pv_meta7"></p></div>
+                            </div></div>
+                            <div class="summary-table-wrap" style="padding-top:22px">
+                                <div class="summary-heading" id="pv_sum_heading7">SCHOOL DAYS PER QUARTER</div>
+                                <table class="summary-table">
+                                    <thead><tr><th style="width:60%">MONTH</th><th>SCHOOL DAYS</th></tr></thead>
+                                    <tbody id="pv_sum_term_page"></tbody>
+                                </table>
+                                <div class="sig-grid" style="margin-top:22px">
+                                    <div class="sig-col">
+                                        <div class="sig-role">Prepared By:</div>
+                                        <div class="sig-name" id="pv_sum_principal7"></div>
+                                        <div class="sig-pos"  id="pv_sum_principal_title7"></div>
+                                    </div>
+                                </div>
+                                <div style="padding:0 32px 7px">
+                                    <div style="font-family:var(--serif);font-size:12.5px;margin-bottom:18px;">Recommending Approval:</div>
+                                    <div class="sig-name" id="pv_recommending7"></div>
+                                    <div class="sig-pos"  id="pv_rec_pos7"></div>
+                                    <div class="sig-org"  id="pv_rec_org7"></div>
+                                    <div style="font-family:var(--serif);font-size:12.5px;margin:22px 0 18px;">Approved:</div>
+                                    <div class="sig-name" id="pv_approved7"></div>
+                                    <div class="sig-pos"  id="pv_app_pos7"></div>
+                                    <div class="sig-org"  id="pv_app_org7"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAGE 8: CHECKLIST -->
+                    <div class="doc-page" id="pg-checklist">
+                        <div class="paper-section-label">Page 8 — Checklist</div>
+                        <div class="paper">
+                            <div class="lh"><div class="lh-left">
+                                <img id="lhLogo10" class="lh-logo" src="" style="display:none" />
+                                <div class="lh-logo-placeholder" id="lhLogoPlaceholder10"><i class="fa-solid fa-school"></i></div>
+                                <div class="lh-text"><h3 id="pv_school10"></h3><p id="pv_dept10"></p><p id="pv_meta10"></p></div>
+                            </div></div>
+                            <div class="checklist-meta">
+                                <div class="checklist-meta-row"><span class="chk-label">Name of School:</span><span class="chk-value" id="pv_chk_school"></span></div>
+                                <div class="checklist-meta-row"><span class="chk-label">Location/Address:</span><span class="chk-value" id="pv_chk_address"></span></div>
+                                <div class="checklist-meta-row"><span class="chk-label">School ID:</span><span class="chk-value" id="pv_chk_school_id"></span></div>
+                                <div class="checklist-meta-row"><span class="chk-label">Proposed:</span><span class="chk-value" id="pv_chk_proposed"></span></div>
+                            </div>
+                            <div class="checklist-rule"></div>
+                            <div class="checklist-table-title">CHECKLIST FOR SUBMISSION OF CALENDAR ACTIVITIES</div>
+                            <table class="checklist-table">
+                                <thead><tr><th style="width:40px">No.</th><th>Requirements</th><th style="width:150px">Remarks</th></tr></thead>
+                                <tbody id="pv_chk_items_tbody"></tbody>
+                            </table>
+                            <div class="checklist-footer">
+                                <div class="checklist-checked-label">Checked by:</div>
+                                <div class="checklist-checked-line"><span id="pv_chk_checked_by"></span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAGES 9-10: MONTHLY -->
+                    <div class="doc-page" id="pg-monthly">
+                        <div class="paper-section-label">Pages 9–10 — Monthly Calendar Detail</div>
+                        <div class="paper">
+                            <div class="lh"><div class="lh-left">
+                                <img id="lhLogo8" class="lh-logo" src="" style="display:none" />
+                                <div class="lh-logo-placeholder" id="lhLogoPlaceholder8"><i class="fa-solid fa-school"></i></div>
+                                <div class="lh-text"><h3 id="pv_school8"></h3><p id="pv_dept8"></p><p id="pv_meta8"></p></div>
+                            </div></div>
+                            <div class="monthly-wrap" style="padding-top:14px">
+                                <div class="monthly-heading" id="pv_monthly_heading_1">SCHOOL CALENDAR FOR SCHOOL YEAR 2026–2027</div>
+                                <div id="pv_monthly_grid_1"></div>
+                            </div>
+                        </div>
+                        <div class="paper">
+                            <div class="lh"><div class="lh-left">
+                                <img id="lhLogo9" class="lh-logo" src="" style="display:none" />
+                                <div class="lh-logo-placeholder" id="lhLogoPlaceholder9"><i class="fa-solid fa-school"></i></div>
+                                <div class="lh-text"><h3 id="pv_school9"></h3><p id="pv_dept9"></p><p id="pv_meta9"></p></div>
+                            </div></div>
+                            <div class="monthly-wrap" style="padding-top:14px">
+                                <div class="monthly-heading" id="pv_monthly_heading_2">SCHOOL CALENDAR FOR SCHOOL YEAR 2026–2027</div>
+                                <div id="pv_monthly_grid_2"></div>
+                                <div class="legend-box" style="margin-top:18px">
+                                    <div class="leg-title">Legend:</div>
+                                    <div class="legend-item"><span style="font-size:12px;font-weight:700;text-decoration:line-through;color:#dc2626;">X</span> — Declared Holidays</div>
+                                    <div class="legend-item"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid #374151;"></span> — School activities</div>
+                                    <div class="legend-item"><span style="font-size:12px;color:#374151;">△</span> — Quarter examination</div>
+                                    <div class="legend-item"><span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#0a1f3d;color:#fff;font-size:8px;font-weight:900;">★</span> — Start of Classes</div>
+                                    <div class="legend-item"><span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#991b1b;color:#fff;font-size:8px;font-weight:900;">■</span> — End of Classes</div>
+                                    <div id="pv_legend_custom"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /preview-panel -->
+            </div><!-- /workspace -->
+        </div><!-- /builderShell -->
+
+    </div><!-- /main-content -->
+</div><!-- /main-container -->
+
+<!--
+  ══ HIDDEN FORM FIELD STUBS ══
+  hydrateCalendarFromPayload() sets .value on these form fields,
+  then liveUpdate() reads them with v(id). Without them every
+  preview field stays blank in the submitted/read-only view.
+-->
+<div style="display:none!important" aria-hidden="true">
+  <!-- School info -->
+  <input id="f_school"    />
+  <select id="f_dept"><option value="Elementary School">Elementary School</option></select>
+  <input id="f_sid"       /><input id="f_gov"       />
+  <input id="f_sy1"  value="2026" /><input id="f_sy2" value="2027" />
+  <!-- Class dates -->
+  <input id="f_opening"  type="date" value="2026-06-08" />
+  <input id="f_closing"  type="date" value="2027-04-30" />
+  <!-- Regional Director -->
+  <input id="f_rd_name"   /><input id="f_rd_pos"   /><input id="f_rd_office" />
+  <!-- SDS -->
+  <input id="f_sds_name"  /><input id="f_sds_pos"  />
+  <input id="f_sds_office"/><input id="f_sds_city"  />
+  <!-- Transmittal body -->
+  <textarea id="f_attached"></textarea>
+  <!-- LOI body -->
+  <textarea id="f_loi_p1"></textarea>
+  <textarea id="f_loi_p2"></textarea>
+  <input id="f_loi_closing" />
+  <!-- LOI extended fields (used by some liveUpdate setText calls) -->
+  <input id="f_loi_date"         /><input id="f_loi_salutation"  />
+  <input id="f_loi_greeting"     /><input id="f_loi_complclose"  />
+  <input id="f_loi_to_name"      /><input id="f_loi_to_pos"      />
+  <input id="f_loi_to_org1"      /><input id="f_loi_to_org2"     />
+  <input id="f_loi_to_org3"      /><input id="f_loi_to_org4"     />
+  <input id="f_loi_thru_name"    /><input id="f_loi_thru_pos"    />
+  <input id="f_loi_thru_org1"    /><input id="f_loi_thru_org2"   />
+  <!-- Signatories -->
+  <input id="f_principal"        /><input id="f_principal_title"  />
+  <input id="f_principal_contact"/>
+  <input id="f_recommending"     /><input id="f_rec_pos"          />
+  <input id="f_rec_org"          />
+  <input id="f_approved"         /><input id="f_app_pos"          />
+  <input id="f_app_org"          /><input id="f_app_org2"         />
+  <input id="f_app_org3"         /><input id="f_app_org4"         />
+  <!-- Receive-by / control (used in some layouts) -->
+  <input id="f_rcvby" /><input id="f_rcvctrl" />
+  <!-- Checklist fields -->
+  <input id="f_chk_school"      /><input id="f_chk_address"     />
+  <input id="f_chk_school_id"   /><input id="f_chk_proposed"    />
+  <input id="f_chk_checked_by"  />
+  <textarea id="f_chk_req1"></textarea><input id="f_chk_remark1" />
+  <textarea id="f_chk_req2"></textarea><input id="f_chk_remark2" />
+  <textarea id="f_chk_req3"></textarea><input id="f_chk_remark3" />
+  <textarea id="f_chk_req4"></textarea><input id="f_chk_remark4" />
+  <textarea id="f_chk_req5"></textarea><input id="f_chk_remark5" />
+</div>
+
+<!-- Element stubs so main JS doesn't throw on missing IDs -->
+<!-- Hidden preview stubs for elements referenced by liveUpdate/buildSummaryTables
+     that don't appear in the visible page markup -->
+<div style="display:none!important" aria-hidden="true">
+  <span id="pv_rcvby"></span><span id="pv_rcvctrl"></span>
+  <div  id="pv_days_status"></div>
+  <div  id="pv_sum_heading2"></div>
+  <div  id="pv_sum_simple2"></div>
+  <div  id="pv_sum_principal2"></div><div id="pv_sum_principal_title2"></div>
+  <div  id="pv_sum_principal3"></div><div id="pv_sum_principal_title3"></div>
+  <div  id="pv_recommending2"></div><div id="pv_rec_pos2"></div><div id="pv_rec_org2"></div>
+  <div  id="pv_recommending3"></div><div id="pv_rec_pos3"></div><div id="pv_rec_org3"></div>
+  <div  id="pv_approved2"></div><div id="pv_app_pos2"></div><div id="pv_app_org2"></div>
+  <div  id="pv_approved3"></div><div id="pv_app_pos3"></div><div id="pv_app_org3"></div>
+  <div  id="pv_app_org_line2"></div><div id="pv_app_org_line3"></div><div id="pv_app_org_line4"></div>
+  <div  id="pv_app_org2_line2"></div><div id="pv_app_org2_line3"></div><div id="pv_app_org2_line4"></div>
+  <div  id="pv_loi_date"></div><div id="pv_loi_salutation"></div>
+  <div  id="pv_loi_greeting"></div><div id="pv_loi_complclose"></div>
+  <div  id="pv_loi_to_name"></div><div id="pv_loi_to_pos"></div>
+  <div  id="pv_loi_to_org1"></div><div id="pv_loi_to_org2"></div>
+  <div  id="pv_loi_to_org3"></div><div id="pv_loi_to_org4"></div>
+  <div  id="pv_loi_thru_name"></div><div id="pv_loi_thru_pos"></div>
+  <div  id="pv_loi_thru_org1"></div><div id="pv_loi_thru_org2"></div>
+</div>
+
+<div id="topBarMenu"       style="display:none!important"></div>
+<div id="autosaveStatus"   style="display:none!important"></div>
+<button id="calBtnSave"    style="display:none!important"></button>
+<button id="calBtnFinalSubmit" style="display:none!important"></button>
+<div id="monthHealthPanel" style="display:none!important"></div>
+<div class="cp-overlay"    id="cpOverlay"        style="display:none!important"></div>
+<div                       id="calSubmitOverlay" style="display:none!important"></div>
+<div                       id="calLockedBanner"  style="display:none!important"></div>
+
+<!-- ══ REQUEST EDIT MODAL ══ -->
+<div id="reqEditOverlay" role="dialog" aria-modal="true" aria-labelledby="reqEditTitle">
+    <div id="reqEditModal">
+        <div class="req-modal-icon"><i class="fa-solid fa-pen-to-square"></i></div>
+        <div class="req-modal-title" id="reqEditTitle">Request Permission to Edit</div>
+        <div class="req-modal-sub">
+            This calendar has been submitted for final approval and is currently read-only.
+            Submitting a request will notify SDO for review. You will be notified once a decision is made.
+        </div>
+        <label class="req-modal-label" for="reqEditReason">Reason for edit request <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
+        <textarea id="reqEditReason" maxlength="500" placeholder="e.g. Incorrect school opening date, need to update holiday entries…"></textarea>
+        <div class="req-char-count"><span id="reqCharCount">0</span> / 500</div>
+        <div class="req-modal-actions">
+            <button class="req-btn req-btn-cancel" id="reqEditCancel">Cancel</button>
+            <button class="req-btn req-btn-submit" id="reqEditSubmit">
+                <i class="fa-solid fa-paper-plane"></i> Submit Request
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/school-portal-permissions.js"></script>
+<script src="js/school-portal-calendar.js?v9"></script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   VIEW-ONLY BOOTSTRAP — runs after the main JS is loaded.
+   1. Re-stub any functions the main JS may have re-defined.
+   2. Fetch the document by ?document_id= and hydrate the preview.
+   3. Force all doc-pages visible and dismiss the loader.
+══════════════════════════════════════════════════════════════════ */
+(function () {
+
+    /* ── 1. Re-apply no-op stubs (main JS redefines these) ── */
+    window.loadSavedCalendarDocs       = function () { return Promise.resolve(); };
+    window.renderBuilderStepper        = function () {};
+    window.renderMonthHealthPanel      = function () {};
+    window.injectSubmitFinalButton     = function () {};
+    window.syncFinalSubmitVisibility   = function () {};
+
+    /* Keep savedDocsView permanently hidden */
+    var sdv = document.getElementById('savedDocsView');
+    if (sdv) sdv.style.cssText = 'display:none!important';
+
+    /* Keep builderShell visible */
+    var bsh = document.getElementById('builderShell');
+    if (bsh) { bsh.style.display = 'block'; bsh.style.removeProperty('flex'); }
+
+    /* ── 2. Helpers ── */
+    function showError(msg) {
+        document.getElementById('viewLoader').style.display = 'none';
+        var errEl = document.getElementById('viewError');
+        errEl.style.display = 'flex';
+        document.getElementById('viewErrorMsg').textContent = msg || 'Could not load the document.';
+    }
+
+    function forceAllPagesVisible() {
+        document.querySelectorAll('.doc-page').forEach(function (el) {
+            el.style.setProperty('display',    'block',   'important');
+            el.style.setProperty('opacity',    '1',       'important');
+            el.style.setProperty('visibility', 'visible', 'important');
+            el.style.setProperty('position',   'relative','important');
+            el.style.setProperty('height',     'auto',    'important');
+        });
+        /* Make sure the savedDocsView never creeps back in */
+        var s = document.getElementById('savedDocsView');
+        if (s) s.style.setProperty('display', 'none', 'important');
+    }
+
+    /* ── 3. Load + render ── */
+    var params = new URLSearchParams(window.location.search);
+    var docId  = params.get('document_id');
+
+    async function loadAndRender() {
+        if (!docId) { showError('No document_id in the URL.'); return; }
+
+        try {
+            var API_BASE     = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '';
+            var CALENDAR_API = API_BASE + '/school-portal-calendar.php';
+
+            var res = await fetch(
+                CALENDAR_API + '?document_id=' + encodeURIComponent(docId) + '&include_payload=1',
+                { credentials: 'include' }
+            );
+            if (res.status === 401) { window.location.href = 'school-portal.html'; return; }
+
+            var json = await res.json();
+            if (!json.success) throw new Error(json.message || 'Failed to load document.');
+
+            var doc  = (json.data && json.data.document) ? json.data.document : {};
+            var hpl  = (doc.payload && typeof doc.payload === 'object')
+                       ? Object.assign({}, doc.payload) : {};
+            if (!hpl.active_tab && doc.active_tab) hpl.active_tab = doc.active_tab;
+
+            /* Update banner text */
+            var title = doc.title || (hpl.form && hpl.form.f_school_name) || 'Submitted Calendar';
+            document.getElementById('bannerDocTitle').textContent = title;
+            document.title = 'QATALYST \u2013 ' + title;
+
+            /* Hydrate all preview fields */
+            if (typeof hydrateCalendarFromPayload === 'function') {
+                hydrateCalendarFromPayload(hpl);
+            }
+
+            /* Ensure supporting uploads load for the submitted document so
+               the Checklist page shows uploaded files (View/Remove buttons). */
+            try {
+                if (typeof window !== 'undefined' && doc && doc.id) {
+                    // Expose the id the builder code expects
+                    window.currentCalendarDocumentId = doc.id;
+                    if (typeof loadSupportingUploads === 'function') {
+                        // force reload then render checklist fields
+                        loadSupportingUploads(true).then(function() {
+                            if (typeof renderChecklistFormFields === 'function') renderChecklistFormFields();
+                        }).catch(function() {});
+                    }
+                }
+            } catch (e) { /* ignore */ }
+
+            /* Apply edit request status badge */
+            var editStatus = doc.edit_request_status || null;
+            if (typeof window.__applyEditRequestStatus === 'function') {
+                window.__applyEditRequestStatus(editStatus);
+            }
+
+            /* Force visibility — do it now and again after any delayed renders */
+            forceAllPagesVisible();
+            setTimeout(forceAllPagesVisible, 300);
+            setTimeout(forceAllPagesVisible, 800);
+            setTimeout(forceAllPagesVisible, 1500);
+
+            /* Dismiss loader */
+            document.getElementById('viewLoader').style.display = 'none';
+
+        } catch (err) {
+            showError(err.message || 'Could not load the submitted calendar document.');
+        }
+    }
+
+    /* ── Export button loading states ──
+       Functions are resolved at click time (not setup time) so there is no
+       race condition with school-portal-calendar.js finishing its parse. */
+    function wrapExportBtn(btnId, fnName) {
+        var btn = document.getElementById(btnId);
+        if (!btn) return;
+        btn.addEventListener('click', async function () {
+            var exportFn = window[fnName];
+            if (typeof exportFn !== 'function') {
+                alert('Export is not available yet. Please wait a moment and try again.');
+                return;
+            }
+            var origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating\u2026';
+            try { await exportFn(); } catch (e) { console.error(e); }
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        });
+    }
+
+    /* ── Request Edit ── */
+    (function initRequestEdit() {
+        var overlay  = document.getElementById('reqEditOverlay');
+        var textarea = document.getElementById('reqEditReason');
+        var charCnt  = document.getElementById('reqCharCount');
+        var btnOpen  = document.getElementById('btnRequestEdit');
+        var btnCancel= document.getElementById('reqEditCancel');
+        var btnSubmit= document.getElementById('reqEditSubmit');
+        var badge    = document.getElementById('reqEditStatusBadge');
+        var badgeText= document.getElementById('reqEditStatusText');
+
+        if (!btnOpen) return;
+
+        /* ── helpers ── */
+        function openModal()  { overlay.classList.add('open');  textarea.focus(); }
+        function closeModal() { overlay.classList.remove('open'); }
+
+        function setBadge(status) {
+            if (!badge || !status || status === 'none') { badge.classList.remove('visible','pending','approved','denied'); return; }
+            badge.classList.remove('pending','approved','denied');
+            badge.classList.add('visible');
+            if (status === 'pending') {
+                badge.classList.add('pending');
+                badgeText.textContent = 'Edit Requested';
+                btnOpen.disabled = true;
+                btnOpen.title    = 'An edit request is already pending review.';
+            } else if (status === 'approved') {
+                badge.classList.add('approved');
+                badgeText.textContent = 'Edit Approved';
+                btnOpen.style.display = 'none';
+            } else if (status === 'denied') {
+                badge.classList.add('denied');
+                badgeText.textContent = 'Edit Denied';
+            }
+        }
+
+        /* ── expose so loadAndRender can call it after hydration ── */
+        window.__applyEditRequestStatus = function(editRequestStatus) {
+            setBadge(editRequestStatus);
+        };
+
+        /* ── char counter ── */
+        textarea.addEventListener('input', function() {
+            charCnt.textContent = textarea.value.length;
+        });
+
+        /* ── open / close ── */
+        btnOpen.addEventListener('click', openModal);
+        btnCancel.addEventListener('click', closeModal);
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) closeModal();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        /* ── submit ── */
+        btnSubmit.addEventListener('click', async function() {
+            var params = new URLSearchParams(window.location.search);
+            var docId  = params.get('document_id');
+            if (!docId) { alert('Cannot determine document ID.'); return; }
+
+            var API_BASE     = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '';
+            var CALENDAR_API = API_BASE + '/school-portal-calendar.php';
+
+            var origHtml = btnSubmit.innerHTML;
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting…';
+
+            try {
+                var res = await fetch(CALENDAR_API, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        calendar_document_id: parseInt(docId, 10),
+                        reason: textarea.value.trim(),
+                        action: 'request_edit'
+                    })
+                });
+                var json = await res.json();
+                if (!json.success) throw new Error(json.message || 'Request failed.');
+
+                closeModal();
+                textarea.value = '';
+                charCnt.textContent = '0';
+                setBadge('pending');
+
+                /* Inline toast */
+                var toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#0a1f3d;color:#fff;padding:12px 22px;border-radius:10px;font-family:var(--font);font-size:13.5px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:99999;display:flex;align-items:center;gap:10px;';
+                toast.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#6ee7b7;font-size:16px;"></i> Edit request submitted successfully. SDO will review and notify you.';
+                document.body.appendChild(toast);
+                setTimeout(function() { toast.remove(); }, 5000);
+
+            } catch(err) {
+                alert('Could not submit edit request: ' + (err.message || 'Unknown error.'));
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = origHtml;
+            }
+        });
+    })();
+
+    /* Run after current event loop tick so all JS is settled */
+    setTimeout(function () {
+        wrapExportBtn('btnExportPdf',  'exportCalendarPDF');
+        wrapExportBtn('btnExportWord', 'exportCalendarWord');
+        loadAndRender();
+    }, 50);
+
+    /* Documents modal wiring */
+    function formatBytes(n) { if (!n && n !== 0) return ''; if (n < 1024) return n + ' B'; if (n < 1024*1024) return Math.round(n/1024) + ' KB'; return (n/(1024*1024)).toFixed(1) + ' MB'; }
+    function formatDateIso(iso) { try { return new Date(iso).toLocaleString(); } catch { return iso || ''; } }
+
+    async function fetchSupportingDocuments(docId) {
+        var API_BASE     = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '';
+        var CALENDAR_API = API_BASE + '/school-portal-calendar.php';
+        try {
+            var res = await fetch(CALENDAR_API + '?action=get_supporting_uploads&calendar_document_id=' + encodeURIComponent(docId), { credentials: 'include' });
+            var json = await res.json();
+            if (!json.success) throw new Error(json.message || 'Failed to load supporting documents.');
+            return json.data?.items || [];
+        } catch (e) {
+            console.warn('Could not fetch supporting docs:', e);
+            throw e;
+        }
+    }
+
+    function openDocInNewTab(docId, slug) {
+        var API_BASE     = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '';
+        var CALENDAR_API = API_BASE + '/school-portal-calendar.php';
+        var url = CALENDAR_API + '?action=download_supporting_upload&calendar_document_id=' + encodeURIComponent(docId) + '&slug=' + encodeURIComponent(slug);
+        window.open(url, '_blank');
+    }
+
+    function showSupportingDocsModal(docId) {
+        var overlay = document.getElementById('docsModalOverlay');
+        var body = document.getElementById('docsModalBody');
+        if (!overlay || !body) return;
+        overlay.style.display = 'flex';
+        try { overlay.dataset.docId = String(docId); } catch (e) { /* ignore */ }
+        body.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280">Loading…</div>';
+        fetchSupportingDocuments(docId).then(function(items) {
+            if (!items || !items.length) {
+                body.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280">No supporting documents uploaded for this submission.</div>';
+                return;
+            }
+            var html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+            items.forEach(function(it) {
+                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border:1px solid #eef2f7;border-radius:8px;">'
+                     + '<div style="display:flex;gap:12px;align-items:center;min-width:0">'
+                     + '<i class="fa-solid ' + (it.icon || 'fa-file') + '" style="font-size:20px;color:#0a1f3d"></i>'
+                     + '<div style="min-width:0">'
+                     + '<div style="font-weight:700;color:#0a1f3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px">' + (it.label ? escapeHtml(it.label) : escapeHtml(it.slug)) + '</div>'
+                     + '<div style="font-size:13px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px">' + escapeHtml(it.original_filename || '') + (it.file_size ? ' · ' + formatBytes(it.file_size) : '') + (it.uploaded_at ? ' · ' + formatDateIso(it.uploaded_at) : '') + '</div>'
+                     + '</div></div>'
+                     + '<div style="display:flex;gap:8px">'
+                     + '<button type="button" class="docs-view-btn" data-slug="' + escapeHtml(it.slug) + '" style="padding:8px 10px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;cursor:pointer"><i class="fa-solid fa-eye"></i> View</button>'
+                     + '</div></div>';
+            });
+            html += '</div>';
+            body.innerHTML = html;
+        }).catch(function(err){
+            body.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444">Could not load documents.</div>';
+        });
+    }
+
+    function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+    // Wire button and modal close after DOM ready
+    document.addEventListener('click', function(e) {
+        var t = e.target;
+        // Open Documents modal
+        if (t && t.id === 'btnViewDocs') {
+            var params = new URLSearchParams(window.location.search);
+            var docId = params.get('document_id') || (window.currentCalendarDocumentId ? String(window.currentCalendarDocumentId) : null);
+            if (!docId) { alert('Document ID not found.'); return; }
+            showSupportingDocsModal(docId);
+            return;
+        }
+
+        // Close modal
+        if (t && t.id === 'docsModalClose') {
+            var overlay = document.getElementById('docsModalOverlay'); if (overlay) overlay.style.display = 'none';
+            return;
+        }
+
+        // Delegated handler for View buttons inside the modal
+        var viewBtn = t.closest && t.closest('.docs-view-btn') ? t.closest('.docs-view-btn') : (t.classList && t.classList.contains('docs-view-btn') ? t : null);
+        if (viewBtn) {
+            var overlay = document.getElementById('docsModalOverlay');
+            var docId = (overlay && overlay.dataset && overlay.dataset.docId) ? overlay.dataset.docId : (new URLSearchParams(window.location.search)).get('document_id');
+            var slug = viewBtn.dataset && viewBtn.dataset.slug ? viewBtn.dataset.slug : null;
+            if (!docId || !slug) { alert('Missing document id or file slug.'); return; }
+            openDocInNewTab(docId, slug);
+            return;
+        }
+    });
+
+})();
+</script>
+
+</body>
+</html>

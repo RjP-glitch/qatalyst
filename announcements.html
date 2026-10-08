@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - Announcements</title>
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/dashboard.css?v5">
+    <link rel="stylesheet" href="css/programs.css">
+    <link rel="stylesheet" href="css/notifications.css?v2">
+    <link rel="stylesheet" href="css/manual-help-btn.css">
+    <link rel="stylesheet" href="css/announcements.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="main-container">
+        <!-- ── Sidebar (copied from dashboard.html — keep in sync) ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><i class="fa-solid fa-award nav-icon"></i><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><i class="fa-solid fa-magnifying-glass-chart nav-icon"></i><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn active" onclick="navigate('announcements')">
+                    <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- ── Main Content ── -->
+        <div class="main-content">
+
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-bullhorn"></i> Announcements</h1>
+                    <p>Create and manage announcements for SDO staff and school portal users</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="manual-help-btn" type="button" onclick="window.location.href='user-manual.html'">
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="dashboard-content">
+
+                <!-- Toolbar -->
+                <div class="ann-toolbar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="searchInput" placeholder="Search announcements..." oninput="renderTable()">
+                    </div>
+
+                    <select class="filter-select" id="statusFilter" onchange="renderTable()">
+                        <option value="">All Statuses</option>
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                        <option value="archived">Archived</option>
+                    </select>
+
+                    <select class="filter-select" id="audienceFilter" onchange="renderTable()">
+                        <option value="">All Audiences</option>
+                        <option value="all">All (SDO + School)</option>
+                        <option value="sdo_only">SDO Only</option>
+                        <option value="school_only">School Portal Only</option>
+                    </select>
+
+                    <button class="btn-primary" onclick="openCreateModal()">
+                        <i class="fa-solid fa-plus"></i> New Announcement
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:36px;"></th>
+                                <th>Title</th>
+                                <th>Audience</th>
+                                <th>Status</th>
+                                <th>Schedule</th>
+                                <th>Created By</th>
+                                <th style="width:150px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="annTableBody">
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <i class="fa-solid fa-spinner fa-spin"></i>
+                                        <p>Loading announcements...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Create/Edit Modal ── -->
+    <div class="modal" id="annModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="annModalTitle">New Announcement</h2>
+                <button class="close-btn" onclick="closeAnnModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="annForm" onsubmit="return false;">
+                    <input type="hidden" id="annId">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="annTitle">Title</label>
+                            <input type="text" id="annTitle" maxlength="255" required placeholder="e.g. Schedule of Regional QATAME Visits">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="annBody">Message</label>
+                            <textarea id="annBody" required placeholder="Write the announcement details here..." style="min-height:140px;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="annAudience">Audience</label>
+                            <select id="annAudience">
+                                <option value="all">All (SDO + School Portal)</option>
+                                <option value="sdo_only">SDO Only</option>
+                                <option value="school_only">School Portal Only</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="annStatus">Status</label>
+                            <select id="annStatus">
+                                <option value="draft">Draft</option>
+                                <option value="published">Published</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="annStartsAt">Starts (optional)</label>
+                            <input type="datetime-local" id="annStartsAt">
+                            <span class="field-hint">Leave blank to show immediately once published</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="annExpiresAt">Expires (optional)</label>
+                            <input type="datetime-local" id="annExpiresAt">
+                            <span class="field-hint">Leave blank to never expire</span>
+                        </div>
+                        <div class="form-group full-width">
+                            <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+                                <input type="checkbox" id="annPinned" style="width:auto;">
+                                Pin to top
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeAnnModal()">Cancel</button>
+                <button class="btn-submit" id="annSubmitBtn" onclick="submitAnnouncement()">
+                    <i class="fa-solid fa-check"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v6"></script>
+    <script src="js/announcements.js?v10"></script>
+</body>
+
+</html>

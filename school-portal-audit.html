@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="robots" content="noindex, nofollow" />
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+	<meta http-equiv="Pragma" content="no-cache" />
+	<meta http-equiv="Expires" content="0" />
+	<title>QATALYST - School Portal Audit Logs</title>
+	<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap"
+		rel="stylesheet" />
+	<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+	<link rel="stylesheet" href="css/school-portal-dashboard.css?v2" />
+	<link rel="stylesheet" href="css/school-portal-audit.css" />
+</head>
+
+<body>
+	<div class="loading-overlay" id="loadingOverlay">
+		<div class="loading-spinner"></div>
+	</div>
+
+	<div class="main-container">
+		<aside class="sidebar" id="sidebar">
+			<div class="logo-section">
+				<div class="logo-icon">Q</div>
+				<div class="logo-text">
+					<h1>QATALYST</h1>
+					<p>School Portal</p>
+				</div>
+			</div>
+
+			<div class="school-pill-sidebar">
+				<div class="school-pill-label">Your School</div>
+				<div class="school-pill-name" id="sidebarSchoolName">Loading...</div>
+				<div class="school-pill-dist" id="sidebarDistrict">-</div>
+			</div>
+
+			<nav class="nav-menu">
+                <div class="nav-section-label">Main</div>
+                <button class="nav-btn" data-portal-nav="dashboard" onclick="window.location.href='school-portal-dashboard.html'">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="nav-btn" data-portal-nav="submissions" onclick="window.location.href='school-portal-submissions.html'">
+                    <i class="fa-solid fa-folder-open nav-icon"></i><span>My Submissions</span>
+                    <span class="nav-badge" id="pendingBadge" style="display:none;"></span>
+                </button>
+                <button class="nav-btn" data-portal-nav="tracker" onclick="window.location.href='school-portal-tracker.html'">
+                    <i class="fa-solid fa-chart-gantt nav-icon"></i><span>Document Tracker</span>
+                </button>
+    
+                <div class="nav-section-label">Tools</div>
+                <button class="nav-btn" data-portal-nav="calendar" onclick="window.location.href='school-portal-calendar.html'">
+                    <i class="fa-solid fa-calendar-days nav-icon"></i><span>School Calendar</span>
+                </button>
+                <button class="nav-btn" data-portal-nav="tuition" onclick="window.location.href='school-portal-tuition.html'">
+                    <i class="fa-solid fa-file-invoice-dollar nav-icon"></i><span>School Tuition Fee</span>
+    			</button>
+    			<button class="nav-btn" data-portal-nav="permit" onclick="window.location.href='school-portal-permit.html'">
+                    <i class="fa-solid fa-file-shield nav-icon"></i><span>School Permit</span>
+                </button>
+    
+                <div class="nav-section-label">Account</div>
+                <button class="nav-btn active" data-portal-nav="audit" onclick="window.location.href='school-portal-audit.html'">
+    				<i class="fa-solid fa-clipboard-list nav-icon"></i>
+    				<span>Audit Logs</span>
+    			</button>
+                <button class="nav-btn" data-portal-nav="profile" onclick="window.location.href='school-portal-profile.html'">
+                    <i class="fa-solid fa-user-circle nav-icon"></i><span>Profile</span>
+                </button>
+            </nav>
+
+			<div class="user-info-sidebar">
+				<div class="user-avatar-sidebar" id="sidebarAvatar">?</div>
+				<div class="user-details">
+					<h3 id="sidebarName">Loading...</h3>
+					<p id="sidebarRole">-</p>
+				</div>
+			</div>
+			<button class="sidebar-logout-btn" onclick="handleLogout()">
+				<i class="fa-solid fa-right-from-bracket"></i>
+				<span>Logout</span>
+			</button>
+		</aside>
+
+		<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+		<div class="main-content">
+			<div class="page-header">
+				<div class="page-header-left">
+					<h1><i class="fa-solid fa-clipboard-list"></i> Audit Logs</h1>
+					<p>View your recent activity in the school portal.</p>
+				</div>
+				<div class="page-header-right">
+					<button class="mobile-menu-btn" onclick="toggleSidebar()">
+						<i class="fa-solid fa-bars"></i>
+					</button>
+				</div>
+			</div>
+
+			<div class="dashboard-content">
+				<div class="portal-audit-note">
+					This page shows your recent portal activity. For full audit exports, contact an administrator.
+				</div>
+
+				<div class="portal-audit-filters">
+					<div class="portal-filter-grid">
+						<div class="portal-filter-field">
+							<label for="portalAuditSearch">Search</label>
+							<input id="portalAuditSearch" type="search"
+								placeholder="Search action, module, description" />
+						</div>
+						<div class="portal-filter-field">
+							<label for="portalAuditAction">Action</label>
+							<input id="portalAuditAction" type="text" list="portalAuditActionList"
+								placeholder="save_calendar" />
+							<datalist id="portalAuditActionList">
+								<option value="view_dashboard"></option>
+								<option value="view_submissions"></option>
+								<option value="upload_document"></option>
+								<option value="submit_document"></option>
+								<option value="resubmit_document"></option>
+								<option value="save_calendar"></option>
+								<option value="submit_calendar"></option>
+								<option value="resubmit_calendar"></option>
+								<option value="open_calendar_builder"></option>
+								<option value="delete_calendar_document"></option>
+								<option value="print_calendar"></option>
+								<option value="download_calendar_docx"></option>
+								<option value="update_profile"></option>
+								<option value="login"></option>
+								<option value="logout"></option>
+							</datalist>
+						</div>
+						<div class="portal-filter-field">
+							<label for="portalAuditStatus">Status</label>
+							<select id="portalAuditStatus">
+								<option value="">All statuses</option>
+								<option value="success">success</option>
+								<option value="failed">failed</option>
+								<option value="pending">pending</option>
+								<option value="blocked">blocked</option>
+							</select>
+						</div>
+						<div class="portal-filter-field">
+							<label for="portalAuditFrom">From</label>
+							<input id="portalAuditFrom" type="date" />
+						</div>
+						<div class="portal-filter-field">
+							<label for="portalAuditTo">To</label>
+							<input id="portalAuditTo" type="date" />
+						</div>
+						<div class="portal-filter-field">
+							<label for="portalAuditLimit">Rows</label>
+							<select id="portalAuditLimit">
+								<option value="25">25</option>
+								<option value="50" selected>50</option>
+								<option value="100">100</option>
+							</select>
+						</div>
+					</div>
+					<div class="portal-filter-actions">
+						<button class="btn-primary" id="portalAuditApply">
+							<i class="fa-solid fa-filter"></i> Apply
+						</button>
+						<button class="btn-outline" id="portalAuditReset">
+							<i class="fa-solid fa-rotate-left"></i> Reset
+						</button>
+					</div>
+				</div>
+
+				<div class="dash-card table-card">
+					<div class="dash-card-header">
+						<h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity</h3>
+					</div>
+					<div class="dash-card-body" style="padding: 0">
+						<div class="table-scroll">
+							<table class="portal-audit-table">
+								<thead>
+									<tr>
+										<th>Timestamp</th>
+										<th>Action</th>
+										<th>Module</th>
+										<th>Status</th>
+										<th>Document</th>
+										<th>File</th>
+										<th>Description</th>
+									</tr>
+								</thead>
+								<tbody id="portalAuditBody">
+									<tr>
+										<td colspan="7">
+											<div class="portal-audit-empty">
+												<i class="fa-solid fa-spinner fa-spin"></i>
+												<p>Loading activity...</p>
+											</div>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<div class="pagination" id="portalAuditPagination">
+							<div class="portal-audit-pagination-info"></div>
+							<div class="pagination-buttons portal-audit-pagination-buttons"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="js/config.js?v4"></script>
+	<script src="js/school-portal-permissions.js"></script>
+	<script src="js/school-portal-audit.js?v4"></script>
+</body>
+
+</html>

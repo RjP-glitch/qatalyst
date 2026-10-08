@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - Activity Summary Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/program-summary.css?v4">
+    <link rel="stylesheet" href="css/notifications.css?v2">
+    <link rel="stylesheet" href="css/manual-help-btn.css">
+    <!-- docx export library -->
+    <script src="https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js"
+        integrity="sha384-zjTqOObJTD6OT6CUn8mSpDY+crIiP0cX457OjcZosSATiUFbmdXa9KRScjfLVxFH"
+        crossorigin="anonymous"></script>
+    <!-- xlsx-js-style for potential Excel use -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <!-- Chart.js for graph summary -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <noscript>
+        <div style="padding:40px;text-align:center;font-family:sans-serif;background:#fef2f2;color:#991b1b;">
+            <h2>JavaScript Required</h2>
+            <p>This application requires JavaScript to function. Please enable JavaScript in your browser settings and
+                reload the page.</p>
+        </div>
+    </noscript>
+
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <!-- Mobile sidebar backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-chart-bar"></i> Activity Summary Report</h1>
+                    <p>Overview of programs, workshops, participation, and quarterly breakdown</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="btn-back" type="button" onclick="navigateBack()">
+                        <i class="fa-solid fa-arrow-left"></i><span>Back to Programs</span>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()"
+                        aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+                </div>
+            </div>
+
+            <!-- Summary Report Content -->
+            <div class="summary-page-body">
+                <!-- Filter Bar -->
+                <div class="summary-filter-bar">
+                    <div class="filter-group">
+                        <label for="summaryQuarterFilter"><i class="fa-solid fa-filter"></i> Filter by Quarter</label>
+                        <select id="summaryQuarterFilter">
+                            <option value="all">1st-4th Quarter (Overall)</option>
+                            <option value="1">1st Quarter</option>
+                            <option value="2">2nd Quarter</option>
+                            <option value="3">3rd Quarter</option>
+                            <option value="4">4th Quarter</option>
+                        </select>
+                        <button class="btn-export-word" type="button" onclick="exportSummaryReportToWord()" id="exportWordBtn">
+                            <i class="fa-solid fa-file-word"></i><span>Export Word</span>
+                        </button>
+                    </div>
+                    
+                    <div id="summaryFilterInfo" class="filter-info"></div>
+                </div>
+
+                <!-- Report Content Area -->
+                <div id="summaryReportContent" class="summary-content-area">
+                    <div class="summary-loading">
+                        <div class="loading-spinner-sm"></div>
+                        <p>Loading summary report...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Custom Confirm Dialog ── -->
+    <div id="customConfirmModal" style="
+        display:none;position:fixed;inset:0;z-index:99999;
+        background:rgba(0,0,0,0.55);backdrop-filter:blur(3px);
+        align-items:center;justify-content:center;">
+        <div style="
+            background:#fff;border-radius:16px;padding:32px 28px;
+            max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.25);
+            animation:slideUpFade .2s ease;">
+            <div id="ccmIcon" style="
+                width:52px;height:52px;border-radius:50%;
+                display:flex;align-items:center;justify-content:center;
+                margin:0 auto 16px;font-size:22px;"></div>
+            <h3 id="ccmTitle" style="
+                margin:0 0 10px;font-size:17px;font-weight:700;
+                color:#1e293b;text-align:center;"></h3>
+            <p id="ccmMessage" style="
+                margin:0 0 24px;font-size:14px;color:#475569;
+                text-align:center;line-height:1.6;"></p>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button id="ccmCancel" style="
+                    flex:1;padding:10px 0;border-radius:8px;border:1.5px solid #e2e8f0;
+                    background:#f8fafc;color:#64748b;font-weight:600;font-size:14px;
+                    cursor:pointer;transition:all .15s;">Cancel</button>
+                <button id="ccmConfirm" style="
+                    flex:1;padding:10px 0;border-radius:8px;border:none;
+                    background:#dc2626;color:#fff;font-weight:600;font-size:14px;
+                    cursor:pointer;transition:all .15s;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Toast Notification ── -->
+    <div id="toastNotif" style="
+        position:fixed;bottom:28px;right:28px;z-index:99998;
+        display:flex;align-items:center;gap:12px;
+        padding:14px 20px;border-radius:12px;
+        box-shadow:0 8px 30px rgba(0,0,0,0.15);
+        font-size:14px;font-weight:500;color:#fff;
+        opacity:0;transform:translateY(12px);
+        transition:opacity .3s ease,transform .3s ease;
+        pointer-events:none;max-width:360px;">
+        <i id="toastIcon" class="fas"></i>
+        <span id="toastText"></span>
+    </div>
+
+    <style>
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <!-- Application Scripts -->
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v6"></script>
+    <script src="js/program-summary.js?v7"></script>
+</body>
+
+</html>

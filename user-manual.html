@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - User Manual</title>
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/dashboard.css?v4" />
+    <link rel="stylesheet" href="css/manual-help-btn.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+            /* ── Scrollbar ── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        
+        .manual-wrap {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            overflow-y: auto;
+        }
+
+        .content-note {
+            padding: 10px 14px;
+            background: #eff6ff;
+            border-bottom: 1px solid #dbeafe;
+            color: #1d4ed8;
+            font-size: 0.86rem;
+            font-weight: 600;
+        }
+
+        .manual-content {
+            padding: 18px;
+            line-height: 1.65;
+            font-size: 0.95rem;
+            color: #0f172a;
+        }
+
+        .manual-content h1,
+        .manual-content h2,
+        .manual-content h3 {
+            margin-top: 22px;
+            margin-bottom: 8px;
+            line-height: 1.3;
+            color: #0f172a;
+        }
+
+        .manual-content h1 {
+            font-size: 1.46rem;
+            margin-top: 4px;
+        }
+
+        .manual-content h2 {
+            font-size: 1.17rem;
+        }
+
+        .manual-content h3 {
+            font-size: 1rem;
+        }
+
+        .manual-content p {
+            margin: 8px 0;
+        }
+
+        .manual-content ul,
+        .manual-content ol {
+            margin: 8px 0 12px 22px;
+            padding: 0;
+        }
+
+        .manual-content li {
+            margin: 4px 0;
+        }
+
+        .manual-content code {
+            background: #eef2ff;
+            border: 1px solid #dbeafe;
+            border-radius: 6px;
+            padding: 1px 5px;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.88em;
+        }
+
+        .manual-figure {
+            margin: 16px 0;
+        }
+
+        .manual-figure img {
+            max-width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .manual-figure figcaption {
+            font-size: 0.82rem;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+
+        .error {
+            color: #b91c1c;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-weight: 600;
+        }
+        
+        .page-header-left h1 i { color: #f5d800; margin-right: 7px;}
+    </style>
+</head>
+
+<body>
+    <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+        <div class="loading-spinner"></div>
+    </div>
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn active" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1 id="manualTitle"><i class="fa-solid fa-book-open"></i>User Manual</h1>
+                    <p id="manualSubtitle">Practical guide for daily system usage and workflows.</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="manual-help-btn" type="button" onclick="window.location.href='user-manual.html?view=full'">
+                        <i class="fa-solid fa-layer-group"></i><span>Full Manual</span>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()"
+                        aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+                </div>
+            </div>
+
+            <section class="manual-wrap" aria-live="polite">
+                <div class="content-note" id="manualContext">Source: USER_MANUAL.md</div>
+                <article id="manualContent" class="manual-content">
+                    <p>Loading manual...</p>
+                </article>
+            </section>
+        </div>
+    </div>
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script>
+        const API_URL = (window.CONFIG && typeof CONFIG.API_URL === 'string' && CONFIG.API_URL)
+            ? CONFIG.API_URL
+            : (function () {
+                // Resolve /api relative to the current page so this works in any subfolder
+                // (e.g. /public_html/, /qatalyst/, or domain root deployments).
+                try {
+                    return new URL('api', window.location.href).toString().replace(/\/$/, '');
+                } catch (_) {
+                    return window.location.origin + '/api';
+                }
+            })();
+        const expandedMenus = {};
+
+        const SECTION_DEFINITIONS = [
+            {
+                id: 'dashboard',
+                page: 'dashboard.html',
+                heading: /dashboard quick use/i,
+                title: 'Dashboard Help',
+                subtitle: 'Focused guide for dashboard mechanics.'
+            },
+            {
+                id: 'programs',
+                page: 'programs.html',
+                heading: /programs and workshops workflow/i,
+                title: 'Programs / Workshops Help',
+                subtitle: 'Focused guide for creating and managing workshop workflows.'
+            },
+            {
+                id: 'certificates',
+                page: 'certificate.html',
+                heading: /^certificates$/i,
+                title: 'Certificates Help',
+                subtitle: 'Focused guide for generating and managing certificates.'
+            },
+            {
+                id: 'certificates',
+                page: 'certificates-splitter.html',
+                heading: /^certificates$/i,
+                title: 'Certificates Help',
+                subtitle: 'Focused guide for generating and splitting certificate files.'
+            },
+            {
+                id: 'checklist',
+                page: 'checklist.html',
+                heading: /^checklist$/i,
+                title: 'Checklist Help',
+                subtitle: 'Focused guide for checklist validation workflows.'
+            },
+            {
+                id: 'school-submissions',
+                page: 'documents-submitted-all.html',
+                heading: /^school submissions/i,
+                title: 'School Submissions Help',
+                subtitle: 'Focused guide for reviewing and updating school submissions.'
+            },
+            {
+                id: 'directory',
+                page: 'directory.html',
+                heading: /^directory$/i,
+                title: 'Directory Help',
+                subtitle: 'Focused guide for directory records and contact listings.'
+            },
+            {
+                id: 'audit-logs',
+                page: 'audit-logs.html',
+                heading: /^audit logs$/i,
+                title: 'Audit Logs Help',
+                subtitle: 'Focused guide for reviewing system activity.'
+            },
+            {
+                id: 'settings',
+                page: 'main-settings.html',
+                heading: /^settings$/i,
+                title: 'Settings Help',
+                subtitle: 'Focused guide for account and security preferences.'
+            },
+            {
+                id: 'user-management',
+                page: 'user-management.html',
+                heading: /^user management/i,
+                title: 'User Management Help',
+                subtitle: 'Focused guide for user account and permission controls.'
+            },
+            {
+                id: 'speaker-roster',
+                page: 'speaker-roster.html',
+                heading: /^speaker roster$/i,
+                title: 'Speaker Roster Help',
+                subtitle: 'Focused guide for speaker performance and ranking views.'
+            },
+            {
+                id: 'import',
+                page: 'import-excell.html',
+                heading: /^import excel$/i,
+                title: 'Import Excel Help',
+                subtitle: 'Focused guide for bulk import and column mapping.'
+            },
+            {
+                id: 'workshop-dashboard',
+                page: 'workshop-dashboard.html',
+                heading: /^workshop dashboard$/i,
+                title: 'Workshop Dashboard Help',
+                subtitle: 'Focused guide for workshop-level status monitoring.'
+            },
+            {
+                id: 'program-summary',
+                page: 'program-summary.html',
+                heading: /^activity summary report$/i,
+                title: 'Activity Summary Report Help',
+                subtitle: 'Focused guide for quarterly summary reporting.'
+            },
+            {
+                id: 'schools-submissions-summary',
+                page: 'schools-submissions-summary.html',
+                heading: /^schools submissions summary$/i,
+                title: 'Schools Submissions Summary Help',
+                subtitle: 'Focused guide for school submissions summary reporting.'
+            }
+        ];
+
+        const MANUAL_PAGE_PERMISSIONS = {
+            'dashboard.html': 'dashboard',
+            'programs.html': 'programs',
+            'certificate.html': 'certificates',
+            'certificates-splitter.html': 'certificates',
+            'checklist.html': 'checklist',
+            'directory.html': 'directory',
+            'main-settings.html': 'settings',
+            'user-management.html': 'users',
+            'speaker-roster.html': 'speakers',
+            'import-excell.html': 'programs',
+            'workshop-dashboard.html': 'programs',
+            'documents-submitted-all.html': 'school_submissions',
+            'audit-logs.html': 'audit_logs',
+            'program-summary.html': 'programs',
+            'schools-submissions-summary.html': 'checklist'
+        };
+
+        function setText(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        function hasSectionAccess(section) {
+            const required = MANUAL_PAGE_PERMISSIONS[section.page];
+            if (!required) return false;
+            if (typeof Permissions === 'undefined') return true;
+            return Permissions.has(required);
+        }
+
+        function getAllowedSections() {
+            return SECTION_DEFINITIONS.filter(section => hasSectionAccess(section));
+        }
+
+        function clearSessionAndRedirect() {
+            ['user_id', 'email', 'full_name', 'role', 'permissions', 'account_type']
+                .forEach((k) => localStorage.removeItem(k));
+            window.location.replace('login.html');
+        }
+
+        function navigate(sectionName) {
+        	const routes = {
+        		dashboard: 'dashboard.html',
+        		programs: 'qatame.html',
+        		qatame: 'qatame.html',
+        		qms: 'qms.html',
+        		sbm: 'sbm.html',
+        		sgc: 'sgc.html',
+        		sdopir: 'sdopir.html',
+        		spir: 'spir.html',
+        		importfile: 'import-excell.html',
+        		speakers: 'speaker-roster.html',
+        		certificates: 'certificate.html',
+        		certificatesplitter: 'certificates-splitter.html',
+        		checklist: 'checklist.html',
+        		documentssubmittedall: 'documents-submitted-all.html',
+        		settings: 'main-settings.html',
+        		users: 'user-management.html',
+        		directory: 'directory.html',
+        		auditlogs: 'audit-logs.html',
+        		announcements: 'announcements.html'
+        	};
+        	if (routes[sectionName]) {
+        		closeMobileSidebar();
+        		window.location.href = routes[sectionName];
+        	}
+        }
+
+        // Sets a submenu's max-height to its actual content height (when expanded)
+        // or 0 (when collapsed), using an inline !important style so it always wins
+        // over the CSS fallback (.submenu.expanded { max-height: 300px }), which is
+        // too small once nested submenus are open.
+        function setSubmenuHeight(submenu) {
+            if (!submenu) return;
+            if (submenu.classList.contains('expanded')) {
+                submenu.style.setProperty('max-height', submenu.scrollHeight + 'px', 'important');
+            } else {
+                submenu.style.setProperty('max-height', '0px', 'important');
+            }
+        }
+        
+        // Walks up through any ancestor .submenu elements and, if they're expanded,
+        // recalculates their height so a nested submenu opening/closing doesn't get
+        // clipped by a parent submenu's own fixed max-height.
+        function updateAncestorSubmenuHeights(el) {
+            let parent = el.parentElement;
+            while (parent) {
+                if (parent.classList && parent.classList.contains('submenu')) {
+                    setSubmenuHeight(parent);
+                }
+                parent = parent.parentElement;
+            }
+        }
+        
+        function toggleSubmenu(menuName) {
+            expandedMenus[menuName] = !expandedMenus[menuName];
+            const submenu = document.getElementById(`${menuName}-submenu`);
+            const arrow = document.getElementById(`${menuName}-arrow`);
+            if (expandedMenus[menuName]) {
+                submenu.classList.add('expanded');
+                arrow.classList.add('rotate');
+                arrow.parentElement.classList.add('expanded');
+            } else {
+                submenu.classList.remove('expanded');
+                arrow.classList.remove('rotate');
+                arrow.parentElement.classList.remove('expanded');
+            }
+        
+            setSubmenuHeight(submenu);
+            updateAncestorSubmenuHeights(submenu);
+        
+            // The call above measures ancestor submenus' scrollHeight synchronously,
+            // in the same tick that this submenu's own max-height transition just
+            // started. At that instant the transition hasn't progressed yet, so any
+            // ancestor's scrollHeight is measured *before* this submenu has actually
+            // grown/shrunk - meaning the ancestor can get locked to a height that's
+            // too small (clipping later items) or briefly wrong. Once this submenu's
+            // own max-height transition finishes, re-measure the ancestors again so
+            // they end up sized to the real, final content height.
+            submenu.addEventListener('transitionend', function onDone(e) {
+                if (e.propertyName === 'max-height') {
+                    updateAncestorSubmenuHeights(submenu);
+                    submenu.removeEventListener('transitionend', onDone);
+                }
+            });
+        }
+
+        function toggleMobileSidebar() {
+            document.querySelector('.sidebar')?.classList.toggle('mobile-open');
+            document.getElementById('sidebarBackdrop')?.classList.toggle('open');
+        }
+
+        function closeMobileSidebar() {
+            document.querySelector('.sidebar')?.classList.remove('mobile-open');
+            document.getElementById('sidebarBackdrop')?.classList.remove('open');
+        }
+
+        function loadUserInfo(fullName, email, profilePicture) {
+            const nameValue = fullName || 'User';
+            const emailValue = email || '';
+            const avatar = document.getElementById('sidebarAvatar');
+
+            if (avatar) {
+                if (profilePicture) {
+                    avatar.innerHTML = '<img src="' + profilePicture + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Profile">';
+                } else {
+                    avatar.textContent = nameValue.charAt(0).toUpperCase();
+                }
+            }
+
+            setText('sidebarUserName', nameValue);
+            setText('sidebarUserEmail', emailValue);
+        }
+
+        async function checkAuthentication() {
+            const cachedUserId = localStorage.getItem('user_id');
+            let fullName = localStorage.getItem('full_name') || '';
+            let email = localStorage.getItem('email') || '';
+            let profilePicture = '';
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.style.display = 'flex';
+
+            try {
+                const res = await fetch(API_URL + '/main-settings.php', { credentials: 'include' });
+                if (!res.ok) {
+                    clearSessionAndRedirect();
+                    if (overlay) overlay.style.display = 'none';
+                    return false;
+                }
+
+                const json = await res.json();
+                if (!json.success || !json.data) {
+                    clearSessionAndRedirect();
+                    if (overlay) overlay.style.display = 'none';
+                    return false;
+                }
+
+                if (json.data.account_type === 'portal_user') {
+                    window.location.href = 'school-portal-dashboard.html';
+                    if (overlay) overlay.style.display = 'none';
+                    return false;
+                }
+
+                if (json.data.id) localStorage.setItem('user_id', String(json.data.id));
+                if (json.data.full_name) { fullName = json.data.full_name; localStorage.setItem('full_name', json.data.full_name); }
+                if (json.data.email) { email = json.data.email; localStorage.setItem('email', json.data.email); }
+                if (json.data.role) localStorage.setItem('role', json.data.role);
+                if (json.data.account_type) localStorage.setItem('account_type', json.data.account_type);
+                if (Array.isArray(json.data.permissions)) {
+                    localStorage.setItem('permissions', JSON.stringify(json.data.permissions));
+                }
+
+                profilePicture = json.data.profile_picture || '';
+            } catch (e) {
+                if (!cachedUserId) {
+                    clearSessionAndRedirect();
+                    if (overlay) overlay.style.display = 'none';
+                    return false;
+                }
+            }
+
+            if (typeof Permissions !== 'undefined') {
+                await Permissions.loadRolePermissions();
+                Permissions.applyNavPermissions();
+            }
+
+            loadUserInfo(fullName, email, profilePicture);
+            if (overlay) overlay.style.display = 'none';
+            return true;
+        }
+
+        async function logout() {
+            const btn = document.getElementById('logoutBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i><span>Logging out...</span>';
+            }
+
+            try {
+                await fetch(API_URL + '/logout.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+            } catch (e) {
+                // Ignore network errors and still clear local session state.
+            } finally {
+                clearSessionAndRedirect();
+            }
+        }
+
+        function escapeHtml(value) {
+            return value
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function renderInline(text) {
+            let html = escapeHtml(text);
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            return html;
+        }
+
+        function parseImageLine(line) {
+            // Matches: ![alt](src) or ![alt](src "caption")
+            const m = line.match(/^!\[([^\]]*)\]\(([^\s")]+)(?:\s+"([^"]*)")?\)$/);
+            if (!m) return null;
+            return { alt: m[1], src: m[2], caption: m[3] || m[1] };
+        }
+
+        function markdownToHtml(markdown) {
+            const lines = markdown.split(/\r?\n/);
+            const out = [];
+            let inUl = false;
+            let inOl = false;
+
+            function closeLists() {
+                if (inUl) {
+                    out.push('</ul>');
+                    inUl = false;
+                }
+                if (inOl) {
+                    out.push('</ol>');
+                    inOl = false;
+                }
+            }
+
+            for (const rawLine of lines) {
+                const line = rawLine.trim();
+
+                if (!line) {
+                    closeLists();
+                    continue;
+                }
+
+                if (line.startsWith('![')) {
+                    const img = parseImageLine(line);
+                    if (img) {
+                        closeLists();
+                        out.push(
+                            '<figure class="manual-figure">' +
+                            '<img src="' + escapeHtml(img.src) + '?v3" alt="' + escapeHtml(img.alt) + '" loading="lazy">' +
+                            (img.caption ? '<figcaption>' + escapeHtml(img.caption) + '</figcaption>' : '') +
+                            '</figure>'
+                        );
+                        continue;
+                    }
+                }
+
+                if (line.startsWith('### ')) {
+                    closeLists();
+                    out.push('<h3>' + renderInline(line.slice(4)) + '</h3>');
+                    continue;
+                }
+
+                if (line.startsWith('## ')) {
+                    closeLists();
+                    out.push('<h2>' + renderInline(line.slice(3)) + '</h2>');
+                    continue;
+                }
+
+                if (line.startsWith('# ')) {
+                    closeLists();
+                    out.push('<h1>' + renderInline(line.slice(2)) + '</h1>');
+                    continue;
+                }
+
+                if (line.startsWith('- ')) {
+                    if (inOl) {
+                        out.push('</ol>');
+                        inOl = false;
+                    }
+                    if (!inUl) {
+                        out.push('<ul>');
+                        inUl = true;
+                    }
+                    out.push('<li>' + renderInline(line.slice(2)) + '</li>');
+                    continue;
+                }
+
+                if (/^\d+\.\s+/.test(line)) {
+                    if (inUl) {
+                        out.push('</ul>');
+                        inUl = false;
+                    }
+                    if (!inOl) {
+                        out.push('<ol>');
+                        inOl = true;
+                    }
+                    out.push('<li>' + renderInline(line.replace(/^\d+\.\s+/, '')) + '</li>');
+                    continue;
+                }
+
+                closeLists();
+                out.push('<p>' + renderInline(line) + '</p>');
+            }
+
+            closeLists();
+            return out.join('');
+        }
+
+        function getReferrerPageName() {
+            if (!document.referrer) return '';
+            try {
+                const ref = new URL(document.referrer);
+                if (ref.origin !== window.location.origin) return '';
+                const parts = ref.pathname.split('/').filter(Boolean);
+                return (parts[parts.length - 1] || '').toLowerCase();
+            } catch {
+                return '';
+            }
+        }
+
+        function getHeadingText(line) {
+            return line.replace(/^#{1,6}\s+/, '').trim();
+        }
+
+        function extractSection(markdown, headingMatcher) {
+            const lines = markdown.split(/\r?\n/);
+            const headingPattern = /^(#{1,6})\s+(.+)$/;
+            let startIndex = -1;
+            let startLevel = 7;
+
+            for (let i = 0; i < lines.length; i += 1) {
+                const m = lines[i].match(headingPattern);
+                if (!m) continue;
+                const heading = getHeadingText(lines[i]);
+                if (headingMatcher.test(heading)) {
+                    startIndex = i;
+                    startLevel = m[1].length;
+                    break;
+                }
+            }
+
+            if (startIndex < 0) return null;
+
+            let endIndex = lines.length;
+            for (let i = startIndex + 1; i < lines.length; i += 1) {
+                const m = lines[i].match(headingPattern);
+                if (!m) continue;
+                const level = m[1].length;
+                if (level <= startLevel) {
+                    endIndex = i;
+                    break;
+                }
+            }
+
+            return lines.slice(startIndex, endIndex).join('\n').trim();
+        }
+
+        function resolveSectionDefinition() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('view') === 'full') return null;
+
+            const explicitSection = params.get('section');
+            if (explicitSection) {
+                const allowed = getAllowedSections();
+                const foundBySection = allowed.find((item) => item.id === explicitSection);
+                if (foundBySection) return foundBySection;
+            }
+
+            const pageParam = (params.get('page') || '').toLowerCase();
+            const refPage = pageParam || getReferrerPageName();
+            if (!refPage) return null;
+
+            const allowed = getAllowedSections();
+            return allowed.find((item) => item.page === refPage) || null;
+        }
+
+        async function loadManual() {
+            const content = document.getElementById('manualContent');
+            const context = document.getElementById('manualContext');
+            const title = document.getElementById('manualTitle');
+            const subtitle = document.getElementById('manualSubtitle');
+            const focused = resolveSectionDefinition();
+            const allowed = getAllowedSections();
+
+            try {
+                const response = await fetch('USER_MANUAL.md?ts=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error('Could not load USER_MANUAL.md');
+
+                const markdown = await response.text();
+                if (focused) {
+                    const sectionMarkdown = extractSection(markdown, focused.heading);
+                    if (sectionMarkdown) {
+                        title.innerHTML = '<i class="fa-solid fa-circle-question"></i> ' + focused.title;
+                        subtitle.textContent = focused.subtitle;
+                        context.textContent = 'Focused help mode from header Help button.';
+                        content.innerHTML = markdownToHtml(sectionMarkdown);
+                        return;
+                    }
+                }
+
+                if (!allowed.length) {
+                    context.textContent = 'No manual sections available for your access.';
+                    title.innerHTML = '<i class="fa-solid fa-book-open"></i>User Manual';
+                    subtitle.textContent = 'Access to manual sections is based on your permissions.';
+                    content.innerHTML = '<p class="error"><i class="fa-solid fa-circle-exclamation"></i> No manual sections are available for your account.</p>';
+                    return;
+                }
+
+                const combined = allowed
+                    .map(section => extractSection(markdown, section.heading))
+                    .filter(Boolean)
+                    .join('\n\n');
+
+                if (!combined) {
+                    context.textContent = 'No manual sections available for your access.';
+                    title.innerHTML = '<i class="fa-solid fa-book-open"></i>User Manual';
+                    subtitle.textContent = 'Access to manual sections is based on your permissions.';
+                    content.innerHTML = '<p class="error"><i class="fa-solid fa-circle-exclamation"></i> No manual sections are available for your account.</p>';
+                    return;
+                }
+
+                context.textContent = 'Full guide mode filtered by your permissions.';
+                title.innerHTML = '<i class="fa-solid fa-book-open"></i>User Manual';
+                subtitle.textContent = 'Practical guide for daily system usage and workflows.';
+                content.innerHTML = markdownToHtml(combined);
+            } catch (error) {
+                content.innerHTML = '<p class="error"><i class="fa-solid fa-circle-exclamation"></i> Unable to load the manual right now.</p>';
+                console.error(error);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async function () {
+            document.getElementById('sidebarBackdrop')?.addEventListener('click', closeMobileSidebar);
+            document.getElementById('sidebarAvatar')?.addEventListener('click', function () {
+                window.location.href = 'main-settings.html';
+            });
+            const ok = await checkAuthentication();
+            if (ok) loadManual();
+        });
+    </script>
+</body>
+
+</html>

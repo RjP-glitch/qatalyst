@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - Personnel Directory</title>
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/dashboard.css?v4">
+    <link rel="stylesheet" href="css/notifications.css?v2">
+    <link rel="stylesheet" href="css/directory.css?v8">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="css/manual-help-btn.css">
+    <style>
+        .ps-levels-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 20px;
+            padding: 8px 0 4px;
+        }
+        .ps-level-check {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            user-select: none;
+        }
+        .ps-level-check input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #e11d48;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="main-container">
+
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn active" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <!-- Mobile sidebar backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-address-book" style="color:  #f5d800;"></i> Personnel Directory</h1>
+                    <p>SDO City of Baliwag — Staff, School Principals & School Administrators</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="manual-help-btn" type="button" onclick="window.location.href='user-manual.html?page=directory.html'">
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" aria-label="Open menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="dashboard-content">
+
+                <!-- Toolbar -->
+                <div class="dir-toolbar">
+                    <div class="dir-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="globalSearch" placeholder="Search name, position, unit, email…" oninput="handleSearch(this.value)">
+                    </div>
+                    <div class="dir-toolbar-row">
+                        <div class="dir-tabs">
+                            <button class="dir-tab active" onclick="switchTab(this,'all')"><i class="fa-solid fa-layer-group"></i> All</button>
+                            <button class="dir-tab" onclick="switchTab(this,'CID')"><i class="fa-solid fa-book-open"></i> CID</button>
+                            <button class="dir-tab" onclick="switchTab(this,'OSDS')"><i class="fa-solid fa-building-columns"></i> OSDS</button>
+                            <button class="dir-tab" onclick="switchTab(this,'SGOD')"><i class="fa-solid fa-shield-halved"></i> SGOD</button>
+                            <button class="dir-tab" onclick="switchTab(this,'LSB')"><i class="fa-solid fa-briefcase"></i> LSB</button>
+                            <button class="dir-tab" onclick="switchTab(this,'PublicSchools')"><i class="fa-solid fa-school"></i> Public Schools</button>
+                            <button class="dir-tab" onclick="switchTab(this,'PrivateSchools')"><i class="fa-solid fa-school-flag"></i> Private Schools</button>
+                        </div>
+                        <button class="dir-export-btn" type="button" onclick="exportDirectoryExcel()">
+                            <i class="fa-solid fa-file-excel"></i>
+                            <span>Export Excel</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="dir-stats" id="dirStats"></div>
+
+                <!-- Sections -->
+                <div id="directorySections"></div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         ADD / EDIT MODAL — Personnel
+    ══════════════════════════════════════════════════════════════════ -->
+    <div class="dir-modal-overlay" id="personnelModal">
+        <div class="dir-modal">
+            <div class="dir-modal-header">
+                <h3 id="modalTitle">Add Personnel</h3>
+                <button class="dir-modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="dir-modal-body">
+                <p id="modalError" class="modal-error"></p>
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label>Division <span class="req">*</span></label>
+                        <select id="fDivision">
+                            <option value="CID">CID — Curriculum Implementation Division</option>
+                            <option value="OSDS">OSDS — Office of the Schools Division Superintendent</option>
+                            <option value="SGOD">SGOD — School Governance and Operations Division</option>
+                            <option value="LSB">LSB — OSDS-LSB Funded Personnel</option>
+                        </select>
+                    </div>
+                    <div class="form-group full">
+                        <label>Full Name <span class="req">*</span></label>
+                        <input type="text" id="fName" placeholder="e.g. Juan D. Cruz, PhD">
+                    </div>
+                    <div class="form-group full">
+                        <label>Position <span class="req">*</span></label>
+                        <input type="text" id="fPosition" placeholder="e.g. Education Program Supervisor">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit / Office</label>
+                        <input type="text" id="fUnit" placeholder="e.g. ACCOUNTING">
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail Address</label>
+                        <input type="email" id="fEmail" placeholder="name@deped.gov.ph">
+                    </div>
+                    <div class="form-group">
+                        <label>Birthdate</label>
+                        <input type="date" id="fBirthdate">
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Number</label>
+                        <input type="text" id="fContactNumber" placeholder="e.g. 9328914201">
+                    </div>
+                </div>
+            </div>
+            <div class="dir-modal-footer">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-save" onclick="savePersonnel()">
+                    <i class="fa-solid fa-floppy-disk"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         DELETE CONFIRM MODAL — Personnel
+    ══════════════════════════════════════════════════════════════════ -->
+    <div class="dir-modal-overlay" id="deleteModal">
+        <div class="dir-modal dir-modal-sm">
+            <div class="dir-modal-header danger">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirm Delete</h3>
+                <button class="dir-modal-close" onclick="closeDeleteModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="dir-modal-body">
+                <p id="deleteError" class="modal-error"></p>
+                <p class="delete-confirm-text">
+                    Are you sure you want to delete <strong id="deletePersonnelName"></strong>?
+                    This action cannot be undone.
+                </p>
+            </div>
+            <div class="dir-modal-footer">
+                <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-danger" onclick="executeDelete()">
+                    <i class="fa-solid fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         ADD / EDIT MODAL — Private Schools
+    ══════════════════════════════════════════════════════════════════ -->
+    <div class="dir-modal-overlay" id="psModal">
+        <div class="dir-modal dir-modal-lg">
+            <div class="dir-modal-header ps-modal-header">
+                <h3 id="psModalTitle"><i class="fa-solid fa-school-flag"></i> Add Private School</h3>
+                <button class="dir-modal-close" onclick="closePsModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="dir-modal-body">
+                <p id="psModalError" class="modal-error"></p>
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label>School Name <span class="req">*</span></label>
+                        <input type="text" id="psName" placeholder="e.g. Baliuag University (BU)">
+                    </div>
+                    <div class="form-group">
+                        <label>DepEd School ID No.</label>
+                        <input type="text" id="psSchoolIdNo" placeholder="e.g. 400669">
+                    </div>
+                    <div class="form-group">
+                        <label>Status <span style="font-weight:400;color:#9ca3af;">(leave blank if active)</span></label>
+                        <select id="psStatus">
+                            <option value="">— Active / Operating —</option>
+                            <option value="TEMPORARILY CLOSED">Temporarily Closed</option>
+                            <option value="CLOSED">Closed</option>
+                            <option value="WAITING FOR NOTICE OF CLOSURE">Waiting for Notice of Closure</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Street Address</label>
+                        <input type="text" id="psStreetAddress" placeholder="e.g. 1069 Gil Carlos St.">
+                    </div>
+                    <div class="form-group">
+                        <label>Barangay</label>
+                        <input type="text" id="psBarangay" placeholder="e.g. Concepcion">
+                    </div>
+                    <div class="form-group full">
+                        <label>School Levels Offered</label>
+                        <div class="ps-levels-checkboxes">
+                            <label class="ps-level-check"><input type="checkbox" id="psLevelPre" value="pre"> <span>Preschool</span></label>
+                            <label class="ps-level-check"><input type="checkbox" id="psLevelElem" value="elem"> <span>Elementary</span></label>
+                            <label class="ps-level-check"><input type="checkbox" id="psLevelJhs" value="jhs"> <span>Junior High School</span></label>
+                            <label class="ps-level-check"><input type="checkbox" id="psLevelShs" value="shs"> <span>Senior High School</span></label>
+                        </div>
+                    </div>
+                    <div class="ps-level-grid">
+                        <div class="ps-level-group">
+                            <div class="ps-level-label"><i class="fa-solid fa-child-reaching"></i> Elementary</div>
+                            <div class="form-group">
+                                <label>Administrator / Principal</label>
+                                <input type="text" id="psElemAdmin" placeholder="Name or N/A">
+                            </div>
+                            <div class="form-group">
+                                <label>Contact Number</label>
+                                <input type="text" id="psElemContact" placeholder="e.g. 09XX XXX XXXX">
+                            </div>
+                        </div>
+                        <div class="ps-level-group">
+                            <div class="ps-level-label"><i class="fa-solid fa-graduation-cap"></i> Junior High School</div>
+                            <div class="form-group">
+                                <label>Administrator / Principal</label>
+                                <input type="text" id="psJhsAdmin" placeholder="Name or N/A">
+                            </div>
+                            <div class="form-group">
+                                <label>Contact Number</label>
+                                <input type="text" id="psJhsContact" placeholder="e.g. 09XX XXX XXXX">
+                            </div>
+                        </div>
+                        <div class="ps-level-group">
+                            <div class="ps-level-label"><i class="fa-solid fa-user-graduate"></i> Senior High School</div>
+                            <div class="form-group">
+                                <label>Administrator / Principal</label>
+                                <input type="text" id="psShsAdmin" placeholder="Name or N/A">
+                            </div>
+                            <div class="form-group">
+                                <label>Contact Number</label>
+                                <input type="text" id="psShsContact" placeholder="e.g. 09XX XXX XXXX">
+                            </div>
+                        </div>
+                        <div class="ps-level-group">
+                            <div class="ps-level-label"><i class="fa-solid fa-address-card"></i> Registrar</div>
+                            <div class="form-group">
+                                <label>Registrar Name</label>
+                                <input type="text" id="psRegistrarName" placeholder="Name or N/A">
+                            </div>
+                            <div class="form-group">
+                                <label>Contact Number</label>
+                                <input type="text" id="psRegistrarContact" placeholder="e.g. 09XX XXX XXXX">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="dir-modal-footer">
+                <button class="btn-cancel" onclick="closePsModal()">Cancel</button>
+                <button class="btn-save" onclick="savePsSchool()">
+                    <i class="fa-solid fa-floppy-disk"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         DELETE CONFIRM MODAL — Private Schools
+    ══════════════════════════════════════════════════════════════════ -->
+    <div class="dir-modal-overlay" id="psDeleteModal">
+        <div class="dir-modal dir-modal-sm">
+            <div class="dir-modal-header danger">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirm Delete</h3>
+                <button class="dir-modal-close" onclick="closePsDeleteModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="dir-modal-body">
+                <p id="psDeleteError" class="modal-error"></p>
+                <p class="delete-confirm-text">
+                    Are you sure you want to delete <strong id="psDeleteName"></strong>?
+                    This action cannot be undone.
+                </p>
+            </div>
+            <div class="dir-modal-footer">
+                <button class="btn-cancel" onclick="closePsDeleteModal()">Cancel</button>
+                <button class="btn-danger" onclick="executePsDelete()">
+                    <i class="fa-solid fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         ADD / EDIT MODAL — Public Schools
+    ══════════════════════════════════════════════════════════════════ -->
+    <div class="dir-modal-overlay" id="pubSchoolModal">
+        <div class="dir-modal dir-modal-lg">
+            <div class="dir-modal-header" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);">
+                <h3 id="pubSchoolModalTitle" style="color:#fff;">
+                    <i class="fa-solid fa-school"></i> Add School Head
+                </h3>
+                <button class="dir-modal-close" onclick="closePubSchoolModal()" style="color:#fff;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="dir-modal-body">
+                <p id="pubSchoolModalError" class="modal-error"></p>
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label>Name <span class="req">*</span></label>
+                        <input type="text" id="pubName" placeholder="e.g. Juan D. Dela Cruz">
+                    </div>
+
+                    <div class="form-group full">
+                        <label>Position <span class="req">*</span></label>
+                        <input type="text" id="pubPosition" placeholder="e.g. Principal I">
+                    </div>
+
+                    <div class="form-group">
+                        <label>District</label>
+                        <select id="pubDistrict">
+                            <option value="">— Select District —</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>School ID</label>
+                        <input type="text" id="pubSchoolId" placeholder="e.g. 104737">
+                    </div>
+
+                    <div class="form-group full">
+                        <label>School Name</label>
+                        <input type="text" id="pubSchoolName" placeholder="e.g. Baliwag North Central School">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Birthdate</label>
+                        <input type="date" id="pubBirthdate">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contact Number</label>
+                        <input type="text" id="pubContactNumber" placeholder="09XX XXX XXXX">
+                    </div>
+
+                    <div class="form-group full">
+                        <label>E-mail Address</label>
+                        <input type="email" id="pubEmail" placeholder="name@deped.gov.ph">
+                    </div>
+
+                    <div class="form-group full">
+                        <label>First Day at Station</label>
+                        <input type="date" id="pubFirstDayStation">
+                    </div>
+                </div>
+            </div>
+            <div class="dir-modal-footer">
+                <button class="btn-cancel" onclick="closePubSchoolModal()">Cancel</button>
+                <button class="btn-save" onclick="savePubSchool()">
+                    <i class="fa-solid fa-floppy-disk"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         DELETE CONFIRM MODAL — Public Schools
+    ══════════════════════════════════════════════════════════════════ -->
+    <div class="dir-modal-overlay" id="pubSchoolDeleteModal">
+        <div class="dir-modal dir-modal-sm">
+            <div class="dir-modal-header danger">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirm Delete</h3>
+                <button class="dir-modal-close" onclick="closePubSchoolDeleteModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="dir-modal-body">
+                <p id="pubSchoolDeleteError" class="modal-error"></p>
+                <p class="delete-confirm-text">
+                    Are you sure you want to remove <strong id="pubSchoolDeleteName"></strong>?
+                    This action cannot be undone.
+                </p>
+            </div>
+            <div class="dir-modal-footer">
+                <button class="btn-cancel" onclick="closePubSchoolDeleteModal()">Cancel</button>
+                <button class="btn-danger" onclick="executePubSchoolDelete()">
+                    <i class="fa-solid fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="dir-toast" id="dirToast"></div>
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script src="js/directory.js?v15"></script>
+</body>
+</html>

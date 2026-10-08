@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - User Management</title>
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/user-management.css?v5" />
+    <link rel="stylesheet" href="css/notifications.css" />
+    <link rel="stylesheet" href="css/manual-help-btn.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Loading -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="dashboard-toast" id="toast"></div>
+
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn active" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <!-- Mobile sidebar backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-users-gear"></i> User Management</h1>
+                    <p>Add, edit and manage system users, roles &amp; permissions</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="manual-help-btn" type="button" onclick="window.location.href='user-manual.html'"
+                       >
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()"
+                        aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- Stats -->
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+                        <div>
+                            <div class="stat-label">Total Users</div>
+                            <div class="stat-value" id="statTotal">0</div>
+                            <div class="stat-sub">registered accounts</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fa-solid fa-user-check"></i></div>
+                        <div>
+                            <div class="stat-label">Active</div>
+                            <div class="stat-value" id="statActive">0</div>
+                            <div class="stat-sub">currently active</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red"><i class="fa-solid fa-user-xmark"></i></div>
+                        <div>
+                            <div class="stat-label">Inactive</div>
+                            <div class="stat-value" id="statInactive">0</div>
+                            <div class="stat-sub">deactivated accounts</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="fa-solid fa-user-shield"></i></div>
+                        <div>
+                            <div class="stat-label">Admins</div>
+                            <div class="stat-value" id="statAdmins">0</div>
+                            <div class="stat-sub">admin accounts</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Tab Switcher: SDO Personnel vs School Portal Users ── -->
+                <div style="display:flex;gap:8px;margin-bottom:16px;">
+                    <button id="tab-sdo" class="user-tab-btn active" onclick="loadUsers('sdo')"
+                        style="padding:8px 20px;border-radius:8px;border:1.5px solid #3b82f6;background:#3b82f6;color:#fff;font-weight:600;font-size:13px;cursor:pointer;transition:all 0.2s;">
+                        <i class="fa-solid fa-user-tie" style="margin-right:6px;"></i>SDO Personnel
+                    </button>
+                    <button id="tab-portal" class="user-tab-btn" onclick="loadUsers('portal')"
+                        style="padding:8px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:transparent;color:#64748b;font-weight:600;font-size:13px;cursor:pointer;transition:all 0.2s;">
+                        <i class="fa-solid fa-school" style="margin-right:6px;"></i>School Portal Users
+                    </button>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls-row">
+                    <div class="search-box">
+                        <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="searchInput" placeholder="Search users by name or email…"
+                            oninput="filterUsers()">
+                    </div>
+                    <select class="filter-select" id="roleFilter" onchange="filterUsers()">
+                        <option value="all">All Roles</option>
+                    </select>
+                    <select class="filter-select" id="statusFilter" onchange="filterUsers()">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                    <button class="btn-add-user" onclick="openModal()">
+                        <i class="fa-solid fa-user-plus"></i> Add User
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div class="table-card">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Last Login</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody">
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i>
+                                        <h3>Loading…</h3>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ADD / EDIT USER MODAL ===== -->
+    <div class="modal-overlay" id="userModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New User</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm" onsubmit="saveUser(event)">
+                    <input type="hidden" id="editUserId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="uFullName">Full Name *</label>
+                            <input type="text" id="uFullName" required placeholder="Juan Dela Cruz">
+                        </div>
+                        <div class="form-group">
+                            <label for="uEmail">Email *</label>
+                            <input type="email" id="uEmail" required placeholder="juan@email.com">
+                        </div>
+                    </div>
+                    <div class="form-row" id="passwordRow">
+                        <div class="form-group">
+                            <label for="uPassword">Password *</label>
+                            <input type="password" id="uPassword" placeholder="Min 8 characters" minlength="8">
+                        </div>
+                        <div class="form-group">
+                            <label for="uConfirm">Confirm Password *</label>
+                            <input type="password" id="uConfirm" placeholder="Re-enter password" minlength="8">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="uRole">Role *</label>
+                            <select id="uRole" required onchange="applyRolePreset()">
+                                <option value="">Select a role</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="uStatus">Status</label>
+                            <select id="uStatus">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Permissions -->
+                    <div class="form-group">
+                        <label>Role Permissions</label>
+                        <div class="permissions-grid" id="permissionsGrid"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveUser(event)" id="btnSave">
+                    <i class="fa-solid fa-floppy-disk"></i> Save User
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== RESET PASSWORD MODAL ===== -->
+    <div class="modal-overlay" id="resetModal">
+        <div class="modal" style="width:440px;">
+            <div class="modal-header">
+                <h2>Reset Password</h2>
+                <button class="modal-close" onclick="closeResetModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:16px;color:#64748b;font-size:14px;">Set a new password for <strong
+                        id="resetUserName"></strong></p>
+                <input type="hidden" id="resetUserId">
+                <div class="form-group">
+                    <label for="resetNewPw">New Password</label>
+                    <input type="password" id="resetNewPw" placeholder="Min 8 characters" minlength="8" required>
+                </div>
+                <div class="form-group">
+                    <label for="resetConfirmPw">Confirm Password</label>
+                    <input type="password" id="resetConfirmPw" placeholder="Re-enter password" minlength="8" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeResetModal()">Cancel</button>
+                <button class="btn-primary" onclick="submitResetPassword()">
+                    <i class="fa-solid fa-key"></i> Reset Password
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== DELETE CONFIRM MODAL ===== -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal" style="width:440px;">
+            <div class="modal-header">
+                <h2 style="color:#dc2626;">Delete User</h2>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#64748b;font-size:14px;">Are you sure you want to permanently delete <strong
+                        id="deleteUserName"></strong>?</p>
+                <p style="color:#ef4444;font-size:13px;margin-top:8px;">This action cannot be undone.</p>
+                <input type="hidden" id="deleteUserId">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-danger" onclick="confirmDeleteUser()">
+                    <i class="fa-solid fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== VIEW USER DETAILS MODAL ===== -->
+    <div class="modal-overlay" id="detailsModal">
+        <div class="modal" style="width:480px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-id-card"></i> User Details</h2>
+                <button class="modal-close" onclick="closeDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="details-profile">
+                    <div class="details-avatar" id="detailsAvatar"></div>
+                    <div>
+                        <div class="details-name" id="detailsName"></div>
+                        <div class="details-email" id="detailsEmail"></div>
+                    </div>
+                </div>
+                <div class="details-grid">
+                    <div class="details-field">
+                        <span class="details-label">Role</span>
+                        <span class="details-value" id="detailsRole"></span>
+                    </div>
+                    <div class="details-field">
+                        <span class="details-label">Status</span>
+                        <span class="details-value" id="detailsStatus"></span>
+                    </div>
+                    <div class="details-field">
+                        <span class="details-label">Email Verified</span>
+                        <span class="details-value" id="detailsVerified"></span>
+                    </div>
+                    <div class="details-field">
+                        <span class="details-label">Account Type</span>
+                        <span class="details-value" id="detailsAccountType"></span>
+                    </div>
+                    <div class="details-field">
+                        <span class="details-label">Created</span>
+                        <span class="details-value" id="detailsCreated"></span>
+                    </div>
+                    <div class="details-field">
+                        <span class="details-label">Last Login</span>
+                        <span class="details-value" id="detailsLastLogin"></span>
+                    </div>
+                </div>
+                <div class="details-perms-section">
+                    <span class="details-label">Permissions</span>
+                    <div class="details-perms" id="detailsPerms"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeDetailsModal()">Close</button>
+                <button class="btn-primary" id="detailsEditBtn" onclick="editFromDetails()">
+                    <i class="fa-solid fa-pen"></i> Edit User
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .user-tab-btn.active {
+            background: #3b82f6 !important;
+            border-color: #3b82f6 !important;
+            color: #fff !important;
+        }
+
+        .user-tab-btn:not(.active):hover {
+            border-color: #3b82f6 !important;
+            color: #3b82f6 !important;
+        }
+    </style>
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v3"></script>
+    <script src="js/user-management.js?v9"></script>
+</body>
+
+</html>

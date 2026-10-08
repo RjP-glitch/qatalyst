@@ -1,0 +1,36 @@
+.manual-help-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1f2937;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.manual-help-btn i {
+  font-size: 14px;
+}
+
+.manual-help-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+.manual-help-btn:active {
+  transform: translateY(1px);
+}
+
+.manual-help-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.manual-help-btn--spaced {
+  margin-top: 10px;
+}

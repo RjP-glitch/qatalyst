@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QATALYST - Processing Checklist</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="css/notifications.css?v2">
+    <link rel="stylesheet" href="css/checklist.css?v8" />
+    <!-- PDF.js for page thumbnail rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+    <link rel="stylesheet" href="css/manual-help-btn.css">
+    <link rel="stylesheet" href="css/school-tracker.css?v4">
+</head>
+<body>
+
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn active" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                    <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- ── Main Content ── -->
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-clipboard-check"></i> Processing Checklist</h1>
+                    <p>Tuition Fee Increase / No Increase / School Calendar · D.O. No. 12, s. 1997</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="btn" onclick="window.location.href='schools-submissions-summary.html'"
+                        style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-weight:600;">
+                        <i class="fa-solid fa-chart-bar"></i> Summary Report
+                    </button>
+                    <!-- TODO: Remove `disabled` when Processing Workflow feature is ready for production -->
+                    <button class="btn" onclick="openChecklistWorkflowModal()" disabled
+                        style="background:#f3f4f6;border:1px solid #e5e7eb;color:#9ca3af;font-weight:600;cursor:not-allowed;opacity:0.6;">
+                        <i class="fa-solid fa-table-list"></i> Open Processing Workflow
+                    </button>
+                    <button class="manual-help-btn" type="button"
+                        onclick="window.location.href='user-manual.html?page=checklist.html'">
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-area">
+
+                <!-- ═══════════════════════════════════════════════════
+                     SCHOOL DOCUMENT TRACKING SYSTEM
+                ════════════════════════════════════════════════════ -->
+                <div class="st-tracker-card">
+                    <div class="st-tracker-head">
+                        <div>
+                            <div class="st-tracker-title">
+                                <i class="fa-solid fa-school" style="margin-right:6px;color:#1d4ed8;"></i>
+                                Document Tracking System — Private School Applications &amp; Requests
+                            </div>
+                            <div class="st-tracker-subtitle">
+                                Track document statuses per school per school year &middot; Click any school card to update its checklist
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <button onclick="openIndorsementModal()" class="st-add-school-btn"
+                                style="background:#f0f9ff;border-color:#bae6fd;color:#0369a1;">
+                                <i class="fa-solid fa-file-signature"></i> Generate Indorsement
+                            </button>
+                            <button onclick="openChecklistGeneratorModal()" class="st-add-school-btn"
+                                style="background:#f0fdf4;border-color:#bbf7d0;color:#166534;">
+                                <i class="fa-solid fa-file-signature"></i> Generate Checklist
+                            </button>
+                            <button onclick="window.location.href='directory.html'" class="st-add-school-btn">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Manage Schools
+                            </button>
+                        </div>
+                    </div>
+                
+                    <!-- ALL tabs, school selector, year bar, and Under Development banner
+                         are rendered here dynamically by school-tracker.js _renderYrBar() -->
+                    <div id="st-yr-bar"></div>
+                
+                    <!-- Toolbar: search + filter + view toggle -->
+                    <div class="st-toolbar" id="st-toolbar">
+                        <div class="st-search-box">
+                            <svg class="st-search-icon" viewBox="0 0 16 16" fill="none">
+                                <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5" />
+                                <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                            </svg>
+                            <input type="text" placeholder="Search school…" oninput="ST.onSearch(this.value)">
+                        </div>
+                        <div class="st-filter-pills">
+                            <button class="st-fpill f-all active" onclick="ST.setFilter('all',this)">All</button>
+                            <button class="st-fpill f-done" onclick="ST.setFilter('done',this)">Completed</button>
+                            <button class="st-fpill f-partial" onclick="ST.setFilter('partial',this)">Ongoing</button>
+                            <button class="st-fpill f-none" onclick="ST.setFilter('none',this)">Pending</button>
+                        </div>
+                        <div class="st-view-btns">
+                            <button class="st-vbtn active" onclick="ST.setView('grid',this)" title="Grid view">&#9646;&#9646;</button>
+                            <button class="st-vbtn" onclick="ST.setView('list',this)" title="List view">&#9776;</button>
+                            <button class="st-vbtn" onclick="ST.setView('compact',this)" title="Compact view">&#9632;&#9632;&#9632;</button>
+                        </div>
+                    </div>
+                
+                    <!-- Stats summary -->
+                    <div id="st-stats-row"></div>
+                
+                    <!-- School cards -->
+                    <div class="st-schools-grid st-view-grid" id="st-schools-grid"></div>
+                </div>
+
+                <!-- ── Slide-out panel overlay ── -->
+                <div id="st-panel-overlay" onclick="ST._closePanelOnBg(event)">
+                    <div class="st-slide-panel">
+                        <div class="st-panel-header">
+                            <div>
+                                <div class="st-panel-title" id="st-panel-title">School Name</div>
+                                <div class="st-panel-sub-label" id="st-panel-sub"></div>
+                            </div>
+                            <button class="st-panel-close" onclick="ST._cancelPanel()" title="Close">&times;</button>
+                        </div>
+                        <div class="st-panel-body" id="st-panel-body"></div>
+                        <div class="st-panel-footer">
+                            <button class="st-btn-cancel" onclick="ST._cancelPanel()">Cancel</button>
+                            <button class="st-btn-save" onclick="ST._savePanel()">
+                                <i class="fa-solid fa-floppy-disk" style="margin-right:5px;"></i>Save changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="workflowContent">
+
+                    <!-- Step Tabs -->
+                    <div class="steps-nav">
+                        <button class="step-tab active" data-step="1" onclick="goStep(1)">
+                            <span class="step-num">Step 01</span>
+                            <span class="step-label">Upload Document</span>
+                        </button>
+                        <button class="step-tab" data-step="2" onclick="goStep(2)">
+                            <span class="step-num">Step 02</span>
+                            <span class="step-label">Review Checklist</span>
+                        </button>
+                        <button class="step-tab" data-step="3" onclick="goStep(3)">
+                            <span class="step-num">Step 03</span>
+                            <span class="step-label">Compliance Report</span>
+                        </button>
+                    </div>
+
+                    <!-- ═══════════════════════════════════════════════════
+                     STEP 1 — Upload school document
+                ════════════════════════════════════════════════════ -->
+                    <div class="panel active" id="panel-1">
+                        <div class="card">
+                            <div class="card-title">Upload School Submission Document</div>
+                            <div class="card-subtitle">
+                                Upload the scanned PDF, DOCX, or image submitted by the school (tuition fee letter, fee
+                                breakdown,
+                                school calendar, certification, etc.). The system will extract all text via AI so it can
+                                automatically validate the checklist requirements in Step 2.
+                            </div>
+
+                            <!-- Checklist type selector -->
+                            <div class="fields-section-title" style="margin-bottom:8px;">Select Checklist Type</div>
+                            <div class="type-selector" id="typeSelector">
+                                <button class="type-btn active" onclick="setChecklistType('tuition_increase', this)">
+                                    <i class="fa-solid fa-arrow-trend-up" style="margin-right:5px;"></i>Tuition Fee
+                                    Increase
+                                </button>
+                                <button class="type-btn" onclick="setChecklistType('no_increase', this)">
+                                    <i class="fa-solid fa-minus-circle" style="margin-right:5px;"></i>No Increase
+                                </button>
+                                <button class="type-btn" onclick="setChecklistType('school_calendar', this)">
+                                    <i class="fa-solid fa-calendar-days" style="margin-right:5px;"></i>School Calendar
+                                </button>
+                            </div>
+
+                            <!-- Calendar type hint — shown only for school_calendar -->
+                            <div id="calendarHint" style="display:none;margin:10px 0 4px;padding:10px 14px;
+                            background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;
+                            font-size:13px;color:#1d4ed8;line-height:1.5;">
+                                <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>
+                                <strong>School Calendar Mode:</strong> The AI will strictly verify that the total school
+                                days is between <strong>200 and 220</strong>, and that national holidays are
+                                <strong>explicitly excluded</strong> from the day count.
+                            </div>
+
+                            <div class="upload-zone" id="pdfZone">
+                                <input type="file" class="file-input" id="pdfFile"
+                                    accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp" />
+                                <div class="upload-zone-inner">
+                                    <i class="fa-solid fa-file-arrow-up upload-icon"></i>
+                                    <h3>Drop the school document here</h3>
+                                    <p>PDF, DOCX, JPG, PNG, or WEBP · Max 20MB · Scanned documents supported (OCR)</p>
+                                </div>
+                            </div>
+
+                            <div class="file-pill" id="pdfPill">
+                                <div class="file-pill-icon" id="pdfIcon">PDF</div>
+                                <span class="file-pill-name" id="pdfName">—</span>
+                                <button class="file-pill-remove" onclick="removePdf()" title="Remove">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+
+                            <div class="btn-row" style="margin-top:12px;">
+                                <button class="btn btn-primary" id="extractPdfBtn" onclick="extractAndAnalyse()"
+                                    disabled>
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                    Extract &amp; Analyse with AI
+                                </button>
+                            </div>
+
+                            <div class="loader" id="pdfLoader">
+                                <div class="spinner"></div>
+                                <p id="pdfLoaderMsg">Reading document with AI…</p>
+                            </div>
+                            <div class="msg-box" id="pdfMsg"></div>
+
+                            <!-- Preview shown after extraction -->
+                            <div id="step1Preview" style="display:none; margin-top:16px;">
+                                <div class="preview-box">
+                                    <div class="preview-label">Extracted Text Preview</div>
+                                    <div class="result-summary" id="pdfPreviewStats"></div>
+                                    <div class="preview-text" id="pdfPreviewText"></div>
+                                </div>
+                                <div class="btn-row" style="margin-top:16px;">
+                                    <button class="btn btn-primary" id="step1ContinueBtn" onclick="goStep(2)" disabled>
+                                        Continue to Step 2 — Review Checklist
+                                        <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scan Progress Panel: animated steps shown WHILE backend scans -->
+                        <div id="scanProgressPanel" class="card scan-progress-card" style="display:none;"></div>
+
+                        <!-- Scan Quality Panel: per-page results shown AFTER extraction -->
+                        <div id="scanQualityPanel" class="card" style="display:none; padding:0; overflow:hidden;"></div>
+
+                        <!-- Calendar Image Scan Panel — rendered by renderCalImgPanel() -->
+                        <div id="calImgScanPanel" style="display:none;"></div>
+                    </div>
+
+                    <!-- ═══════════════════════════════════════════════════
+                     STEP 2 — Review pre-filled fields + editable checklist
+                ════════════════════════════════════════════════════ -->
+                    <div class="panel" id="panel-2">
+
+                        <!-- Auto-filled header fields -->
+                        <div class="card">
+                            <div class="card-title">Auto-Filled Header Fields</div>
+                            <div class="card-subtitle">
+                                These fields were automatically extracted from the school document.
+                                Review and correct any values before running the final validation.
+                            </div>
+                            <div id="step2FieldsGrid"></div>
+                            <div class="msg-box" id="fieldsMsg"></div>
+                        </div>
+
+                        <!-- Editable checklist -->
+                        <div class="card">
+                            <div class="cl-manager-header">
+                                <div>
+                                    <div class="card-title" style="margin-bottom:2px;">Checklist Requirements</div>
+                                    <div class="card-subtitle" style="margin-bottom:0;">
+                                        These are the DepEd requirements to verify. You can edit, add, or remove items
+                                        before running validation.
+                                    </div>
+                                </div>
+                                <button class="btn btn-secondary" onclick="resetToDefaults()" style="flex-shrink:0;">
+                                    <i class="fa-solid fa-rotate-left"></i> Reset to Defaults
+                                </button>
+                            </div>
+                            <div id="checklistItemsEditor"></div>
+                            <button class="btn-add-item" onclick="addChecklistItem()">
+                                <i class="fa-solid fa-plus"></i> Add Requirement
+                            </button>
+                        </div>
+
+                        <div class="btn-row" style="align-items:center;flex-wrap:wrap;gap:8px;">
+                            <button class="btn btn-secondary" onclick="goStep(1)">
+                                <i class="fa-solid fa-arrow-left"></i> Back
+                            </button>
+
+                            <!-- AI Provider split-button -->
+                            <div id="aiProviderGroup"
+                                style="display:flex;align-items:stretch;border-radius:9px;overflow:hidden;box-shadow:0 1px 4px rgba(99,102,241,.15);border:1.5px solid #6366f1;">
+
+                                <!-- Main run button -->
+                                <button class="btn btn-primary" id="runValidationBtn" onclick="runAiValidation()"
+                                    style="border-radius:0;border:none;padding:9px 18px;flex:1;white-space:nowrap;min-width:0;">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Run AI Compliance Validation
+                                </button>
+
+                                <!-- Divider -->
+                                <div style="width:1px;background:rgba(255,255,255,.35);flex-shrink:0;"></div>
+
+                                <!-- Provider picker -->
+                                <div style="position:relative;flex-shrink:0;">
+                                    <select id="aiProviderSelect" title="Select AI provider"
+                                        onchange="updateProviderLabel()" style="appearance:none;-webkit-appearance:none;
+                                           background:#6366f1;color:#fff;border:none;outline:none;
+                                           padding:9px 32px 9px 12px;font-size:13px;font-weight:600;
+                                           font-family:inherit;cursor:pointer;height:100%;
+                                           border-radius:0;">
+                                        <option value="auto">⚡ Auto</option>
+                                        <option value="groq">🟠 Groq</option>
+                                        <option value="gemini">🔵 Gemini</option>
+                                        <option value="cloudflare">🟡 Cloudflare</option>
+                                    </select>
+                                    <!-- Custom chevron icon -->
+                                    <i class="fa-solid fa-chevron-down" style="position:absolute;right:9px;top:50%;transform:translateY(-50%);
+                                          color:#fff;font-size:11px;pointer-events:none;"></i>
+                                </div>
+
+                            </div><!-- /aiProviderGroup -->
+                        </div>
+
+                        <div class="loader" id="validationLoader" style="margin-top:12px;">
+                            <div class="spinner"></div>
+                            <p id="validationLoaderMsg">Checking requirements against document content…</p>
+                        </div>
+                        <div class="msg-box" id="validationMsg"></div>
+                    </div>
+
+                    <!-- ═══════════════════════════════════════════════════
+                     STEP 3 — Compliance Report
+                ════════════════════════════════════════════════════ -->
+                    <div class="panel" id="panel-3">
+
+                        <!-- Compliance score -->
+                        <div class="card">
+                            <div class="card-title">Compliance Report</div>
+                            <div class="card-subtitle">D.O. No. 12, s. 1997 · DepEd Region III</div>
+                            <div class="score-ring-wrap" id="scoreRingWrap"></div>
+                            <div class="result-summary" id="resultSummary"></div>
+                        </div>
+
+                        <!-- Data quality warnings -->
+                        <div id="dataQualityWarnings" style="display:none;margin-bottom:12px;"></div>
+
+                        <!-- Header fields -->
+                        <div class="card">
+                            <div class="card-title">Extracted School Information</div>
+                            <div class="card-subtitle">Header fields identified from the school document.</div>
+                            <div class="header-fields" id="headerFieldsResult"></div>
+                        </div>
+
+                        <!-- Calendar month grid (school_calendar type only) -->
+                        <div id="calendarGridSection" style="display:none;">
+                            <div class="card">
+                                <div class="card-title">
+                                    <i class="fa-solid fa-calendar-days" style="margin-right:6px;color:#6366f1;"></i>
+                                    Monthly School Day Breakdown
+                                </div>
+                                <div class="card-subtitle">
+                                    Each month shows school days (green), weekends (gray), and holidays (red).
+                                    Stated vs computed counts are compared — discrepancies are flagged in red.
+                                </div>
+                                <div class="cal-legend">
+                                    <span class="cal-legend-item"><span
+                                            class="cal-legend-dot cal-legend-school"></span>School day</span>
+                                    <span class="cal-legend-item"><span
+                                            class="cal-legend-dot cal-legend-weekend"></span>Weekend</span>
+                                    <span class="cal-legend-item"><span
+                                            class="cal-legend-dot cal-legend-holiday"></span>Holiday (excluded)</span>
+                                </div>
+                            </div>
+                            <div id="calendarGridInner"></div>
+                        </div>
+
+                        <!-- Checklist verification with AI remarks -->
+                        <div class="card">
+                            <div class="card-title">Checklist Requirement Verification</div>
+                            <div class="card-subtitle">Each requirement was validated against the document by AI.</div>
+                            <div id="checklistResult"></div>
+                        </div>
+
+                        <!-- Raw text -->
+                        <div class="card">
+                            <div class="card-title">Raw Extracted Text</div>
+                            <div class="card-subtitle">Full text extracted from the uploaded school document.</div>
+                            <div id="rawTextBox" class="raw-text-box"></div>
+                        </div>
+
+                        <!-- ── Save to Database bar ── -->
+                        <div class="card" style="background:#f8fafc;border:1px solid #e2e8f0;">
+                            <div class="card-title" style="font-size:14px;">
+                                <i class="fa-solid fa-database" style="margin-right:6px;color:#6366f1;"></i>
+                                Save Compliance Report
+                            </div>
+                            <div class="card-subtitle">
+                                Save this report (school name, compliance score, status, checklist results, and AI
+                                remarks)
+                                to the database for record-keeping and future reference.
+                            </div>
+                            <div class="btn-row" style="margin-top:10px;">
+                                <button class="btn btn-primary" id="saveReportBtn" onclick="saveChecklistReport()">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Report to Database
+                                </button>
+                            </div>
+                            <div class="msg-box" id="reportSaveMsg" style="margin-top:8px;"></div>
+                        </div>
+
+                        <!-- Download bar -->
+                        <div class="download-bar">
+                            <div>
+                                <p>Download Compliance Report
+                                    <span>Excel (.xlsx) with all fields, checklist results &amp; AI remarks</span>
+                                </p>
+                            </div>
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                <button class="btn btn-accent" onclick="downloadExcel()">
+                                    <i class="fa-solid fa-file-excel"></i> Download Excel
+                                </button>
+                                <button class="btn btn-download-alt" onclick="downloadTxt()">
+                                    <i class="fa-solid fa-file-lines"></i> Download TXT
+                                </button>
+                                <button class="btn btn-download-alt" onclick="downloadWord()">
+                                    <i class="fa-solid fa-file-word"></i> Download Word
+                                </button>
+                                <button class="btn btn-download-alt" onclick="startOver()">
+                                    <i class="fa-solid fa-rotate-left"></i> New Document
+                                </button>
+                            </div>
+                        </div>
+
+                    </div><!-- /panel-3 -->
+
+                </div><!-- /workflowContent -->
+
+            </div><!-- /content-area -->
+        </div><!-- /main-content -->
+    </div><!-- /main-container -->
+
+    <!-- ── Workflow Modal (Step 1-3 content moved here at runtime) ── -->
+    <div class="checklist-workflow-modal-overlay" id="checklistWorkflowModalOverlay"
+        onclick="closeChecklistWorkflowModal(event)">
+        <div class="checklist-workflow-modal" id="checklistWorkflowModal">
+            <div class="checklist-workflow-modal-header">
+                <div class="checklist-workflow-modal-title">
+                    <i class="fa-solid fa-clipboard-check" style="margin-right:6px;"></i>
+                    Processing Checklist Workflow
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <button onclick="closeChecklistWorkflowModal();openRecordsModal();"
+                        style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;
+                               border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;
+                               border:1.5px solid #e5e7eb;background:#fff;color:#374151;
+                               font-family:inherit;transition:all .15s;white-space:nowrap;"
+                        onmouseenter="this.style.background='#f9fafb';this.style.borderColor='#d1d5db';"
+                        onmouseleave="this.style.background='#fff';this.style.borderColor='#e5e7eb';"
+                        title="View saved compliance records">
+                        <i class="fa-solid fa-clock-rotate-left" style="font-size:12px;"></i> View Records
+                    </button>
+                    <button class="records-modal-close" onclick="closeChecklistWorkflowModal()" title="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="checklist-workflow-modal-body" id="checklistWorkflowModalBody"></div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         RECORDS MODAL
+    ══════════════════════════════════════════════════════ -->
+    <div class="records-modal-overlay" id="recordsModalOverlay" onclick="closeRecordsModal(event)">
+        <div class="records-modal" id="recordsModal">
+            <div class="records-modal-header">
+                <div class="records-modal-title">
+                    <i class="fa-solid fa-database"></i>
+                    Saved Compliance Records
+                </div>
+                <div class="records-modal-header-actions">
+                    <div class="records-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="recordsSearch" placeholder="Search school or status…"
+                            oninput="filterRecords()" />
+                    </div>
+                    <button class="records-modal-close" onclick="closeRecordsModal()" title="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="records-filter-bar">
+                <button class="rec-filter-btn active" data-filter="all"
+                    onclick="setRecordFilter('all', this)">All</button>
+                <button class="rec-filter-btn" data-filter="COMPLIANT"
+                    onclick="setRecordFilter('COMPLIANT', this)">Compliant</button>
+                <button class="rec-filter-btn" data-filter="NON-COMPLIANT"
+                    onclick="setRecordFilter('NON-COMPLIANT', this)">Non-Compliant</button>
+                <button class="rec-filter-btn" data-filter="NEEDS REVIEW"
+                    onclick="setRecordFilter('NEEDS REVIEW', this)">Needs Review</button>
+            </div>
+
+            <div class="records-modal-body" id="recordsModalBody">
+                <div class="records-loading" id="recordsLoading">
+                    <div class="spinner"></div>
+                    <p>Loading records…</p>
+                </div>
+                <div id="recordsTableWrap" style="display:none;">
+                    <div class="program-card-grid" id="recordsGrid"></div>
+                    <div class="records-empty" id="recordsEmpty" style="display:none;">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <p>No records found.</p>
+                    </div>
+                </div>
+                <div class="records-error" id="recordsError" style="display:none;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <p id="recordsErrorMsg">Could not load records.</p>
+                </div>
+            </div>
+
+            <div class="records-modal-footer">
+                <span id="recordsCount" class="records-count-label"></span>
+                <button class="btn btn-secondary" onclick="closeRecordsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         RECORD DETAIL MODAL
+    ══════════════════════════════════════════════════════ -->
+    <div class="records-modal-overlay" id="detailModalOverlay" onclick="closeDetailModal(event)">
+        <div class="records-modal detail-modal" id="detailModal">
+            <div class="records-modal-header">
+                <div class="records-modal-title">
+                    <i class="fa-solid fa-file-circle-check"></i>
+                    <span id="detailModalTitle">Record Detail</span>
+                </div>
+                <button class="records-modal-close" onclick="closeDetailModal()" title="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="records-modal-body" id="detailModalBody"></div>
+            <div class="records-modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <button class="btn btn-secondary" onclick="closeDetailModal(); openRecordsModal();">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Records
+                </button>
+                <div id="detailModalActions" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+        INDORSEMENT MODAL OVERLAY
+    ══════════════════════════════════════════════════════ -->
+    <div class="records-modal-overlay" id="indorsementModalOverlay" onclick="closeIndorsementModal(event)"
+        style="display:none; z-index:1100; align-items:center; justify-content:center;">
+
+        <div class="records-modal" id="indorsementModal">
+
+            <!-- Header -->
+            <div class="records-modal-header" style="padding:16px 20px 14px; flex-shrink:0;">
+                <div class="records-modal-title" style="font-size:14px;gap:8px;min-width:0;flex:1;">
+                    <span id="ind_modalTitle"
+                        style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px;display:inline-block;">
+                        <i class="fa-solid fa-file-signature" style="margin-right:6px;color:#0369a1;"></i>Generate
+                        Indorsement Letter
+                    </span>
+                </div>
+                <button class="records-modal-close" onclick="closeIndorsementModal()" title="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Mobile Tab Bar -->
+            <div id="ind_tabBar">
+                <button class="ind-tab-btn active" id="ind_tabBtnFields" onclick="_indSwitchTab('fields')">
+                    <i class="fa-solid fa-list-ul"></i> Fields
+                </button>
+                <button class="ind-tab-btn" id="ind_tabBtnPreview" onclick="_indSwitchTab('preview')">
+                    <i class="fa-solid fa-file-lines"></i> Preview
+                </button>
+            </div>
+
+            <!-- Body: two-column on desktop, single-tab on mobile -->
+            <div id="ind_bodyWrapper">
+
+                <!-- ══ LEFT PANEL ══ -->
+                <div id="ind_leftPanel">
+
+                    <!-- STEP 1: Type Selector -->
+                    <div>
+                        <div class="ind-step-header">
+                            <span class="ind-step-badge">1</span>
+                            INDORSEMENT TYPE
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                            <button id="ind_typeBtn_school_calendar" onclick="_indSetType('school_calendar')" style="padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;
+                                   border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;
+                                   font-family:inherit;transition:all .15s;text-align:left;line-height:1.4;">
+                                <i class="fa-solid fa-calendar-days"
+                                    style="display:block;font-size:15px;margin-bottom:4px;"></i>
+                                School Calendar
+                            </button>
+                            <button id="ind_typeBtn_tuition_increase" onclick="_indSetType('tuition_increase')" style="padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;
+                                   border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;
+                                   font-family:inherit;transition:all .15s;text-align:left;line-height:1.4;">
+                                <i class="fa-solid fa-arrow-trend-up"
+                                    style="display:block;font-size:15px;margin-bottom:4px;"></i>
+                                Tuition Fee Increase
+                            </button>
+                            <button id="ind_typeBtn_no_increase" onclick="_indSetType('no_increase')" style="padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;
+                                   border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;
+                                   font-family:inherit;transition:all .15s;text-align:left;line-height:1.4;">
+                                <i class="fa-solid fa-minus-circle"
+                                    style="display:block;font-size:15px;margin-bottom:4px;"></i>
+                                No Increase
+                            </button>
+                            <button id="ind_typeBtn_school_permit" onclick="_indSetType('school_permit')" style="padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;
+                                   border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;
+                                   font-family:inherit;transition:all .15s;text-align:left;line-height:1.4;">
+                                <i class="fa-solid fa-id-card"
+                                    style="display:block;font-size:15px;margin-bottom:4px;"></i>
+                                School Permit
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2+: Fields (hidden until type chosen) -->
+                    <div id="ind_fieldsSection" style="display:none;flex-direction:column;gap:14px;">
+
+                        <!-- Indorsement Number -->
+                        <div>
+                            <div class="ind-step-header">
+                                <span class="ind-step-badge">2</span>
+                                INDORSEMENT NUMBER
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <button id="ind_numBtn1" onclick="_indSelectNum(1)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;
+                                       cursor:pointer;border:1.5px solid #bae6fd;background:#f0f9ff;color:#0369a1;
+                                       font-family:inherit;transition:all .15s;">1st</button>
+                                <button id="ind_numBtn2" onclick="_indSelectNum(2)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;
+                                       cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;
+                                       font-family:inherit;transition:all .15s;">2nd</button>
+                                <button id="ind_numBtn3" onclick="_indSelectNum(3)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;
+                                       cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;
+                                       font-family:inherit;transition:all .15s;">3rd</button>
+                                <button id="ind_numBtn4" onclick="_indSelectNum(4)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;
+                                       cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;
+                                       font-family:inherit;transition:all .15s;">4th</button>
+                                <button id="ind_numBtn5" onclick="_indSelectNum(5)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;
+                                       cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;
+                                       font-family:inherit;transition:all .15s;">5th</button>
+                                <button id="ind_numBtn6" onclick="_indSelectNum(6)" style="flex:1;min-width:48px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;
+                                       cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;
+                                       font-family:inherit;transition:all .15s;">6th</button>
+                            </div>
+                            <input type="hidden" id="ind_numberSelect" value="1" />
+                        </div>
+
+                        <!-- Flow note -->
+                        <div id="ind_flowNote" style="font-size:11px;line-height:1.6;padding:9px 12px;border-radius:8px;
+                               background:#f0f9ff;border:1px solid #bae6fd;color:#0369a1;"></div>
+
+                        <!-- School Search -->
+                        <div id="ind_schoolSearchRow">
+                            <label class="ind-label">SELECT SCHOOL</label>
+                            <div style="position:relative;">
+                                <input id="ind_schoolSearch" type="text" class="ind-input" style="padding-right:36px;"
+                                    placeholder="Search private school name…" autocomplete="off"
+                                    oninput="_indFilterSchools(this.value)" onfocus="_indShowSchoolDropdown()"
+                                    onblur="setTimeout(_indHideSchoolDropdown,180)" />
+                                <i class="fa-solid fa-magnifying-glass" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                                      color:var(--color-text-secondary);font-size:13px;pointer-events:none;"></i>
+                                <div id="ind_schoolDropdown" style="display:none;position:absolute;top:calc(100%+4px);left:0;right:0;
+                                       background:var(--color-background-primary,#fff);
+                                       border:1px solid var(--color-border-tertiary,#e5e7eb);
+                                       border-radius:8px;max-height:200px;overflow-y:auto;
+                                       z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.10);"></div>
+                            </div>
+                            <p style="font-size:11px;color:var(--color-text-secondary);margin:5px 0 0;">
+                                Selecting a school auto-fills name &amp; address.
+                            </p>
+                            <div id="ind_savedBadge" style="display:none;margin-top:6px;font-size:11px;padding:5px 10px;
+                                   border-radius:6px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;"></div>
+                        </div>
+
+                        <!-- School Name -->
+                        <div>
+                            <label class="ind-label">SCHOOL NAME <span style="color:#ef4444;">*</span></label>
+                            <input id="ind_schoolName" type="text" class="ind-input"
+                                placeholder="e.g. OUR LADY OF GUADALUPE SCHOOL OF BALIWAG, INC."
+                                oninput="indClearMsg();_indUpdatePreview();_indUpdateSaveButtonState()" />
+                        </div>
+
+                        <!-- Level -->
+                        <div id="ind_levelRow">
+                            <label class="ind-label">LEVEL <span style="color:#ef4444;">*</span></label>
+                            <select id="ind_levelSelect" multiple class="ind-input" style="min-height:110px;"
+                                onchange="indClearMsg();_indUpdateLevelFromSelect()">
+                                <option value="pre_elem">Pre-Elementary Course</option>
+                                <option value="elem">Elementary Course</option>
+                                <option value="jhs">Junior High School Course</option>
+                                <option value="shs">Senior High School Course</option>
+                            </select>
+                            <input id="ind_level" type="hidden" />
+                            <p style="font-size:11px;color:var(--color-text-secondary);margin:5px 0 0;">
+                                Ctrl/Cmd+click to select multiple.
+                            </p>
+                        </div>
+
+                        <!-- Address -->
+                        <div>
+                            <label class="ind-label">SCHOOL ADDRESS <span style="color:#ef4444;">*</span></label>
+                            <input id="ind_address" type="text" class="ind-input"
+                                placeholder="e.g. Molave St. Alido Subd., Virgen Delas Flores, City of Baliwag"
+                                oninput="indClearMsg();_indUpdatePreview()" />
+                        </div>
+
+                        <!-- School Year -->
+                        <div>
+                            <label class="ind-label">SCHOOL YEAR <span style="color:#ef4444;">*</span></label>
+                            <select id="ind_sy" class="ind-input" style="appearance:none;-webkit-appearance:none;"
+                                oninput="indClearMsg();_indUpdatePreview()"
+                                onchange="indClearMsg();_indUpdatePreview()">
+                                <option value="">— Select School Year —</option>
+                            </select>
+                        </div>
+
+                        <!-- Calendar-specific fields -->
+                        <div id="ind_calendarFields">
+                            <div style="margin-bottom:12px;">
+                                <label class="ind-label">TOTAL SCHOOL DAYS</label>
+                                <input id="ind_days" type="number" class="ind-input" placeholder="e.g. 200" min="1"
+                                    oninput="indClearMsg();_indUpdatePreview()" />
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <div>
+                                    <label class="ind-label">START DATE</label>
+                                    <input id="ind_startDate" type="date" class="ind-input" style="padding:9px 8px;"
+                                        oninput="indClearMsg();_indUpdatePreview()" />
+                                </div>
+                                <div>
+                                    <label class="ind-label">END DATE</label>
+                                    <input id="ind_endDate" type="date" class="ind-input" style="padding:9px 8px;"
+                                        oninput="indClearMsg();_indUpdatePreview()" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Letter Date -->
+                        <div>
+                            <label class="ind-label">LETTER DATE</label>
+                            <input id="ind_letterDate" type="date" class="ind-input"
+                                oninput="indClearMsg();_indUpdatePreview()" />
+                        </div>
+
+                        <!-- Signatory (collapsed) -->
+                        <div style="border-top:1px solid var(--color-border-tertiary,#e5e7eb);padding-top:12px;">
+                            <button id="ind_changeSignatoryBtn" onclick="_indToggleSignatory()" style="width:100%;padding:9px 14px;border-radius:8px;font-size:12px;font-weight:600;
+                                   cursor:pointer;border:1.5px dashed #d1d5db;
+                                   background:var(--color-background-secondary,#f9fafb);color:#6b7280;
+                                   font-family:inherit;transition:all .15s;text-align:left;">
+                                <i class="fa-solid fa-user-pen" style="margin-right:5px;"></i>Change Signatory Name
+                            </button>
+
+                            <div id="ind_signatoryWrap"
+                                style="display:none;margin-top:12px;display:flex;flex-direction:column;gap:10px;">
+                                <div>
+                                    <label class="ind-label">Search Personnel Directory</label>
+                                    <div style="position:relative;">
+                                        <input id="ind_personnelSearch" type="text" class="ind-input"
+                                            placeholder="Search name or position…" autocomplete="off"
+                                            oninput="_indFilterPersonnel(this.value)"
+                                            onfocus="_indShowPersonnelDropdown()"
+                                            onblur="setTimeout(_indHidePersonnelDropdown,180)" />
+                                        <div id="ind_personnelDropdown" style="display:none;position:absolute;top:calc(100%+4px);left:0;right:0;
+                                               background:var(--color-background-primary,#fff);
+                                               border:1px solid var(--color-border-tertiary,#e5e7eb);
+                                               border-radius:8px;max-height:180px;overflow-y:auto;
+                                               z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.10);"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="ind-label">SIGNATORY NAME <span
+                                            style="color:#ef4444;">*</span></label>
+                                    <input id="ind_sigName" type="text" class="ind-input" style="font-weight:600;"
+                                        placeholder="e.g. ROWENA T. QUIAMBAO, CESO VI"
+                                        oninput="indClearMsg();_indUpdatePreview()" />
+                                </div>
+                                <div>
+                                    <label class="ind-label">SIGNATORY POSITION <span
+                                            style="color:#ef4444;">*</span></label>
+                                    <input id="ind_sigPosition" type="text" class="ind-input"
+                                        placeholder="e.g. Schools Division Superintendent"
+                                        oninput="indClearMsg();_indUpdatePreview()" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Message -->
+                        <div id="ind_msg" style="display:none;"></div>
+
+                    </div><!-- /ind_fieldsSection -->
+
+                </div><!-- /LEFT PANEL -->
+
+                <!-- ══ RIGHT PANEL ══ -->
+                <div id="ind_rightPanel">
+
+                    <div style="display:flex;align-items:center;justify-content:space-between;
+                            flex-wrap:wrap;gap:8px;flex-shrink:0;">
+                        <div>
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.8px;
+                                    color:var(--color-text-secondary);">LETTER PREVIEW</div>
+                            <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px;">
+                                Click to edit. Changes included in .docx.
+                            </div>
+                        </div>
+                        <span style="font-size:10.5px;padding:3px 9px;background:#fefce8;
+                                 border:1px solid #fde047;color:#854d0e;border-radius:6px;font-weight:600;
+                                 white-space:nowrap;">
+                            <i class="fa-solid fa-pen-to-square" style="margin-right:3px;"></i>Editable
+                        </span>
+                    </div>
+
+                    <div id="ind_preview" contenteditable="true" spellcheck="false">
+                        <span style="color:var(--color-text-secondary);font-style:italic;
+                                 padding:24px 28px;display:flex;align-items:center;
+                                 justify-content:center;height:100%;font-size:12px;
+                                 text-align:center;">
+                            Select an indorsement type to begin…
+                        </span>
+                    </div>
+
+                </div><!-- /RIGHT PANEL -->
+
+            </div><!-- /body wrapper -->
+
+            <!-- Footer -->
+            <div id="ind_footer" class="records-modal-footer" style="padding:12px 20px;justify-content:space-between;
+                   gap:8px;flex-shrink:0;
+                   border-top:1px solid var(--color-border-tertiary,#e5e7eb);">
+
+                <button class="btn btn-secondary" onclick="closeIndorsementModal()">Cancel</button>
+
+                <div id="ind_footerActions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <button class="btn" id="ind_saveBtn" onclick="saveIndorsement()" disabled style="padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;
+                           cursor:pointer;border:1.5px solid #bbf7d0;background:#f0fdf4;color:#166534;
+                           font-family:inherit;transition:all .15s;opacity:.5;
+                           display:flex;align-items:center;gap:6px;">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Save</span>
+                    </button>
+                    <button class="btn btn-primary" id="ind_downloadBtn" onclick="generateStandaloneIndorsement()"
+                        style="display:flex;align-items:center;gap:6px;">
+                        <i class="fa-solid fa-file-word"></i>
+                        <span>Download .docx</span>
+                    </button>
+                </div>
+
+            </div>
+
+        </div><!-- /modal -->
+    </div><!-- /overlay -->
+
+    <!-- ══════════════════════════════════════════════════════
+     CHECKLIST GENERATOR MODAL
+     Drop this block anywhere inside <body> in checklist.html
+     (e.g. right after the indorsement modal closing div)
+══════════════════════════════════════════════════════ -->
+    <div class="clgen-overlay" id="clgenOverlay" onclick="clgenClose(event)">
+        <div class="clgen-modal" id="clgenModal">
+
+            <!-- ── Header ── -->
+            <div class="clgen-header">
+                <div class="clgen-header-left">
+                    <i class="fa-solid fa-clipboard-check" style="color:#6366f1;margin-right:7px;"></i>
+                    <span id="clgen_modalTitle">Generate Processing Checklist</span>
+                </div>
+                <button class="clgen-close-btn" onclick="clgenClose()" title="Close">&times;</button>
+            </div>
+
+            <!-- ── Mobile tabs ── -->
+            <div class="clgen-tab-bar" id="clgenTabBar">
+                <button class="clgen-tab active" id="clgenTabFields" onclick="clgenSwitchTab('fields')">
+                    <i class="fa-solid fa-list-ul"></i> Fields
+                </button>
+                <button class="clgen-tab" id="clgenTabPreview" onclick="clgenSwitchTab('preview')">
+                    <i class="fa-solid fa-file-lines"></i> Preview
+                </button>
+            </div>
+
+            <!-- ── Body ── -->
+            <div class="clgen-body" id="clgenBody">
+
+                <!-- ════ LEFT PANEL ════ -->
+                <div class="clgen-left" id="clgenLeft">
+
+                    <!-- Step 1: Type -->
+                    <div class="clgen-section">
+                        <div class="clgen-step-label"><span class="clgen-step-badge">1</span>CHECKLIST TYPE</div>
+                        <div class="clgen-type-grid">
+                            <button id="clgenType_tuition_increase" class="clgen-type-btn"
+                                onclick="clgenSetType('tuition_increase',this)">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Tuition Fee Increase
+                            </button>
+                            <button id="clgenType_no_increase" class="clgen-type-btn"
+                                onclick="clgenSetType('no_increase',this)">
+                                <i class="fa-solid fa-minus-circle"></i> No Increase
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: School (shown after type) -->
+                    <div class="clgen-section" id="clgenFieldsSection" style="display:none;">
+
+                        <div class="clgen-step-label"><span class="clgen-step-badge">2</span>SCHOOL</div>
+                        <div id="clgenSchoolSearchRow">
+                            <label class="clgen-label">Search School</label>
+                            <div style="position:relative;">
+                                <input id="clgen_schoolSearch" type="text" class="clgen-input"
+                                    placeholder="Search private school…" autocomplete="off"
+                                    oninput="clgenFilterSchools(this.value)" onfocus="clgenShowSchoolDd()"
+                                    onblur="setTimeout(clgenHideSchoolDd,180)" />
+                                <i class="fa-solid fa-magnifying-glass" style="position:absolute;right:11px;top:50%;
+                transform:translateY(-50%);color:#9ca3af;font-size:12px;pointer-events:none;"></i>
+                                <div id="clgenSchoolDd" class="clgen-dropdown" style="display:none;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="clgen-label">NAME OF SCHOOL <span class="clgen-req">*</span></label>
+                            <input id="clgen_schoolName" type="text" class="clgen-input"
+                                placeholder="e.g. MARIAN COLLEGE OF BALIUAG, INC." oninput="clgenUpdatePreview()" />
+                        </div>
+
+                        <div>
+                            <label class="clgen-label">LOCATION / ADDRESS <span class="clgen-req">*</span></label>
+                            <input id="clgen_location" type="text" class="clgen-input"
+                                placeholder="e.g. 586 Gil Carlos St., Baliwag, Bulacan"
+                                oninput="clgenUpdatePreview()" />
+                        </div>
+
+                        <div>
+                            <label class="clgen-label">SY APPLIED FOR <span class="clgen-req">*</span></label>
+                            <select id="clgen_sy" class="clgen-input" style="appearance:none;"
+                                onchange="clgenUpdatePreview()">
+                                <option value="">— Select School Year —</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="clgen-label">GOVERNMENT RECOGNITION NO.</label>
+                            <input id="clgen_govRecogNo" type="text" class="clgen-input"
+                                placeholder="e.g. E-025 s. 1996" oninput="clgenUpdatePreview()" />
+                        </div>
+
+                        <div>
+                            <label class="clgen-label">GOVERNMENT PERMIT NO. &nbsp;<span
+                                    style="font-size:11px;color:#9ca3af;font-weight:400;">+ SY</span></label>
+                            <input id="clgen_govPermitNo" type="text" class="clgen-input"
+                                placeholder="e.g. SHSP No. 534 s. 2015" oninput="clgenUpdatePreview()" />
+                        </div>
+
+                        <!-- Step 3: Checklist items -->
+                        <div class="clgen-step-label" style="margin-top:4px;"><span
+                                class="clgen-step-badge">3</span>CHECKLIST ITEMS</div>
+                        <div id="clgenItemsEditor" class="clgen-items-editor"></div>
+                        <button class="clgen-add-item-btn" onclick="clgenAddItem()">
+                            <i class="fa-solid fa-plus"></i> Add Item
+                        </button>
+
+                        <!-- Step 4: OTHER FINDINGS -->
+                        <div class="clgen-step-label" style="margin-top:4px;"><span
+                                class="clgen-step-badge">4</span>OTHER FINDINGS</div>
+                        <textarea id="clgen_findings" class="clgen-input clgen-textarea" rows="3"
+                            placeholder="Specify any other findings…" oninput="clgenUpdatePreview()"></textarea>
+
+                        <!-- Step 5: RECOMMENDATIONS -->
+                        <div class="clgen-step-label" style="margin-top:4px;"><span
+                                class="clgen-step-badge">5</span>RECOMMENDATIONS</div>
+                        <textarea id="clgen_recommendations" class="clgen-input clgen-textarea" rows="3"
+                            placeholder="Enter recommendations…" oninput="clgenUpdatePreview()"></textarea>
+
+                        <!-- Step 6: Evaluated By -->
+                        <div class="clgen-step-label" style="margin-top:4px;"><span
+                                class="clgen-step-badge">6</span>EVALUATED BY <span
+                                style="font-size:11px;color:#9ca3af;font-weight:400;">(optional)</span></div>
+                        <div>
+                            <label class="clgen-label">NAME</label>
+                            <input id="clgen_evalName" type="text" class="clgen-input"
+                                placeholder="e.g. MA. AUREA RHODORA DC. GERONIMO, PhD" oninput="clgenUpdatePreview()" />
+                        </div>
+                        <div>
+                            <label class="clgen-label">TITLE / POSITION</label>
+                            <input id="clgen_evalTitle" type="text" class="clgen-input"
+                                placeholder="e.g. Chief, SGOD/ In-Charge of Private Schools"
+                                oninput="clgenUpdatePreview()" />
+                        </div>
+
+                        <!-- Error/info msg -->
+                        <div id="clgenMsg" style="display:none;"></div>
+
+                    </div><!-- /clgenFieldsSection -->
+                </div><!-- /LEFT -->
+
+                <!-- ════ RIGHT PANEL ════ -->
+                <div class="clgen-right" id="clgenRight">
+                    <div class="clgen-preview-header">
+                        <div>
+                            <div class="clgen-preview-label">DOCUMENT PREVIEW</div>
+                            <div class="clgen-preview-hint">Live preview of the generated checklist</div>
+                        </div>
+                        <span class="clgen-editable-badge"><i class="fa-solid fa-eye"></i> Preview</span>
+                    </div>
+                    <div id="clgenPreview" class="clgen-preview-box">
+                        <div class="clgen-preview-placeholder">
+                            Select a checklist type to begin…
+                        </div>
+                    </div>
+                </div><!-- /RIGHT -->
+
+            </div><!-- /body -->
+
+            <!-- ── Footer ── -->
+            <div class="clgen-footer">
+                <button class="clgen-btn-cancel" onclick="clgenClose()">Cancel</button>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <button class="clgen-btn-secondary" id="clgenResetBtn" onclick="clgenResetItems()"
+                        style="display:none;">
+                        <i class="fa-solid fa-rotate-left"></i> Reset Items
+                    </button>
+                    <button class="clgen-btn-primary" id="clgenDownloadBtn" onclick="clgenDownload()">
+                        <i class="fa-solid fa-file-word"></i> Download .docx
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v6"></script>
+    <script src="js/school-tracker.js?v22"></script>
+    <script src="js/checklist-generator-modal.js?v5"></script>
+    <script src="js/checklist.js?v10"></script>
+    <script src="js/calendar-image-scan.js"></script>
+    <script src="js/indorsement-generator.js?v23"></script>
+
+    <!-- Show/hide the calendar hint when the type button is toggled -->
+    <script>
+        function _escHtml(v) {
+            return String(v)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function openChecklistWorkflowModal() {
+            const overlay = document.getElementById('checklistWorkflowModalOverlay');
+            if (!overlay) return;
+            overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeChecklistWorkflowModal(e) {
+            const overlay = document.getElementById('checklistWorkflowModalOverlay');
+            if (!overlay) return;
+            if (e && e.target !== overlay) return;
+            overlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function _mountWorkflowIntoModal() {
+            const workflow = document.getElementById('workflowContent');
+            const host = document.getElementById('checklistWorkflowModalBody');
+            if (!workflow || !host) return;
+            if (workflow.parentElement !== host) {
+                host.appendChild(workflow);
+            }
+            workflow.style.display = 'block';
+        }
+
+        async function loadSchoolSampleChecklistTable() {
+            const wrap = document.getElementById('sampleChecklistTableWrap');
+            if (!wrap) return;
+
+            const csvPath = encodeURI('DOCUMENT TRACKING SYSTEM-PRIVATE SCHOOL APPLICATION AND REQUEST(SY 2026-2027).csv');
+
+            try {
+                const res = await fetch(csvPath, { cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const raw = await res.text();
+
+                const wb = XLSX.read(raw, { type: 'string' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+                const maxCols = rows.reduce((max, row) => {
+                    if (!Array.isArray(row)) return max;
+                    return Math.max(max, row.length);
+                }, 0);
+
+                if (!rows.length || !maxCols) {
+                    wrap.innerHTML = '<div class="sample-checklist-error">No data found in CSV sample.</div>';
+                    return;
+                }
+
+                const showRows = rows.slice(0, 120);
+                const theadRow = showRows[2] || showRows[0] || [];
+
+                const headHtml = Array.from({ length: maxCols }, (_, c) =>
+                    '<th>' + _escHtml(theadRow[c] || '') + '</th>'
+                ).join('');
+
+                const bodyHtml = showRows.map((row, rIdx) => {
+                    const cells = Array.from({ length: maxCols }, (_, c) => {
+                        const val = (row && typeof row[c] !== 'undefined') ? row[c] : '';
+                        const tag = rIdx < 3 ? 'th' : 'td';
+                        return '<' + tag + '>' + _escHtml(val) + '</' + tag + '>';
+                    }).join('');
+                    return '<tr>' + cells + '</tr>';
+                }).join('');
+
+                wrap.innerHTML =
+                    '<table class="sample-checklist-table">' +
+                    '<thead><tr>' + headHtml + '</tr></thead>' +
+                    '<tbody>' + bodyHtml + '</tbody>' +
+                    '</table>';
+            } catch (err) {
+                wrap.innerHTML = '<div class="sample-checklist-error">Failed to load CSV sample: ' + _escHtml(err.message || err) + '</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            _mountWorkflowIntoModal();
+            // Initialise the school document tracker
+            if (typeof ST !== 'undefined') ST.init();
+
+            document.addEventListener('keydown', (evt) => {
+                if (evt.key === 'Escape') {
+                    closeChecklistWorkflowModal();
+                }
+            });
+        });
+
+        (function () {
+            const hint = document.getElementById('calendarHint');
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const isCalendar = btn.textContent.trim().toLowerCase().includes('calendar');
+                    if (hint) hint.style.display = isCalendar ? 'block' : 'none';
+                });
+            });
+        })();
+    </script>
+    <script>
+        // Patch setChecklistType so the image-scan panel appears/hides automatically
+        (function () {
+            // Wait until checklist.js has defined setChecklistType
+            const _orig = window.setChecklistType;
+            window.setChecklistType = function (type, btn) {
+                // Run the original function first
+                if (typeof _orig === 'function') _orig(type, btn);
+                // Then show/hide the image-scan panel
+                showHideCalImgPanel(type);
+            };
+
+            // Also hook the calendar-hint toggle script that runs on DOMContentLoaded
+            // so the panel shows if the page loads with school_calendar pre-selected.
+            document.addEventListener('DOMContentLoaded', () => {
+                // Slight delay to let checklist.js finish its own DOMContentLoaded handler
+                setTimeout(() => {
+                    if (typeof state !== 'undefined' && state.checklistType === 'school_calendar') {
+                        showHideCalImgPanel('school_calendar');
+                    }
+                }, 300);
+            });
+        })();
+    </script>
+    <script>
+        // Keeps the selected AI provider accessible globally so checklist.js can read it
+        function updateProviderLabel() {
+            const sel = document.getElementById('aiProviderSelect');
+            window._selectedAiProvider = sel ? sel.value : 'auto';
+        }
+        // Initialise on load
+        window._selectedAiProvider = 'auto';
+    </script>
+    <script>
+        /* Tab switcher for mobile */
+        function _indSwitchTab(tab) {
+            const left = document.getElementById('ind_leftPanel');
+            const right = document.getElementById('ind_rightPanel');
+            const btnF = document.getElementById('ind_tabBtnFields');
+            const btnP = document.getElementById('ind_tabBtnPreview');
+            if (!left || !right) return;
+
+            if (tab === 'fields') {
+                left.classList.remove('ind-hidden');
+                right.classList.add('ind-hidden');
+                btnF && btnF.classList.add('active');
+                btnP && btnP.classList.remove('active');
+            } else {
+                right.classList.remove('ind-hidden');
+                left.classList.add('ind-hidden');
+                btnP && btnP.classList.add('active');
+                btnF && btnF.classList.remove('active');
+            }
+        }
+
+        /* Number button selection helper */
+        function _indSelectNum(n) {
+            document.getElementById('ind_numberSelect').value = String(n);
+            [1, 2, 3, 4, 5, 6].forEach(i => {
+                const btn = document.getElementById('ind_numBtn' + i);
+                if (!btn) return;
+                if (i === n) {
+                    btn.style.borderColor = '#bae6fd';
+                    btn.style.background = '#f0f9ff';
+                    btn.style.color = '#0369a1';
+                } else {
+                    btn.style.borderColor = '#e5e7eb';
+                    btn.style.background = '#fff';
+                    btn.style.color = '#6b7280';
+                }
+            });
+            if (typeof _indUpdatePreview === 'function') _indUpdatePreview();
+        }
+
+        /* After type is chosen on mobile, auto-jump to Preview tab */
+        (function patchSetTypeForMobile() {
+            document.addEventListener('DOMContentLoaded', function () {
+                const orig = window._indSetType;
+                if (typeof orig !== 'function') return;
+                window._indSetType = function (type) {
+                    orig(type);
+                    /* On mobile screens, switch to preview tab after picking a type
+                       so user can immediately see the letter populate */
+                    if (window.innerWidth <= 640) {
+                        _indSwitchTab('preview');
+                    }
+                };
+            });
+        })();
+    </script>
+</body>
+
+</html>

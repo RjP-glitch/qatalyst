@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlfaDevs | QATALYST</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<style>
+:root {
+  --bg:linear-gradient(135deg,#060e1f 0%,#0a1f3d 55%,#0f2d5a 100%);
+  --text:#eef2ff;
+  --text2:#aebedd;
+  --text3:#7d93b8;
+  --surf:rgba(255,255,255,0.06);
+  --surfh:rgba(255,255,255,0.1);
+  --bdr:rgba(255,255,255,0.12);
+  --bdrh:rgba(255,255,255,0.22);
+  --accent:#4a90d9;
+  --accent2:#2456a4;
+}
+body.light {
+  --bg:linear-gradient(135deg,#EEF2FF 0%,#F3E8FF 50%,#FCE7F3 100%);
+  --text:#1a1a2e;
+  --text2:#374151;
+  --text3:#6b7280;
+  --surf:#ffffff;
+  --surfh:#f8fafc;
+  --bdr:rgba(0,0,0,0.06);
+  --bdrh:rgba(0,0,0,0.12);
+  --accent:#2456a4;
+  --accent2:#1a3a6b;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .35s,color .35s}
+.wrap{max-width:1180px;margin:0 auto;padding:0 2rem}
+
+.top{padding:1.4rem 0}
+.back{display:inline-flex;align-items:center;gap:7px;color:var(--text2);text-decoration:none;font-size:.85rem;transition:color .2s}
+.back:hover{color:var(--accent)}
+
+.hero{padding:2rem 0 1rem;text-align:center}
+.brand{margin-bottom:2.2rem}
+.brand img{height:56px;width:auto;}
+body:not(.light) .brand img{filter:invert(1) brightness(1.15)}
+.title{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(2.2rem,5vw,3.2rem);letter-spacing:-1px;margin-bottom:.7rem;color:var(--text)}
+.subtitle{font-size:1rem;color:var(--text3);max-width:520px;margin:0 auto;font-weight:300}
+
+.team{padding:3.5rem 0 6rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1.6rem;max-width:640px;margin:0 auto}
+.card{perspective:1400px;height:340px}
+.card-inner{position:relative;width:100%;height:100%;transition:transform .6s cubic-bezier(.4,.2,.2,1);transform-style:preserve-3d;cursor:pointer}
+.card.flipped .card-inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:18px;border:1px solid var(--bdr);background:var(--surf);padding:2rem 1.4rem;display:flex;flex-direction:column;align-items:center;text-align:center;transition:background .3s,border-color .3s,box-shadow .25s}
+.card:hover .face{box-shadow:0 10px 30px rgba(0,0,0,.15)}
+.face-front{justify-content:flex-start}
+.photo{width:96px;height:96px;border-radius:50%;overflow:hidden;border:3px solid var(--bdr);margin:.4rem 0 1.2rem;background:var(--surfh)}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.name{font-size:1.15rem;font-weight:700;color:var(--text);margin-bottom:.3rem}
+.role{font-size:.82rem;color:var(--accent);font-weight:600;margin-bottom:auto}
+.hint{font-size:.72rem;color:var(--text3);margin-top:1.2rem;letter-spacing:.3px}
+.hint i{margin-right:5px}
+.face-back{transform:rotateY(180deg);justify-content:center;background:linear-gradient(160deg,var(--accent2),var(--accent))}
+.face-back .name{color:#fff}
+.face-back .focus-label{font-size:.68rem;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.75);margin-bottom:.7rem}
+.face-back p{font-size:.85rem;line-height:1.6;color:rgba(255,255,255,.94);font-weight:300}
+.face-back .hint{color:rgba(255,255,255,.75)}
+
+@media(max-width:600px){
+  .wrap{padding:0 1.2rem}
+  .team{grid-template-columns:1fr;max-width:340px}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap top">
+  <a href="index.html" class="back"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to QATALYST</a>
+</div>
+
+<section class="hero wrap">
+  <div class="brand">
+    <img src="images/alfadevsinc-icon-updated.png" alt="AlfaDevs">
+  </div>
+  <h1 class="title">Meet the Alfa Dev Team</h1>
+  <p class="subtitle">The development team responsible for bringing this project to life.</p>
+</section>
+
+<section class="team wrap">
+
+  <div class="card" tabindex="0" role="button" aria-label="Niño Marine N. Perez, Quality Assurance and Project Manager">
+    <div class="card-inner">
+      <div class="face face-front">
+        <div class="photo"><img src="images/nino-formal-picture.jpg" alt="Niño Marine N. Perez"></div>
+        <div class="name">Niño Marine N. Perez</div>
+        <div class="role">Quality Assurance and Project Manager</div>
+        <div class="hint"><i class="fas fa-hand-pointer" aria-hidden="true"></i>Click to see focus area</div>
+      </div>
+      <div class="face face-back">
+        <p class="focus-label">Focus Area</p>
+        <div class="name">Niño Marine N. Perez</div>
+        <p>Oversees project timelines and deliverables, coordinates the team's workflow, and leads quality assurance testing to make sure every feature works reliably before release.</p>
+        <div class="hint"><i class="fas fa-rotate-left" aria-hidden="true"></i>Click to flip back</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" tabindex="0" role="button" aria-label="Reniel John H. Placer, Full Stack and DevOps Engineer">
+    <div class="card-inner">
+      <div class="face face-front">
+        <div class="photo"><img src="images/reniel-formal-picture.png" alt="Reniel John H. Placer"></div>
+        <div class="name">Reniel John H. Placer</div>
+        <div class="role">Full Stack and DevOps Engineer</div>
+        <div class="hint"><i class="fas fa-hand-pointer" aria-hidden="true"></i>Click to see focus area</div>
+      </div>
+      <div class="face face-back">
+        <p class="focus-label">Focus Area</p>
+        <div class="name">Reniel John H. Placer</div>
+        <p>Builds and maintains the front-end and back-end of the platform, and manages deployment, hosting, and infrastructure to keep the system running smoothly.</p>
+        <div class="hint"><i class="fas fa-rotate-left" aria-hidden="true"></i>Click to flip back</div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<script>
+const saved = localStorage.getItem('qatalyst-theme');
+if (saved === 'light') document.body.classList.add('light');
+
+document.querySelectorAll('.card').forEach(card => {
+  function toggle(){ card.classList.toggle('flipped'); }
+  card.addEventListener('click', toggle);
+  card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+});
+</script>
+</body>
+</html>

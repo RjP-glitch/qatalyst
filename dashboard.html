@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - Dashboard</title>
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/dashboard.css?v6">
+    <link rel="stylesheet" href="css/notifications.css?v2">
+    <link rel="stylesheet" href="css/manual-help-btn.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn active" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><i class="fa-solid fa-award nav-icon"></i><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><i class="fa-solid fa-magnifying-glass-chart nav-icon"></i><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+        <!-- ── Main Content ── -->
+        <div class="main-content">
+
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-house"></i> Dashboard</h1>
+                    <p>School Management, Monitoring &amp; Evaluation Overview</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="manual-help-btn" type="button" onclick="window.location.href='user-manual.html'">
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <div class="ocr-health-wrap" id="ocrHealthWrap">
+                        <button class="ocr-health-chip" id="ocrHealthChip" type="button" title="OCR runtime status" aria-haspopup="true" aria-expanded="false">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                            <span id="ocrHealthChipText">OCR: Checking...</span>
+                        </button>
+                        <div class="ocr-health-popover" id="ocrHealthPopover" role="status" aria-live="polite">
+                            <h4>OCR Runtime</h4>
+                            <div class="ocr-health-detail-row">
+                                <span class="label">Status</span>
+                                <span class="value" id="ocrHealthDetailStatus">Checking...</span>
+                            </div>
+                            <div class="ocr-health-detail-row">
+                                <span class="label">Reason</span>
+                                <span class="value" id="ocrHealthDetailReason">Running health checks.</span>
+                            </div>
+                            <div class="ocr-health-detail-row">
+                                <span class="label">Last checked</span>
+                                <span class="value" id="ocrHealthDetailCheckedAt">-</span>
+                            </div>
+                            <p class="ocr-health-detail-hint">Click to open Security settings.</p>
+                            <button class="ocr-health-open-settings" type="button" onclick="openSettingsSecurity(event)">
+                                Open Security Settings
+                            </button>
+                        </div>
+                    </div>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content">
+
+                <!-- Welcome Banner -->
+                <div class="welcome-banner">
+                    <div class="welcome-text">
+                        <h2 id="welcomeGreeting">Good morning, User!</h2>
+                        <p>Welcome to QATALYST — your Monitoring &amp; Evaluation hub.<br>
+                            Track workshops, analyze evaluations, and manage quality reports all in one place.</p>
+                    </div>
+                    <div class="welcome-date">
+                        <div class="date-big" id="dateBig"></div>
+                        <div id="dateMonth"></div>
+                        <div id="dateDay"></div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="summary-card clickable" onclick="navigate('programs')">
+                        <div class="card-icon blue"><i class="fa-solid fa-calendar-days"></i></div>
+                        <div class="card-info">
+                            <h3 id="cardWorkshops">—</h3>
+                            <p>Total Workshops</p>
+                        </div>
+                    </div>
+                    <div class="summary-card clickable" onclick="navigate('programs')">
+                        <div class="card-icon green"><i class="fa-solid fa-circle-play"></i></div>
+                        <div class="card-info">
+                            <h3 id="cardActive">—</h3>
+                            <p>Active Workshops</p>
+                        </div>
+                    </div>
+                    <div class="summary-card" style="display:none;">
+                        <div class="card-icon purple"><i class="fa-solid fa-clipboard-check"></i></div>
+                        <div class="card-info">
+                            <h3 id="cardResponses">—</h3>
+                            <p>Total Responses</p>
+                        </div>
+                    </div>
+                    <div class="summary-card clickable" onclick="navigate('importfile')">
+                        <div class="card-icon teal"><i class="fa-solid fa-file-excel"></i></div>
+                        <div class="card-info">
+                            <h3 id="cardImported">—</h3>
+                            <p>Imported Responses</p>
+                        </div>
+                    </div>
+                    <div class="summary-card clickable" onclick="navigate('records')">
+                        <div class="card-icon amber"><i class="fa-solid fa-folder-open"></i></div>
+                        <div class="card-info">
+                            <h3 id="cardRecords">—</h3>
+                            <p>Saved Records</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two-Column Grid -->
+                <div class="dashboard-grid">
+
+                    <!-- Recent Workshops -->
+                    <div class="dash-card">
+                        <div class="dash-card-header">
+                            <h3><i class="fa-solid fa-calendar-check"></i> Recent Workshops</h3>
+                        </div>
+                        <div class="dash-card-body">
+                            <table class="workshops-table">
+                                <thead>
+                                    <tr>
+                                        <th>Workshop</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Responses</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="workshopsBody">
+                                    <tr>
+                                        <td colspan="5">
+                                            <div class="empty-state">
+                                                <i class="fa-solid fa-spinner fa-spin"></i>
+                                                <p>Loading workshops...</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="view-all-row">
+                            <a class="view-all-link" onclick="navigate('programs')">View All Programs
+                                <i class="fa-solid fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div style="display:flex;flex-direction:column;gap:20px;">
+
+                        <!-- Quick Actions -->
+                        <div class="dash-card">
+                            <div class="dash-card-header">
+                                <h3><i class="fa-solid fa-bolt"></i> Quick Actions</h3>
+                            </div>
+                            <div class="dash-card-body">
+                                <div class="quick-actions">
+                                    <a class="quick-action-btn" onclick="navigate('programs')">
+                                        <div class="qa-icon card-icon blue"><i class="fa-solid fa-plus"></i></div>
+                                        <div class="qa-text">
+                                            <h4>Create Workshop</h4>
+                                            <p>Set up a new training program</p>
+                                        </div>
+                                    </a>
+                                    <a class="quick-action-btn" onclick="navigate('importfile')">
+                                        <div class="qa-icon card-icon green"><i class="fa-solid fa-file-import"></i>
+                                        </div>
+                                        <div class="qa-text">
+                                            <h4>Import Excel</h4>
+                                            <p>Import evaluation data from spreadsheet</p>
+                                        </div>
+                                    </a>
+                                    <!-- <a class="quick-action-btn" onclick="navigate('monitoring')">
+                                        <div class="qa-icon card-icon purple"><i class="fa-solid fa-eye"></i></div>
+                                        <div class="qa-text">
+                                            <h4>Monitor Evaluations</h4>
+                                            <p>Track completion &amp; send reminders</p>
+                                        </div>
+                                    </a>
+                                    <a class="quick-action-btn" onclick="navigate('reports')">
+                                        <div class="qa-icon card-icon amber"><i class="fa-solid fa-file-lines"></i>
+                                        </div>
+                                        <div class="qa-text">
+                                            <h4>Quality Reports</h4>
+                                            <p>Generate and export QAME reports</p>
+                                        </div>
+                                    </a> -->
+                                    <a class="quick-action-btn" onclick="navigate('certificates')">
+                                        <div class="qa-icon card-icon teal"><i class="fa-solid fa-certificate"></i>
+                                        </div>
+                                        <div class="qa-text">
+                                            <h4>Certificates</h4>
+                                            <p>Manage &amp; send participant certificates</p>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="dash-card">
+                            <div class="dash-card-header">
+                                <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity</h3>
+                            </div>
+                            <div class="dash-card-body">
+                                <div id="activityList">
+                                    <div class="empty-state">
+                                        <i class="fa-solid fa-spinner fa-spin"></i>
+                                        <p>Loading activity...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v6"></script>
+    <script src="js/dashboard.js?v8"></script>
+</body>
+
+</html>

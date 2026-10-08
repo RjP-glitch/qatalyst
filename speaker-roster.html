@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - Speaker Roster</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&amp;family=IM+Fell+English:ital@0;1&amp;display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/speaker-roster.css?v7">
+    <link rel="stylesheet" href="css/notifications.css?v2">
+    <link rel="stylesheet" href="css/manual-help-btn.css">
+</head>
+
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn active" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar" onclick="navigate('settings')">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <!-- Mobile sidebar backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1><i class="fa-solid fa-person-chalkboard" style="margin-right:10px;"></i>Speaker Roster</h1>
+                    <p>Resource person profiles, ratings & effectiveness tracking</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="manual-help-btn" type="button" onclick="window.location.href='user-manual.html'"
+                       >
+                        <i class="fa-solid fa-circle-question"></i><span>Help</span>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()"
+                        aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+                </div>
+            </div>
+
+            <div class="content-area">
+
+                <!-- ══════════════════════════════════════════════════════
+                     VIEW A: WORKSHOPS GRID
+                     ══════════════════════════════════════════════════════ -->
+                <div id="viewWorkshops">
+                    <div class="wg-section-header">
+                        <div>
+                            <div class="wg-section-title">Select a Program</div>
+                            <div class="wg-section-subtitle">Choose a workshop to view its resource speakers, or view
+                                all speakers across programs</div>
+                        </div>
+                        <div class="wg-search-wrap">
+                            <i class="fa-solid fa-magnifying-glass si"></i>
+                            <input type="text" id="wgSearch" placeholder="Search programs…"
+                                oninput="filterWorkshopsGrid()">
+                        </div>
+                    </div>
+                    <div class="wg-grid" id="workshopsGrid">
+                        <div class="wg-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading programs…</div>
+                    </div>
+                    <div class="wg-pagination" id="wgPagination"></div>
+                </div>
+
+                <!-- ══════════════════════════════════════════════════════
+                     VIEW B: SPEAKERS (shown after selecting a workshop)
+                     ══════════════════════════════════════════════════════ -->
+                <div id="viewSpeakers" style="display:none;">
+
+                    <!-- Back button + workshop info card -->
+                    <div class="ws-breadcrumb">
+                        <button class="ws-back-btn" onclick="goBackToWorkshops()">
+                            <i class="fa-solid fa-arrow-left"></i> Back to Programs
+                        </button>
+                    </div>
+
+                    <div class="ws-info-card">
+                        <div class="ws-info-icon"><i class="fa-solid fa-person-chalkboard"></i></div>
+                        <div class="ws-info-body">
+                            <div class="ws-info-memo" id="wsMemo"></div>
+                            <div class="ws-info-title" id="wsTitle">Workshop Title</div>
+                            <div class="ws-info-meta" id="wsDates"></div>
+                        </div>
+                        <span class="ws-pill" id="wsStatus">Status</span>
+                    </div>
+
+                    <!-- Stats Row -->
+                    <div class="stats-row">
+                        <div class="stat-card">
+                            <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+                            <div>
+                                <div class="stat-label">Total Speakers</div>
+                                <div class="stat-value" id="statTotal">0</div>
+                                <div class="stat-sub" id="statTotalSub">in this program</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green"><i class="fa-solid fa-star"></i></div>
+                            <div>
+                                <div class="stat-label">Avg. Rating</div>
+                                <div class="stat-value" id="statAvgRating">—</div>
+                                <div class="stat-sub">out of 4.00</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon amber"><i class="fa-solid fa-trophy"></i></div>
+                            <div>
+                                <div class="stat-label">Top Performer</div>
+                                <div class="stat-value" id="statTopName" style="font-size:14px;line-height:1.3;">—</div>
+                                <div class="stat-sub" id="statTopRating"></div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon purple"><i class="fa-solid fa-comment-dots"></i></div>
+                            <div>
+                                <div class="stat-label">Total Ratings</div>
+                                <div class="stat-value" id="statTotalRatings">0</div>
+                                <div class="stat-sub">participant evaluations</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controls Row -->
+                    <div class="controls-row">
+                        <div class="search-box">
+                            <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                            <input type="text" id="searchInput"
+                                placeholder="Search speakers by name, designation, topic…" oninput="filterSpeakers()">
+                        </div>
+                        <div class="filter-group">
+                            <select class="filter-select" id="ratingFilter" onchange="filterSpeakers()">
+                                <option value="all">All Ratings</option>
+                                <option value="excellent">Excellent (3.5–4.0)</option>
+                                <option value="very-good">Very Good (2.5–3.49)</option>
+                                <option value="good">Good (1.5–2.49)</option>
+                                <option value="poor">Poor (&lt; 1.5)</option>
+                                <option value="no-data">No Ratings Yet</option>
+                            </select>
+                            <button class="sort-btn" id="sortBtn" onclick="toggleSort()">
+                                <i class="fa-solid fa-arrow-down-wide-short"></i> Highest Rated
+                            </button>
+                        </div>
+                        <div class="view-toggle">
+                            <button class="view-btn active" id="cardViewBtn" onclick="setView('card')"><i
+                                    class="fa-solid fa-grip"></i></button>
+                            <button class="view-btn" id="tableViewBtn" onclick="setView('table')"><i
+                                    class="fa-solid fa-list"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Card View -->
+                    <div id="cardView">
+                        <div class="speakers-grid" id="speakersGrid"></div>
+                        <div class="empty-state hidden" id="emptyState">
+                            <div class="empty-icon">🎤</div>
+                            <h2>No speakers found</h2>
+                            <p>Try adjusting your search or filter criteria.</p>
+                        </div>
+                    </div>
+
+                    <!-- Table View -->
+                    <div id="tableView" class="hidden">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Speaker</th>
+                                        <th>Organization</th>
+                                        <th>Topic</th>
+                                        <th>Workshop / Day</th>
+                                        <th>Avg. Rating</th>
+                                        <th>Responses</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="speakersTableBody"></tbody>
+                            </table>
+                            <div class="empty-state hidden" id="emptyStateTable">
+                                <div class="empty-icon">🎤</div>
+                                <h2>No speakers found</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pagination (shared by card + table views) -->
+                    <div class="wg-pagination" id="speakersPagination"></div>
+
+                </div><!-- /viewSpeakers -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Speaker Detail Modal -->
+    <div class="modal" id="speakerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-speaker-info">
+                    <div class="modal-avatar" id="modalAvatar"></div>
+                    <div>
+                        <div class="modal-name" id="modalName"></div>
+                        <div class="modal-meta" id="modalMeta"></div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                        <button class="btn-edit-speaker" id="editSpeakerBtn" onclick="toggleEditMode()" title="Edit Speaker Details"
+                            style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:#f0f4ff;color:#1e3a8a;border:1.5px solid #c7d7f8;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </button>
+                        <button class="close-btn" onclick="closeModal()">✕</button>
+                    </div>
+                </div>
+
+                <!-- ── Edit Form Panel (hidden by default) ── -->
+                <div id="editSpeakerPanel" style="display:none;padding:16px 24px;border-bottom:1.5px solid #e5e7eb;background:#f8fafc;">
+                    <div style="font-size:11px;font-weight:800;color:#1e3a8a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">
+                        <i class="fa-solid fa-pen-to-square" style="margin-right:6px;"></i>Edit Speaker Details
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                        <div>
+                            <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Full Name *</label>
+                            <input id="editName" type="text" style="width:100%;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;" placeholder="Speaker name" onfocus="this.style.borderColor='#1e3a8a'" onblur="this.style.borderColor='#d1d5db'">
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Designation</label>
+                            <input id="editDesignation" type="text" style="width:100%;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;" placeholder="e.g. Resource Person" onfocus="this.style.borderColor='#1e3a8a'" onblur="this.style.borderColor='#d1d5db'">
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                        <div>
+                            <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Organization</label>
+                            <input id="editOrganization" type="text" style="width:100%;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;" placeholder="e.g. DepEd SDO" onfocus="this.style.borderColor='#1e3a8a'" onblur="this.style.borderColor='#d1d5db'">
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Contact</label>
+                            <input id="editContact" type="text" style="width:100%;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;" placeholder="Phone or email" onfocus="this.style.borderColor='#1e3a8a'" onblur="this.style.borderColor='#d1d5db'">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Session Topic</label>
+                        <input id="editTopic" type="text" style="width:100%;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;" placeholder="Topic or session title" onfocus="this.style.borderColor='#1e3a8a'" onblur="this.style.borderColor='#d1d5db'">
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <button onclick="saveSpeakerEdit()" id="saveEditBtn"
+                            style="padding:8px 18px;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                        </button>
+                        <button onclick="cancelEditMode()"
+                            style="padding:8px 14px;background:#fff;color:#374151;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+                            Cancel
+                        </button>
+                        <span id="editSaveStatus" style="font-size:12px;margin-left:4px;"></span>
+                    </div>
+                </div>
+
+            <div class="modal-body">
+                <!-- Rating Summary -->
+                <div class="modal-rating-summary">
+                    <div class="big-rating-circle" id="modalRatingCircle">
+                        <div class="big-rating-num" id="modalRatingNum">—</div>
+                        <div class="big-rating-out">/ 4.00</div>
+                    </div>
+                    <div class="rating-breakdown">
+                        <h4><i class="fa-solid fa-sliders" style="margin-right:6px;color:#1e3a8a;"></i>Criteria
+                            Breakdown</h4>
+                        <div id="modalCriteria"></div>
+                    </div>
+                </div>
+
+                <!-- Speaker Details -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+                    <div class="speaker-topic">
+                        <div class="label"><i class="fa-solid fa-building" style="margin-right:4px;"></i>Organization
+                        </div>
+                        <div class="value" id="modalOrg">—</div>
+                    </div>
+                    <div class="speaker-topic">
+                        <div class="label"><i class="fa-solid fa-phone" style="margin-right:4px;"></i>Contact</div>
+                        <div class="value" id="modalContact">—</div>
+                    </div>
+                </div>
+                <div class="speaker-topic" style="margin-bottom:20px;">
+                    <div class="label"><i class="fa-solid fa-book-open" style="margin-right:4px;"></i>Session Topic
+                    </div>
+                    <div class="value" id="modalTopic">—</div>
+                </div>
+
+                <!-- Workshop Appearances -->
+                <div class="appearances-section">
+                    <h4><i class="fa-solid fa-calendar-check" style="color:#1e3a8a;"></i> Workshop Appearances</h4>
+                    <div id="modalAppearances"></div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js?v3"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v6"></script>
+    <script src="js/speaker-roster.js?v4"></script>
+</body>
+
+</html>

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST — Verify Your Email · SDO Baliwag</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;family=DM+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <style>
+        /* ── Design tokens — mirrors school-portal.html exactly ── */
+        :root {
+            --bg: #080d14;
+            --text: #e8edf5;
+            --text2: #9aa3b5;
+            --text3: #6b7a95;
+            --surf: rgba(255,255,255,0.05);
+            --surfh: rgba(255,255,255,0.09);
+            --bdr: rgba(255,255,255,0.08);
+            --bdrh: rgba(255,255,255,0.16);
+            --hbg: rgba(8,13,20,0.8);
+            --grid: rgba(255,255,255,0.025);
+            --blue: #3b82f6;
+            --violet: #8b5cf6;
+            --blue-l: #60a5fa;
+            --violet-l: #a78bfa;
+        }
+        body.light {
+            --bg: #f0f4ff;
+            --text: #0d1117;
+            --text2: #334155;
+            --text3: #64748b;
+            --surf: rgba(255,255,255,0.8);
+            --surfh: rgba(255,255,255,1);
+            --bdr: rgba(0,0,0,0.07);
+            --bdrh: rgba(0,0,0,0.15);
+            --hbg: rgba(240,244,255,0.85);
+            --grid: rgba(0,0,0,0.04);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            transition: background .35s, color .35s;
+            position: relative;
+        }
+
+        /* ── Background orbs ── */
+        .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); animation: orb-float 22s ease-in-out infinite alternate; }
+        .orb1 { width: 60vw; height: 55vw; top: -15%; left: -15%; background: rgba(59,130,246,.10); }
+        .orb2 { width: 55vw; height: 45vw; bottom: -10%; right: -10%; background: rgba(139,92,246,.08); animation-direction: alternate-reverse; animation-duration: 19s; }
+        @keyframes orb-float { 0% { transform: translate(0,0); } 100% { transform: translate(3%,5%); } }
+
+        /* ── Grid ── */
+        .gridbg {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* ── Header ── */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+            background: var(--hbg); border-bottom: 1px solid var(--bdr);
+            transition: background .35s, border-color .35s;
+        }
+        .hdr {
+            height: 62px; display: flex; align-items: center; justify-content: space-between;
+            max-width: 1180px; margin: 0 auto; padding: 0 2rem;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+        .lmark {
+            width: 36px; height: 36px; border-radius: 9px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'DM Serif Display', Georgia, serif; font-size: 17px; color: #fff;
+            box-shadow: 0 0 16px rgba(59,130,246,.28); flex-shrink: 0;
+        }
+        .lname { font-size: 1.05rem; font-weight: 600; letter-spacing: .5px; color: var(--text); white-space: nowrap; transition: color .35s; }
+        .hdr-r { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+        .tgl-w { display: flex; align-items: center; gap: 6px; }
+        .tgl-ic { font-size: .75rem; color: var(--text3); }
+        .tgl { position: relative; width: 40px; height: 22px; border-radius: 11px; cursor: pointer; background: rgba(255,255,255,.12); border: 1px solid var(--bdrh); transition: background .3s; flex-shrink: 0; }
+        body.light .tgl { background: rgba(0,0,0,.1); }
+        .tgl input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .tgl-fill { position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background .3s; pointer-events: none; }
+        .tgl input:checked + .tgl-fill { background: linear-gradient(90deg,#3b82f6,#8b5cf6); }
+        .tgl-thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .3s; box-shadow: 0 1px 4px rgba(0,0,0,.3); pointer-events: none; }
+        .tgl input:checked ~ .tgl-thumb { transform: translateX(18px); }
+
+        .btn { display: inline-flex; align-items: center; gap: 7px; padding: .5rem 1.1rem; border-radius: 9px; font-size: .875rem; font-weight: 500; text-decoration: none; transition: all .22s; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; border: 1.5px solid transparent; }
+        .btn-g { background: transparent; border-color: rgba(255,255,255,0.2); color: var(--text); }
+        .btn-g:hover { background: rgba(255,255,255,0.07); border-color: rgba(59,130,246,.5); }
+        body.light .btn-g { border-color: rgba(0,0,0,0.2); }
+        .btn-p { background: linear-gradient(135deg,#3b82f6,#7c3aed); color: #fff; box-shadow: 0 3px 14px rgba(59,130,246,.22); }
+        .btn-p:hover { transform: translateY(-1px); box-shadow: 0 5px 20px rgba(59,130,246,.33); }
+
+        /* ── Page outer ── */
+        .page-outer {
+            position: relative; z-index: 2;
+            width: 100%; max-width: 520px;
+            margin: 0 auto;
+            padding: 6rem 2rem 3rem;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* ── Eyebrow badge ── */
+        .eyebrow {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: .42rem .95rem; border-radius: 50px;
+            background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.22);
+            font-size: .78rem; color: #60a5fa; letter-spacing: .6px; text-transform: uppercase;
+            margin-bottom: 1.75rem;
+            animation: fadeUp .5s forwards;
+        }
+        .edot { width: 6px; height: 6px; border-radius: 50%; background: #60a5fa; animation: pdot 2s infinite; }
+        @keyframes pdot { 0%,100%{opacity:1} 50%{opacity:.3} }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+        /* ── Verify card ── */
+        .verify-card {
+            width: 100%;
+            border-radius: 22px; overflow: hidden;
+            border: 1px solid var(--bdr);
+            box-shadow: 0 30px 80px rgba(0,0,0,.5);
+            animation: fadeUp .65s .1s both;
+        }
+
+        /* ── Brand panel top (matches left panel gradient) ── */
+        .verify-top {
+            background: linear-gradient(160deg, rgba(59,130,246,.08) 0%, rgba(139,92,246,.06) 100%);
+            border-bottom: 1px solid var(--bdr);
+            padding: 2.5rem 2.5rem 2rem;
+            text-align: center;
+            position: relative; overflow: hidden;
+        }
+        body.light .verify-top { background: rgba(59,130,246,.04); }
+        .verify-top::after {
+            content: ''; position: absolute; top: -80px; right: -80px;
+            width: 300px; height: 300px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(139,92,246,.12), transparent 70%);
+            pointer-events: none;
+        }
+
+        .verify-icon-wrap {
+            width: 68px; height: 68px;
+            background: var(--surf);
+            border: 1px solid var(--bdrh);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.25rem;
+            font-size: 26px; color: #60a5fa;
+            position: relative; z-index: 1;
+        }
+
+        .verify-top h1 {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 1.9rem; letter-spacing: -.3px;
+            color: var(--text); margin-bottom: .35rem;
+            position: relative; z-index: 1;
+            transition: color .35s;
+        }
+
+        .verify-top p {
+            font-size: .855rem; color: var(--text2);
+            line-height: 1.6; font-weight: 300;
+            position: relative; z-index: 1;
+            transition: color .35s;
+        }
+        .verify-top p strong { color: #60a5fa; font-weight: 500; }
+
+        /* ── Form body ── */
+        .verify-body {
+            background: var(--surf);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            padding: 2rem 2.5rem 2.5rem;
+        }
+        body.light .verify-body { background: rgba(255,255,255,0.85); }
+
+        /* eyebrow label */
+        .form-eyebrow { font-size: .72rem; text-transform: uppercase; letter-spacing: 2px; color: #60a5fa; margin-bottom: .4rem; font-weight: 500; text-align: center; }
+        .verify-hint { text-align: center; font-size: .82rem; color: var(--text2); margin-bottom: 1.5rem; line-height: 1.5; font-weight: 300; transition: color .35s; }
+        .verify-hint strong { color: var(--text); font-weight: 500; }
+
+        /* messages */
+        .error-message {
+            background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3);
+            color: #f87171; padding: .6rem .9rem; border-radius: 10px;
+            margin-bottom: 1rem; font-size: .8rem; display: none; text-align: center;
+        }
+        .error-message.show { display: block; }
+        .success-message {
+            background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25);
+            color: #4ade80; padding: .6rem .9rem; border-radius: 10px;
+            margin-bottom: 1rem; font-size: .8rem; display: none; text-align: center;
+        }
+        .success-message.show { display: block; }
+
+        /* ── 6-digit code inputs ── */
+        .code-inputs {
+            display: flex; gap: 10px; justify-content: center;
+            margin: 0 0 1.5rem;
+        }
+        .code-input {
+            width: 52px; height: 58px;
+            border: 1px solid var(--bdr);
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.5rem; font-weight: 700;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text);
+            background: rgba(255,255,255,.04);
+            transition: all .2s; outline: none;
+            caret-color: #60a5fa;
+        }
+        body.light .code-input { background: rgba(255,255,255,.8); color: #0d1117; }
+        .code-input:focus {
+            border-color: rgba(59,130,246,.5);
+            background: rgba(59,130,246,.05);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+            transform: translateY(-2px);
+        }
+        .code-input.filled { border-color: rgba(96,165,250,.4); background: rgba(59,130,246,.07); color: #60a5fa; }
+        .code-input.error {
+            border-color: rgba(239,68,68,.5);
+            background: rgba(239,68,68,.08);
+            animation: shake 0.4s ease;
+        }
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            20%      { transform: translateX(-6px); }
+            40%      { transform: translateX(6px); }
+            60%      { transform: translateX(-4px); }
+            80%      { transform: translateX(4px); }
+        }
+
+        /* ── Submit button — matches .submit-btn ── */
+        .verify-btn {
+            width: 100%; padding: .75rem 1.5rem;
+            background: linear-gradient(135deg, #3b82f6, #7c3aed); color: #fff;
+            font-weight: 600; border: none; border-radius: 11px;
+            font-size: .9rem; font-family: 'DM Sans', sans-serif;
+            cursor: pointer; transition: all .3s ease;
+            box-shadow: 0 4px 18px rgba(59,130,246,.25); letter-spacing: .3px;
+            margin-bottom: 1.25rem;
+        }
+        .verify-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(59,130,246,.38); }
+        .verify-btn:disabled { background: linear-gradient(135deg, #374151, #4b5563); cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* divider */
+        .divider {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 1.25rem; font-size: 12px; color: var(--text3);
+        }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--bdr); }
+
+        /* resend row */
+        .resend-row { text-align: center; font-size: .8rem; color: var(--text2); transition: color .35s; }
+        .resend-btn {
+            background: none; border: none; color: #60a5fa; font-weight: 500;
+            font-family: 'DM Sans', sans-serif; font-size: .8rem;
+            cursor: pointer; padding: 0; transition: color .2s;
+        }
+        .resend-btn:hover { color: #a78bfa; }
+        .resend-btn:disabled { color: var(--text3); cursor: not-allowed; }
+        .countdown { color: var(--text3); font-size: .8rem; }
+
+        /* loading dots */
+        .loading { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #fff; margin: 0 2px; animation: ldot 1.4s infinite; }
+        .loading:nth-child(2) { animation-delay: .2s; }
+        .loading:nth-child(3) { animation-delay: .4s; }
+        @keyframes ldot { 0%,60%,100%{opacity:.4} 30%{opacity:1} }
+
+        /* ── Success state ── */
+        .success-state { display: none; text-align: center; padding: 1rem 0; }
+        .success-state.show { display: block; }
+        .success-check {
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, #3b82f6, #7c3aed);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 24px; color: #fff;
+            animation: popIn .4s cubic-bezier(0.34,1.56,0.64,1);
+            box-shadow: 0 6px 20px rgba(59,130,246,.35);
+        }
+        @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .success-state h3 {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 1.5rem; color: var(--text); margin-bottom: .5rem;
+            letter-spacing: -.3px; transition: color .35s;
+        }
+        .success-state p { font-size: .855rem; color: var(--text2); margin-bottom: 1.5rem; font-weight: 300; transition: color .35s; }
+
+        /* ── Footer ── */
+        .verify-footer {
+            margin-top: 1.25rem; text-align: center;
+            font-size: .71rem; color: var(--text3);
+            border-top: 1px solid var(--bdr); padding-top: 1.1rem;
+            transition: color .35s, border-color .35s;
+        }
+
+        /* back link */
+        .back-link {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            margin-top: 1.5rem; font-size: .8rem; color: var(--text3);
+            text-decoration: none; transition: color .2s;
+        }
+        .back-link:hover { color: #60a5fa; }
+
+        /* responsive */
+        @media (max-width: 480px) {
+            .verify-body { padding: 1.5rem 1.25rem 2rem; }
+            .verify-top { padding: 2rem 1.25rem 1.5rem; }
+            .code-input { width: 44px; height: 52px; font-size: 1.25rem; }
+            .code-inputs { gap: 7px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Ambient background -->
+<div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+</div>
+<div class="gridbg"></div>
+
+<!-- Header -->
+<header>
+    <div class="hdr">
+        <a class="logo" href="index.html">
+            <div class="lmark">Q</div>
+            <span class="lname">QATALYST</span>
+        </a>
+        <div class="hdr-r">
+            <div class="tgl-w">
+                <i class="fas fa-moon tgl-ic" aria-hidden="true"></i>
+                <label class="tgl" aria-label="Toggle light/dark theme">
+                    <input type="checkbox" id="themeToggle">
+                    <div class="tgl-fill"></div>
+                    <div class="tgl-thumb"></div>
+                </label>
+                <i class="fas fa-sun tgl-ic" aria-hidden="true"></i>
+            </div>
+            <a href="index.html" class="btn btn-g">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>Home</span>
+            </a>
+            <a href="login.html" class="btn btn-p">
+                <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                <span>SDO Sign In</span>
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- Main -->
+<main class="page-outer">
+
+    <!-- Eyebrow -->
+    <div class="eyebrow">
+        <div class="edot"></div>
+        QATALYST · Email Verification
+    </div>
+
+    <div class="verify-card">
+
+        <!-- Top panel -->
+        <div class="verify-top">
+            <div class="verify-icon-wrap">
+                <i class="fa-solid fa-envelope-open-text"></i>
+            </div>
+            <h1>Verify Your Email</h1>
+            <p>We sent a 6-digit code to<br><strong id="displayEmail">your email address</strong></p>
+        </div>
+
+        <!-- Form body -->
+        <div class="verify-body">
+
+            <div class="error-message"   id="errorMsg"></div>
+            <div class="success-message" id="successMsg"></div>
+
+            <!-- Verify form -->
+            <div id="verifyForm">
+                <p class="form-eyebrow">Enter your code</p>
+                <p class="verify-hint">It expires in <strong>10 minutes</strong>. Check your spam folder if needed.</p>
+
+                <div class="code-inputs" id="codeInputs">
+                    <input class="code-input" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" autocomplete="one-time-code">
+                    <input class="code-input" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+                    <input class="code-input" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+                    <input class="code-input" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+                    <input class="code-input" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+                    <input class="code-input" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+                </div>
+
+                <button class="verify-btn" id="verifyBtn" onclick="submitCode()" disabled>
+                    Verify Email
+                </button>
+
+                <div class="divider">or</div>
+
+                <div class="resend-row">
+                    Didn't receive it?
+                    <button class="resend-btn" id="resendBtn" onclick="resendCode()">Resend code</button>
+                    <span class="countdown" id="countdown"></span>
+                </div>
+            </div>
+
+            <!-- Success state -->
+            <div class="success-state" id="successState">
+                <div class="success-check"><i class="fa-solid fa-check"></i></div>
+                <h3>Email Verified!</h3>
+                <p>Your email is verified. Redirecting you to your dashboard. School access requires SDO approval.</p>
+                <button class="verify-btn" onclick="window.location.href='school-portal-dashboard.html'">
+                    <i class="fa-solid fa-right-to-bracket" style="margin-right:6px;"></i>Go to Dashboard
+                </button>
+            </div>
+
+            <!-- Footer -->
+            <div class="verify-footer">
+                © 2026 Schools Division Office of the City of Baliwag · QATALYST School Portal. All rights reserved.
+            </div>
+
+        </div>
+    </div>
+
+    <a href="school-portal.html" class="back-link">
+        <i class="fa-solid fa-arrow-left"></i> Back to School Portal
+    </a>
+
+</main>
+
+<script src="js/config.js"></script>
+<script>
+    // ── Theme toggle ──────────────────────────────────────────────────────────
+    const themeToggle = document.getElementById('themeToggle');
+    const saved = localStorage.getItem('sp_theme');
+    if (saved === 'light') { document.body.classList.add('light'); themeToggle.checked = true; }
+    themeToggle.addEventListener('change', () => {
+        document.body.classList.toggle('light', themeToggle.checked);
+        localStorage.setItem('sp_theme', themeToggle.checked ? 'light' : 'dark');
+    });
+
+    // ── Params ────────────────────────────────────────────────────────────────
+    const API_BASE = CONFIG.API_URL;
+    const params   = new URLSearchParams(window.location.search);
+    const token    = params.get('token') || '';
+    const email    = params.get('email') || sessionStorage.getItem('sp_verify_email') || '';
+
+    if (email) sessionStorage.setItem('sp_verify_email', email);
+    if (email) document.getElementById('displayEmail').textContent = email;
+
+    // ── Code input behaviour ──────────────────────────────────────────────────
+    const inputs    = Array.from(document.querySelectorAll('.code-input'));
+    const verifyBtn = document.getElementById('verifyBtn');
+
+    inputs.forEach((input, i) => {
+        input.addEventListener('input', e => {
+            input.value = input.value.replace(/\D/g, '').slice(-1);
+            input.classList.toggle('filled', input.value !== '');
+            if (input.value && i < inputs.length - 1) inputs[i + 1].focus();
+            checkAllFilled();
+        });
+
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Backspace' && !input.value && i > 0) {
+                inputs[i - 1].value = '';
+                inputs[i - 1].classList.remove('filled');
+                inputs[i - 1].focus();
+            }
+            if (e.key === 'Enter') submitCode();
+        });
+
+        input.addEventListener('paste', e => {
+            e.preventDefault();
+            const pasted = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+            pasted.split('').forEach((ch, idx) => {
+                if (inputs[idx]) { inputs[idx].value = ch; inputs[idx].classList.add('filled'); }
+            });
+            if (inputs[Math.min(pasted.length, 5)]) inputs[Math.min(pasted.length, 5)].focus();
+            checkAllFilled();
+        });
+    });
+
+    function checkAllFilled() {
+        const full = inputs.every(i => i.value !== '');
+        verifyBtn.disabled = !full;
+        if (full) verifyBtn.focus();
+    }
+
+    function getCode() { return inputs.map(i => i.value).join(''); }
+
+    function setInputError() {
+        inputs.forEach(i => { i.classList.add('error'); i.classList.remove('filled'); });
+        setTimeout(() => inputs.forEach(i => i.classList.remove('error')), 600);
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('errorMsg');
+        el.textContent = msg; el.classList.add('show');
+        document.getElementById('successMsg').classList.remove('show');
+        setTimeout(() => el.classList.remove('show'), 5000);
+    }
+
+    function showSuccess(msg) {
+        const el = document.getElementById('successMsg');
+        el.textContent = msg; el.classList.add('show');
+        document.getElementById('errorMsg').classList.remove('show');
+    }
+
+    function setLoading(loading) {
+        verifyBtn.disabled = loading;
+        verifyBtn.innerHTML = loading
+            ? `Verifying<span class="loading"></span><span class="loading"></span><span class="loading"></span>`
+            : 'Verify Email';
+    }
+
+    // ── Submit code ───────────────────────────────────────────────────────────
+    async function submitCode() {
+        const code = getCode();
+        if (code.length !== 6) return;
+
+        setLoading(true);
+        try {
+            const res  = await fetch(`${API_BASE}/school-portal-verify.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ token, code })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                const user = data.data;
+                if (user?.id) {
+                    localStorage.setItem('edu_user_id', String(user.id));
+                    localStorage.setItem('edu_email', user.email || '');
+                    localStorage.setItem('edu_full_name', user.full_name || '');
+                    localStorage.setItem('edu_role', 'teacher');
+                    localStorage.setItem('edu_account_type', 'portal_user');
+                    localStorage.setItem('edu_school_type', user.school_type || '');
+                    localStorage.setItem('edu_school_name', user.school_name || '');
+                    localStorage.setItem('edu_school_approved', '0');
+                }
+                document.getElementById('verifyForm').style.display = 'none';
+                document.getElementById('successState').classList.add('show');
+                stopCountdown();
+                setTimeout(() => window.location.href = 'school-portal-dashboard.html', 2500);
+            } else {
+                showError(data.message || 'Invalid or expired code. Please try again.');
+                setInputError();
+                inputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
+                inputs[0].focus();
+                verifyBtn.disabled = true;
+            }
+        } catch (err) {
+            showError('Connection error. Please check your internet and try again.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // ── Resend code ───────────────────────────────────────────────────────────
+    let countdownInterval = null;
+    let countdownSeconds  = 0;
+
+    function startCountdown(seconds = 60) {
+        const resendBtn   = document.getElementById('resendBtn');
+        const countdownEl = document.getElementById('countdown');
+        resendBtn.disabled    = true;
+        countdownSeconds      = seconds;
+        countdownEl.textContent = `(${countdownSeconds}s)`;
+        countdownInterval = setInterval(() => {
+            countdownSeconds--;
+            if (countdownSeconds <= 0) { stopCountdown(); }
+            else { countdownEl.textContent = `(${countdownSeconds}s)`; }
+        }, 1000);
+    }
+
+    function stopCountdown() {
+        clearInterval(countdownInterval);
+        document.getElementById('resendBtn').disabled    = false;
+        document.getElementById('countdown').textContent = '';
+    }
+
+    async function resendCode() {
+        if (!token) { showError('Missing verification token. Please sign in again.'); return; }
+
+        document.getElementById('resendBtn').disabled = true;
+        try {
+            const res  = await fetch(`${API_BASE}/school-portal-verify.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ token, action: 'resend' })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                showSuccess('A new code has been sent to your email.');
+                inputs.forEach(i => { i.value = ''; i.classList.remove('filled', 'error'); });
+                inputs[0].focus();
+                verifyBtn.disabled = true;
+                startCountdown(60);
+            } else {
+                showError(data.message || 'Could not resend code. Please try again.');
+                document.getElementById('resendBtn').disabled = false;
+            }
+        } catch (err) {
+            showError('Connection error. Please try again.');
+            document.getElementById('resendBtn').disabled = false;
+        }
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+        if (!token) {
+            showError('Invalid verification link. Please sign in again.');
+            document.getElementById('verifyBtn').disabled = true;
+        } else {
+            inputs[0].focus();
+            startCountdown(60);
+            if (params.get('email_sent') === '0') {
+                const notice = document.createElement('p');
+                notice.id = 'emailDeliveryNotice';
+                notice.textContent = 'The verification email could not be sent. Use Resend code when available, or sign in again later.';
+                document.getElementById('verifyForm').prepend(notice);
+            }
+        }
+    });
+</script>
+</body>
+</html>

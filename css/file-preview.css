@@ -1,0 +1,208 @@
+/* ============================================================
+   file-preview.css
+   Inline file preview modal — used by documents-submitted.js
+   and documents-submitted-all.js
+   ============================================================ */
+
+/* ── Overlay ── */
+.ads-fp-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+.ads-fp-overlay.open {
+    display: flex;
+}
+
+/* ── Modal shell ── */
+.ads-fp-modal {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+    width: 100%;
+    max-width: 960px;
+    max-height: calc(100vh - 32px);
+    overflow: hidden;
+    animation: fpSlideUp 0.2s ease;
+}
+
+@keyframes fpSlideUp {
+    from { opacity: 0; transform: translateY(16px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+/* ── Header ── */
+.ads-fp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    flex-shrink: 0;
+}
+
+.ads-fp-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.ads-fp-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.ads-fp-open-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+.ads-fp-open-btn:hover {
+    background: #dbeafe;
+}
+
+.ads-fp-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.ads-fp-close-btn:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* ── Body ── */
+.ads-fp-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: #f1f5f9;
+}
+
+/* ── PDF / Word iframe ── */
+.ads-fp-iframe {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 540px;
+    border: none;
+    display: block;
+    background: #fff;
+}
+
+/* ── Image preview ── */
+.ads-fp-img-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: auto;
+    background: #0f172a;
+}
+.ads-fp-img {
+    max-width: 100%;
+    max-height: calc(100vh - 140px);
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+/* ── Unsupported file type ── */
+.ads-fp-unsupported {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 48px 24px;
+    text-align: center;
+    color: #64748b;
+}
+.ads-fp-unsupported i {
+    font-size: 52px;
+    color: #94a3b8;
+}
+.ads-fp-unsupported p {
+    font-size: 14px;
+    margin: 0;
+    max-width: 340px;
+    line-height: 1.6;
+}
+.ads-fp-unsupported strong {
+    color: #334155;
+}
+.ads-fp-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+.ads-fp-download-btn:hover {
+    background: #1d4ed8;
+}
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+    .ads-fp-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+    .ads-fp-modal {
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 16px 16px 0 0;
+    }
+    .ads-fp-iframe {
+        min-height: 400px;
+    }
+    .ads-fp-open-btn span {
+        display: none;
+    }
+}

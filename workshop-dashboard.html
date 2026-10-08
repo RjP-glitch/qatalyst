@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QATALYST - Dashboard</title>
+    <script src="https://kit.fontawesome.com/7b5f352106.js" crossorigin="anonymous"></script>
+    <!-- BUG 19 FIX: removed duplicate FA CDN link (cdnjs); Kit script above is sufficient -->
+    <link rel="stylesheet" href="css/workshop-dashboard.css?v5">
+    <link rel="stylesheet" href="css/notifications.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="main-container">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon">Q</div>
+                <div class="logo-text">
+                    <h1>QATALYST</h1>
+                    <p>Quality Assurance, Tracking, Analytics, Logic, and Decision Support Technology</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn active" onclick="navigate('dashboard')">
+                    <i class="fa-solid fa-house nav-icon"></i><span>Dashboard</span>
+                </button>
+                <button class="submenu-toggle" onclick="toggleSubmenu('programs')">
+                    <span class="toggle-left">
+                        <i class="fa-solid fa-calendar-days nav-icon"></i><span>Programs</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow" id="programs-arrow"></i>
+                </button>
+                <div class="submenu" id="programs-submenu">
+                    <button class="submenu-toggle" onclick="toggleSubmenu('qa')">
+                        <span class="toggle-left"><i class="fa-solid fa-award nav-icon"></i><span>Quality Assurance</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow" id="qa-arrow"></i>
+                    </button>
+                    <div class="submenu" id="qa-submenu" style="padding-left:12px;">
+                        <button class="nav-btn" onclick="navigate('qatame')"><span>QATAME</span></button>
+                        <button class="nav-btn " onclick="navigate('qms')"><span>QMS</span></button>
+                    </div>
+                    <button class="nav-btn " onclick="navigate('sbm')"><span>School-Based Management</span></button>
+                    <button class="nav-btn " onclick="navigate('sgc')"><span>School Governance Council</span></button>
+                    <button class="submenu-toggle " onclick="toggleSubmenu('pir')">
+                        <span class="toggle-left"><i class="fa-solid fa-magnifying-glass-chart nav-icon"></i><span>Program Implementation Review</span></span>
+                        <i class="fa-solid fa-chevron-right submenu-arrow " id="pir-arrow"></i>
+                    </button>
+                    <div class="submenu " id="pir-submenu" style="padding-left:12px;">
+                        <button class="nav-btn " onclick="navigate('sdopir')"><span>SDO PIR</span></button>
+                        <button class="nav-btn " onclick="navigate('spir')"><span>SPIR</span></button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="navigate('speakers')">
+                    <i class="fa-solid fa-person-chalkboard nav-icon"></i><span>Speaker Roster</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('certificates')">
+                    <i class="fa-solid fa-certificate nav-icon"></i><span>Certificates</span>
+                </button>
+
+                <button class="nav-btn" onclick="navigate('checklist')">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i><span>Checklist</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('documentssubmittedall')">
+                    <i class="fa-solid fa-inbox nav-icon"></i><span>School Submissions</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('directory')">
+                    <i class="fa-solid fa-address-book nav-icon"></i><span>Directory</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('announcements')">
+                   <i class="fa-solid fa-bullhorn nav-icon"></i><span>Announcements</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('settings')">
+                    <i class="fa-solid fa-gear nav-icon"></i><span>Settings</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('auditlogs')">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i><span>Audit Logs</span>
+                </button>
+                <button class="nav-btn" onclick="navigate('users')">
+                    <i class="fa-solid fa-users nav-icon"></i><span>User Management</span>
+                </button>
+                <button class="nav-btn" onclick="window.location.href='user-manual.html?view=full'">
+                    <i class="fa-solid fa-book-open nav-icon"></i><span>User Manual</span>
+                </button>
+            </nav>
+
+            <div class="user-info-sidebar">
+                <div class="user-avatar-sidebar" id="sidebarAvatar" title="View Profile">U</div>
+                <div class="user-details">
+                    <h3 id="sidebarUserName">User</h3>
+                    <p id="sidebarUserEmail"></p>
+                </div>
+            </div>
+            <button class="sidebar-logout-btn" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <!-- Mobile sidebar backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+        <!-- ── Main Content ── -->
+        <div class="main-content">
+
+            <!-- Page Header with Back Button and Controls -->
+            <div class="page-header">
+                <div class="page-header-left">
+                    <button class="back-btn" onclick="navigate('programs')">
+                        <i class="fa-solid fa-arrow-left"></i> <span>Back to Programs</span>
+                    </button>
+                </div>
+
+                <div class="page-header-center">
+                    <span class="workshop-title-display" id="workshopTitleDisplay">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                        <span id="workshopTitleText">Loading...</span>
+                    </span>
+                </div>
+
+                <div class="page-header-right">
+                    <div class="day-controls">
+                        <button class="day-btn" id="prevDayBtn" onclick="changeDay(-1)" disabled>←</button>
+                        <span class="day-display" id="dayDisplay">Day 1</span>
+                        <button class="day-btn" id="nextDayBtn" onclick="changeDay(1)" disabled>→</button>
+                    </div>
+                    <span class="response-pill" id="responsePill">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                        <span id="responseCount">0</span> Responses
+                    </span>
+                    <div class="save-as-wrapper" id="saveAsWrapper">
+                        <button class="btn-save-as" id="saveAsBtn" onclick="toggleSaveAsMenu(event)">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Save As</span>
+                            <i class="fa-solid fa-chevron-down save-as-chevron"></i>
+                        </button>
+                        <div class="save-as-menu" id="saveAsMenu">
+                            <button id="downloadPngBtn" onclick="downloadDashboardAsPng(); closeSaveAsMenu()">
+                                <i class="fa-solid fa-image"></i> PNG
+                            </button>
+                            <button id="downloadJpegBtn" onclick="downloadDashboardAsJpeg(); closeSaveAsMenu()">
+                                <i class="fa-solid fa-image"></i> JPEG
+                            </button>
+                            <button id="downloadProjectorBtn" onclick="downloadDashboardForProjector(); closeSaveAsMenu()">
+                                <i class="fa-solid fa-display"></i> Projector Size
+                            </button>
+                        </div>
+                    </div>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+                </div>
+            </div>
+
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="content-section">
+                <div class="dashboard-board">
+
+                    <!-- ── HEADER CARD ── -->
+                    <div class="header-card">
+                        <div class="header-flex">
+                            <div class="header-logo">
+                                <img src="images/SDO-Seal.png" alt="DepEd Logo">
+                            </div>
+                            <div class="header-text" id="workshopHeader">
+                                <h2>Loading...</h2>
+                                <h3></h3>
+                                <p></p>
+                            </div>
+                        </div>
+                        <!-- Overall score pinned to the right of the header -->
+                        <div class="overall-score-box" id="headerOverallScore">
+                            <div class="osb-label">Over-All Score</div>
+                            <div class="osb-number" id="osb-number">—</div>
+                            <div class="osb-text" id="osb-text">—</div>
+                        </div>
+                    </div>
+
+                    <!-- ── MAIN GRID ── -->
+                    <div class="grid-container">
+
+                        <!-- LEFT: Participants -->
+                        <div class="participants-card">
+                            <div class="card-title-text">PARTICIPANTS</div>
+
+                            <div class="pie-chart-wrapper" onclick="openParticipantsModal()"
+                                title="Click to view breakdown">
+                                <svg viewBox="0 0 100 100" class="pie-chart" id="pieChart">
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="20">
+                                    </circle>
+                                </svg>
+                                <div class="pie-text">
+                                    <div id="pieChartText">
+                                        <p class="male-text">Male 0%</p>
+                                        <p class="female-text">Female 0%</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pie-labels" id="pieLabels">
+                                <span class="pie-label-male" id="malePieLabel">MALE<br>0%</span>
+                                <span class="pie-label-lgbtq" id="lgbtqPieLabel">Prefer not to say<br>0%</span>
+                                <span class="pie-label-female" id="femalePieLabel">FEMALE<br>0%</span>
+                            </div>
+
+                            <div class="chart-legend">
+                                <div class="legend-item">
+                                    <div class="legend-box male-box"></div>
+                                    <span id="maleCount">MALE</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-box lgbtq-box"></div>
+                                    <span id="femaleCount">FEMALE</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-box female-box"></div>
+                                    <span id="lgbtqCount">Prefer not to say</span>
+                                </div>
+                            </div>
+
+                            <div class="participants-total" id="totalParticipantsLabel">
+                                TOTAL PARTICIPANTS-0
+                            </div>
+
+                            <div class="participants-expected" id="expectedParticipantsLabel" style="display:none">
+                                EXPECTED PARTICIPANTS-0
+                            </div>
+                        </div>
+
+                        <!-- RIGHT: Indicators -->
+                        <div class="indicators-column" id="superCategoriesContainer">
+                            <div class="loading-categories">Loading categories...</div>
+                        </div>
+
+                    </div>
+
+                    <!-- ── RESOURCE SPEAKERS ROW ── -->
+                    <div class="speakers-row">
+                        <div class="speakers-row-title">
+                            RESOURCE SPEAKERS
+                            <button class="speaker-settings-btn" onclick="openSpeakerSettingsModal()" title="Display Settings">
+                                <i class="fa-solid fa-gear"></i>
+                            </button>
+                        </div>
+                        <div class="speakers-badges" id="speakersGrid">
+                            <div class="no-data-inline">Loading speakers...</div>
+                        </div>
+                        <div class="responses-badge">
+                            <div class="res-label">RESPONSES</div>
+                            <div class="res-number" id="responsesBadgeCount">0</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/permissions.js?v6"></script>
+    <script src="js/notifications.js?v6"></script>
+    <script src="js/workshop-dashboard.js?v3"></script>
+
+    <script>
+        /* ── Save As dropdown ── */
+        function toggleSaveAsMenu(e) {
+            e.stopPropagation();
+            const menu = document.getElementById('saveAsMenu');
+            const btn = document.getElementById('saveAsBtn');
+            const wrapper = document.getElementById('saveAsWrapper');
+            const isOpen = menu.classList.toggle('open');
+            wrapper.classList.toggle('open', isOpen);
+            if (isOpen && btn) {
+                const rect = btn.getBoundingClientRect();
+                menu.style.top = (rect.bottom + 6) + 'px';
+                menu.style.left = rect.left + 'px';
+            }
+        }
+        function closeSaveAsMenu() {
+            document.getElementById('saveAsMenu')?.classList.remove('open');
+            document.getElementById('saveAsWrapper')?.classList.remove('open');
+        }
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#saveAsWrapper')) closeSaveAsMenu();
+        });
+
+        /* ── Stamp print date so the CSS ::after footer can show it ── */
+        window.addEventListener('DOMContentLoaded', function () {
+            const board = document.querySelector('.dashboard-board');
+            if (board) {
+                const now = new Date();
+                board.setAttribute('data-print-date',
+                    now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) +
+                    '  ' +
+                    now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                );
+            }
+        });
+
+        /* ── Force color printing in Chrome/Edge ── */
+        window.addEventListener('beforeprint', function () {
+            document.body.style.webkitPrintColorAdjust = 'exact';
+        });
+    </script>
+</body>
+
+</html>
