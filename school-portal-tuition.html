@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="css/school-portal-tuition.css?v11" />
+    <link rel="stylesheet" href="css/school-portal-tuition.css?v15" />
     <style>
 /* ═══════════════════════════════════════════════════════════════════
    OFFICIAL DEPED LETTERHEAD STYLES — faithfully matches Word docs
@@ -375,27 +375,24 @@
         <!-- ══ SAVED DOCS VIEW ══ -->
         <div class="saved-docs-view" id="tfSavedDocsView">
             <div class="saved-docs-header">
-                <div class="saved-docs-header-main">
-                    <div>
-                        <h2><i class="fa-solid fa-folder-open"></i> My Saved Tuition Fee Documents</h2>
-                        <p>Showing saved tuition fee submissions for your account.</p>
-                    </div>
-                    <button class="tba-btn tba-primary saved-docs-create-btn" onclick="openTuitionBuilder()">
-                        <i class="fa-solid fa-plus"></i> Create New Tuition Fee Document
-                    </button>
-                </div>
-                <div class="filter-row">
-                    <button class="filter-btn active" onclick="filterSavedDocs('all')"      id="tf-f-all"><i class="fa-solid fa-border-all"></i> All</button>
-                    <button class="filter-btn" onclick="filterSavedDocs('draft')"            id="tf-f-draft"><i class="fa-solid fa-pen"></i> Draft</button>
-                    <button class="filter-btn" onclick="filterSavedDocs('pending')"          id="tf-f-pending"><i class="fa-solid fa-clock"></i> Pending</button>
-                    <button class="filter-btn" onclick="filterSavedDocs('review')"           id="tf-f-review"><i class="fa-solid fa-hourglass-half"></i> Under Review</button>
-                    <button class="filter-btn" onclick="filterSavedDocs('approved')"         id="tf-f-approved"><i class="fa-solid fa-circle-check"></i> Approved</button>
-                    <button class="filter-btn" onclick="filterSavedDocs('returned')"         id="tf-f-returned"><i class="fa-solid fa-rotate-left"></i> Returned</button>
+                <div class="saved-docs-toolbar">
+                    <label class="sr-only" for="tfSavedDocsStatusFilter">Filter tuition documents by status</label>
+                    <select id="tfSavedDocsStatusFilter" class="saved-docs-select-filter" onchange="filterSavedDocs(this.value)">
+                        <option value="all">All statuses</option>
+                        <option value="draft">Draft</option>
+                        <option value="pending">Pending</option>
+                        <option value="review">Under Review</option>
+                        <option value="approved">Approved</option>
+                        <option value="returned">Returned</option>
+                    </select>
                     <div class="sub-search-wrap">
                         <i class="fa-solid fa-magnifying-glass"></i>
                         <input id="tfSavedDocsSearch" type="search" placeholder="Search by title or status"
                             oninput="handleTuitionDocsSearch(this.value)" />
                     </div>
+                    <button class="tba-btn tba-primary saved-docs-create-btn" onclick="openTuitionBuilder()">
+                        <i class="fa-solid fa-plus"></i> Create New Tuition Fee Document
+                    </button>
                 </div>
             </div>
             <div id="tfSavedDocsContent" class="saved-docs-content">
@@ -422,26 +419,26 @@
                     </div>
                 </div>
                 <div class="top-bar-actions">
-                    <div class="autosave-status" id="tfAutosave2">
-                        <i class="fa-solid fa-circle-dot" style="font-size:8px;"></i>
-                        <span>Unsaved</span>
-                    </div>
-                    <button class="tba-btn tba-primary" onclick="saveDraft(currentStep)">
-                        <i class="fa-solid fa-floppy-disk"></i> Save
-                    </button>
-                    <button class="tba-btn tba-submit-btn" id="tfBtnFinalSubmitDrop" onclick="showTuitionSubmitDialog()">
-                        <i class="fa-solid fa-paper-plane"></i> Final Submit
-                    </button>
-                    <button class="tba-btn tba-ghost" id="tfBtnTogglePreview" onclick="toggleTuitionPreview()" title="Hide document preview">
+                    <button class="tba-btn tba-ghost tf-toolbar-desktop" id="tfBtnTogglePreview" onclick="toggleTuitionPreview()" title="Hide document preview">
                         <i class="fa-solid fa-eye-slash" id="tfTogglePreviewIcon"></i> <span id="tfTogglePreviewLabel">Hide Preview</span>
                     </button>
-                    <div class="tba-more-wrap">
+                    <button class="tba-btn tba-ghost tf-toolbar-desktop" onclick="exportTuitionWord()">
+                        <i class="fa-solid fa-file-word"></i> Export to Word
+                    </button>
+                    <button class="tba-btn tba-ghost tf-toolbar-desktop" onclick="openTuitionHelp()">
+                        <i class="fa-solid fa-circle-question"></i> Help / Tutorial
+                    </button>
+                    <div class="tba-more-wrap tf-toolbar-more">
                         <button class="tba-btn tba-ghost tba-more-btn" onclick="toggleTuitionTopBarMenu()" title="More actions">
                             <i class="fa-solid fa-ellipsis-vertical"></i>
                         </button>
                         <div class="tba-dropdown" id="tfTopBarMenu">
+                            <button class="tba-drop-item" onclick="toggleTuitionPreview();closeTuitionTopBarMenu()">
+                                <i class="fa-solid fa-eye"></i> <span id="tfMenuPreviewLabel">Hide Preview</span>
+                            </button>
+                            <div class="tba-drop-divider"></div>
                             <button class="tba-drop-item" onclick="exportTuitionWord();closeTuitionTopBarMenu()">
-                                <i class="fa-solid fa-file-word"></i> Export Word
+                                <i class="fa-solid fa-file-word"></i> Export to Word
                             </button>
                             <div class="tba-drop-divider"></div>
                             <button class="tba-drop-item" onclick="openTuitionHelp();closeTuitionTopBarMenu()">
@@ -489,6 +486,9 @@
                     <button class="dsn-action-btn dsn-save-continue-btn" onclick="saveDraft(currentStep)">
                         <i class="fa-solid fa-floppy-disk"></i> Save Draft
                     </button>
+                    <button class="dsn-action-btn dsn-final-submit-btn" id="tfBtnFinalSubmitDrop" onclick="showTuitionSubmitDialog()">
+                        <i class="fa-solid fa-paper-plane"></i> Final Submit
+                    </button>
                 </nav>
 
                 <!-- FORM PANEL -->
@@ -512,6 +512,7 @@
                                     <div class="tf-mode-check" id="modeCheckNoIncrease"><i class="fa-solid fa-check"></i></div>
                                 </div>
                             </div>
+                            <div id="tfTuitionConflictNotice" role="alert" style="display:none;margin-top:8px;padding:9px 11px;border:1px solid #fca5a5;border-radius:7px;background:#fef2f2;color:#991b1b;font-size:12px;line-height:1.5;"></div>
                         </div>
                         <div class="form-section">
                             <div class="form-section-hdr"><i class="fa-solid fa-layer-group"></i>Levels Covered</div>
@@ -554,7 +555,7 @@
                             <div class="form-section-hdr"><i class="fa-solid fa-calendar"></i>School Year</div>
                             <div class="fg-pair">
                                 <div class="fg"><label>Current SY</label><input id="tfCurrentSY" placeholder="2024-2025" oninput="tfLiveUpdate()" /></div>
-                                <div class="fg"><label>Proposed SY</label><input id="tfProposedSY" placeholder="2025-2026" oninput="tfLiveUpdate()" /></div>
+                                <div class="fg"><label>Proposed SY</label><input id="tfProposedSY" placeholder="2025-2026" oninput="tfLiveUpdate();updateTuitionSubmissionGuard()" /></div>
                             </div>
                             <div class="fg" id="tfPctFieldGroup">
                                 <label>Increase Percentage (%)</label>
@@ -2766,9 +2767,11 @@
         const hidden = workspace.classList.toggle('tf-preview-hidden');
         const icon  = document.getElementById('tfTogglePreviewIcon');
         const label = document.getElementById('tfTogglePreviewLabel');
+        const menuLabel = document.getElementById('tfMenuPreviewLabel');
         const btn   = document.getElementById('tfBtnTogglePreview');
         if (icon)  icon.className  = hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
         if (label) label.textContent = hidden ? 'Show Preview' : 'Hide Preview';
+        if (menuLabel) menuLabel.textContent = hidden ? 'Show Preview' : 'Hide Preview';
         if (btn)   btn.title = hidden ? 'Show document preview' : 'Hide document preview';
         localStorage.setItem('edu_tf_preview_hidden', hidden ? '1' : '0');
     }
@@ -2783,9 +2786,8 @@
 
     /* ── Final Submit visibility ── */
     function syncTuitionFinalSubmitVisibility() {
-        // Always visible — remove any inline display style so CSS takes over.
-        const dropItem = document.getElementById('tfBtnFinalSubmitDrop');
-        if (dropItem) dropItem.style.removeProperty('display');
+        const submitBtn = document.getElementById('tfBtnFinalSubmitDrop');
+        if (submitBtn && typeof _builderLocked !== 'undefined' && !_builderLocked) submitBtn.style.removeProperty('display');
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -2806,6 +2808,6 @@
 </script>
 <script src="js/config.js?v5"></script>
 <script src="js/school-portal-permissions.js"></script>
-<script src="js/school-portal-tuition.js?v14"></script>
+<script src="js/school-portal-tuition.js?v17"></script>
 </body>
 </html>

@@ -655,10 +655,31 @@ function validateDepEdCompliance(array $doc, array $payload): array
     // rejected with a false "tuition fee must be greater than ₱0" error even
     // though G11/G12 tuition was correctly filled in. We now check whichever
     // field set is actually populated.
+    $elemHasGradeTuition = false;
+    foreach (range(1, 6) as $grade) {
+        if (array_key_exists('e' . $grade . '_tuition_curr', $payload['elem'] ?? [])) {
+            $elemHasGradeTuition = true;
+            break;
+        }
+    }
+    $jhsHasGradeTuition = false;
+    foreach (range(7, 10) as $grade) {
+        if (array_key_exists('j' . $grade . '_tuition_curr', $payload['jhs'] ?? [])) {
+            $jhsHasGradeTuition = true;
+            break;
+        }
+    }
+
     $levelMap = [
         'kinder' => ['flag' => 'has_kinder', 'fields' => [['k_tuition_curr', 'Kindergarten']]],
-        'elem'   => ['flag' => 'has_elem',   'fields' => [['e_tuition_curr', 'Elementary']]],
-        'jhs'    => ['flag' => 'has_jhs',    'fields' => [['j_tuition_curr', 'Junior High School']]],
+        // Older saved drafts keep the former shared amount; new payloads validate
+        // every grade cell independently as required by the official fee schedule.
+        'elem'   => ['flag' => 'has_elem', 'fields' => $elemHasGradeTuition
+            ? array_map(fn ($grade) => ['e' . $grade . '_tuition_curr', 'Elementary (Grade ' . $grade . ')'], range(1, 6))
+            : [['e_tuition_curr', 'Elementary']]],
+        'jhs'    => ['flag' => 'has_jhs', 'fields' => $jhsHasGradeTuition
+            ? array_map(fn ($grade) => ['j' . $grade . '_tuition_curr', 'Junior High School (Grade ' . $grade . ')'], range(7, 10))
+            : [['j_tuition_curr', 'Junior High School']]],
         'shs'    => ['flag' => 'has_shs',    'fields' => null], // resolved below
     ];
 
@@ -1159,7 +1180,7 @@ try {
     $privateSchoolId = !empty($user['private_school_id']) ? (int) $user['private_school_id'] : null;
 
     if ($method === 'GET' && $action === 'list') {
-        handleList($pdo, $userId);
+        handleList($pdo, $userId, $privateSchoolId);
 
     } elseif ($method === 'GET' && $action === 'supporting_docs') {
         $docType = strtolower(trim((string) ($_GET['doc_type'] ?? 'all')));
@@ -1413,7 +1434,42 @@ function handleDeleteSignatoryTuition(PDO $pdo, array $user, array $body): void
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
-function handleList(PDO $pdo, int $userId): void
+function normalizeTuitionSchoolYear(string $schoolYear): string
+{
+    $schoolYear = preg_replace('/^SY\s*/i', '', trim($schoolYear));
+    return preg_replace('/\s*[\x{2010}-\x{2015}\x{2212}-]\s*/u', '-', $schoolYear);
+}
+
+/** Return another submitted tuition document for this school/year, if any. */
+function findSubmittedTuitionForYear(PDO $pdo, int $privateSchoolId, string $proposedSY, ?int $excludeDocumentId = null): ?array
+{
+    if ($privateSchoolId <= 0) return null;
+    $sql = "SELECT d.id, d.mode, d.proposed_sy
+            FROM school_tuition_documents d
+            WHERE d.private_school_id = :school_id
+              AND (d.status <> 'draft' OR EXISTS (
+                  SELECT 1 FROM school_submissions ss
+                  WHERE ss.type = 'tuition'
+                    AND ss.file_path = CONCAT('school_tuition_documents:', d.id)
+              ))";
+    $params = [
+        ':school_id' => $privateSchoolId,
+    ];
+    if ($excludeDocumentId !== null) {
+        $sql .= ' AND d.id <> :exclude_id';
+        $params[':exclude_id'] = $excludeDocumentId;
+    }
+    $sql .= ' ORDER BY d.updated_at DESC, d.id DESC';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $targetSY = normalizeTuitionSchoolYear($proposedSY);
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        if (normalizeTuitionSchoolYear((string)($row['proposed_sy'] ?? '')) === $targetSY) return $row;
+    }
+    return null;
+}
+
+function handleList(PDO $pdo, int $userId, ?int $privateSchoolId): void
 {
     // Fix D: Use COALESCE for columns that may not exist on older table installs.
     // The ensureTuitionDocumentsTable() ALTER adds them, but on the very first
@@ -1438,7 +1494,26 @@ function handleList(PDO $pdo, int $userId): void
     ');
     $stmt->execute([':uid' => $userId]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    jsonSuccess(['documents' => $rows, 'count' => count($rows)], 'Documents retrieved successfully.');
+    $submittedModes = [];
+    if ($privateSchoolId) {
+        $modeStmt = $pdo->prepare(
+            "SELECT d.id, d.mode, d.proposed_sy
+             FROM school_tuition_documents d
+             WHERE d.private_school_id = :school_id
+               AND (d.status <> 'draft' OR EXISTS (
+                   SELECT 1 FROM school_submissions ss
+                   WHERE ss.type = 'tuition'
+                     AND ss.file_path = CONCAT('school_tuition_documents:', d.id)
+               ))"
+        );
+        $modeStmt->execute([':school_id' => $privateSchoolId]);
+        $submittedModes = $modeStmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    jsonSuccess([
+        'documents' => $rows,
+        'count' => count($rows),
+        'submitted_modes' => $submittedModes,
+    ], 'Documents retrieved successfully.');
 }
 
 function handleLoad(PDO $pdo, int $userId, int $id): void
@@ -1747,6 +1822,28 @@ function handleSubmit(PDO $pdo, array $user, ?int $privateSchoolId, int $id): vo
     // failure cannot leave the document stuck in 'submitted' with no submission row.
     try {
         $pdo->beginTransaction();
+
+        // Serialize final submissions for this school so two portal accounts
+        // cannot submit opposite modes for the same school year concurrently.
+        $effectivePrivateSchoolId = (int)($doc['private_school_id'] ?? $privateSchoolId ?? 0);
+        $proposedSY = (string)($doc['proposed_sy'] ?? '');
+        if ($effectivePrivateSchoolId > 0) {
+            $lockSchoolDocs = $pdo->prepare(
+                'SELECT id FROM school_tuition_documents WHERE private_school_id = :school_id ORDER BY id FOR UPDATE'
+            );
+            $lockSchoolDocs->execute([':school_id' => $effectivePrivateSchoolId]);
+            $lockSchoolDocs->fetchAll(PDO::FETCH_COLUMN);
+
+            $conflict = findSubmittedTuitionForYear($pdo, $effectivePrivateSchoolId, $proposedSY, $id);
+            if ($conflict) {
+                $pdo->rollBack();
+                jsonError(
+                    'A tuition document has already been submitted for SY ' . $proposedSY . '. You may keep drafts, but only one tuition document can be submitted for a school year.',
+                    409,
+                    ['conflicting_document_id' => (int)$conflict['id']]
+                );
+            }
+        }
 
         $pdo->prepare(
             "UPDATE school_tuition_documents SET status = 'Pending Review', updated_at = NOW() WHERE id = :id"

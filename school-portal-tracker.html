@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-    <link rel="stylesheet" href="css/school-portal-tracker.css?v3">
+    <link rel="stylesheet" href="css/school-portal-tracker.css?v4">
     <link rel="stylesheet" href="css/school-portal-notifications.css" />
 </head>
 <body data-portal-mode="separate" data-default-tab="tracker">
@@ -106,11 +106,7 @@
             <!-- ╔═ TRACKER TAB ═══════════════════════════════════════════════ -->
             <div class="tab-panel active" id="tab-tracker">
 
-                <div class="tracker-header">
-                    <div class="tracker-header-left">
-                        <h2>Document Tracker</h2>
-                        <p>Live status of your school's documents as tracked by the SDO office</p>
-                    </div>
+                <div class="tracker-header tracker-controls-row">
                     <div class="tracker-year-wrap">
                         <label for="trackerYearSelect"><i class="fa-solid fa-calendar-alt" style="margin-right:4px;"></i>School Year</label>
                         <select id="trackerYearSelect" onchange="trackerChangeYear()">

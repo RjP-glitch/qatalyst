@@ -3245,6 +3245,29 @@ window.addEventListener('DOMContentLoaded', async () => {
     await loadData();
 });
 
+window.addEventListener('storage', async (event) => {
+    if (event.key !== 'school_tracker_data_updated' || !event.newValue) return;
+    let update;
+    try { update = JSON.parse(event.newValue); } catch (_) { return; }
+    if (update.school_type && update.school_type !== _schoolType) {
+        _schoolType = update.school_type;
+        document.querySelectorAll('.type-tab').forEach(tab => tab.classList.toggle('active', tab.id === (_schoolType === 'private' ? 'tabPrivate' : 'tabPublic')));
+    }
+    const targetYear = String(update.school_year || '').trim().replace(/\s*[\u2010-\u2015\u2212-]\s*/g, '-');
+    let matchingYear = Object.keys(_yearIdMap).find(year => year.trim().replace(/\s*[\u2010-\u2015\u2212-]\s*/g, '-') === targetYear);
+    if (!matchingYear) {
+        await loadYears();
+        matchingYear = Object.keys(_yearIdMap).find(year => year.trim().replace(/\s*[\u2010-\u2015\u2212-]\s*/g, '-') === targetYear);
+    }
+    if (matchingYear) {
+        _currentYear = matchingYear;
+        const yearSelect = document.getElementById('yearSelect');
+        if (yearSelect) yearSelect.value = matchingYear;
+    }
+    await loadData();
+    if (document.querySelector('#indorsementsModal.open')) await _loadIndorsements();
+});
+
 // Quietly re-pull tracker data when the tab regains focus, so changes made on
 // other pages (e.g. a submission set to "For Endorsement") show up without a
 // manual reload. No loader flash; throttled to once per 30s; skipped while the

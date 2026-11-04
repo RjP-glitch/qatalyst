@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-    <link rel="stylesheet" href="css/school-portal-permit.css?v6">
+    <link rel="stylesheet" href="css/school-portal-permit.css?v10">
     <link rel="stylesheet" href="css/school-portal-notifications.css" />
 </head>
 <body data-portal-mode="separate" data-default-tab="permit">
@@ -110,26 +110,22 @@
             <!-- ══ APPLICATIONS LIST VIEW ═══════════════════════════════════ -->
             <div class="permit-view active" id="appsView">
                 <div class="saved-docs-header">
-                    <div class="saved-docs-header-main">
-                        <div>
-                            <h2><i class="fa-solid fa-folder-open" aria-hidden="true"></i> My Permit Applications</h2>
-                            <p>Submit and track your School Permit (GPR-3) applications.</p>
-                        </div>
-                        <button class="btn btn-primary saved-docs-create-btn" id="btnNewApplication" onclick="showWizardView()">
-                            <i class="fa-solid fa-plus"></i> New Permit Application
-                        </button>
-                    </div>
-
-                    <div class="filter-row">
-                        <button class="filter-btn active" onclick="filterApps('all')"      id="f-all"><i class="fa-solid fa-border-all"></i> All</button>
-                        <button class="filter-btn" onclick="filterApps('pending')"          id="f-pending"><i class="fa-solid fa-clock"></i> Pending</button>
-                        <button class="filter-btn" onclick="filterApps('review')"           id="f-review"><i class="fa-solid fa-hourglass-half"></i> Under Review</button>
-                        <button class="filter-btn" onclick="filterApps('approved')"         id="f-approved"><i class="fa-solid fa-circle-check"></i> Approved</button>
-                        <button class="filter-btn" onclick="filterApps('returned')"         id="f-returned"><i class="fa-solid fa-rotate-left"></i> Returned</button>
+                    <div class="saved-docs-toolbar">
+                        <label class="sr-only" for="permitAppsStatusFilter">Filter permit applications by status</label>
+                        <select id="permitAppsStatusFilter" class="saved-docs-select-filter" onchange="filterApps(this.value)">
+                            <option value="all">All statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="review">Under Review</option>
+                            <option value="approved">Approved</option>
+                            <option value="returned">Returned</option>
+                        </select>
                         <div class="sub-search-wrap">
                             <i class="fa-solid fa-magnifying-glass"></i>
                             <input type="search" aria-label="Search permit applications" placeholder="Search applications…" oninput="handleAppsSearch(this.value)">
                         </div>
+                        <button class="btn btn-primary saved-docs-create-btn" id="btnNewApplication" onclick="showWizardView()">
+                            <i class="fa-solid fa-plus"></i> New Permit Application
+                        </button>
                     </div>
                 </div>
 
@@ -438,7 +434,7 @@
 
 <script src="js/config.js?v5"></script>
 <script src="js/school-portal-permissions.js"></script>
-<script src="js/school-portal-permit.js?v6"></script>
+<script src="js/school-portal-permit.js?v8"></script>
 <script src="js/school-portal-notifications.js?v3"></script>
 
 </body>

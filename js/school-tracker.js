@@ -368,6 +368,45 @@
         return catKey + '|' + row + '|' + step;
     }
 
+    const TUITION_MODE_KEYS = ['tuition_increase', 'no_increase'];
+    function _hasCheckedTuitionMode(data, categoryKey) {
+        const category = CATEGORIES.find(item => item.key === categoryKey);
+        if (!category) return false;
+        return category.rows.some(row => category.steps.some(step =>
+            _normaliseCell(data[_cbKey(categoryKey, row, step)]).checked
+        ));
+    }
+    function _lockedTuitionMode(data) {
+        // Increase takes precedence if legacy data has both modes marked.
+        if (_hasCheckedTuitionMode(data, 'tuition_increase')) return 'no_increase';
+        if (_hasCheckedTuitionMode(data, 'no_increase')) return 'tuition_increase';
+        return null;
+    }
+    function _syncTuitionModeLocks() {
+        const lockedCategory = _lockedTuitionMode(_panelTemp);
+        document.querySelectorAll('#st-panel-body .st-cb-cell input[data-key]').forEach(input => {
+            const categoryKey = String(input.dataset.key || '').split('|', 1)[0];
+            const lockedByTuitionMode = TUITION_MODE_KEYS.includes(categoryKey) && categoryKey === lockedCategory;
+            const isManaged = input.dataset.managed === '1';
+            input.disabled = isManaged || (lockedByTuitionMode && !input.checked);
+            input.title = isManaged
+                ? 'Status is managed from the school submission'
+                : lockedByTuitionMode
+                    ? (input.checked
+                        ? `Already marked while the other tuition mode is active. Uncheck this box to clear the conflicting status.`
+                        : `Blocked while ${lockedCategory === 'no_increase' ? 'Increase on Tuition Fee' : 'No Increase on Tuition Fee'} has checked statuses. Uncheck all boxes in that section to switch tuition modes.`)
+                    : '';
+        });
+        document.querySelectorAll('#st-panel-body .st-ts-edit-btn[data-category]').forEach(button => {
+            const categoryKey = button.dataset.category;
+            const locked = TUITION_MODE_KEYS.includes(categoryKey) && categoryKey === lockedCategory;
+            button.disabled = locked;
+            button.title = locked
+                ? `Blocked while the other tuition mode has checked statuses.`
+                : 'Edit timestamps for this section';
+        });
+    }
+
     /** Returns the cell object for a given key, always as { checked, ts, by } */
     function _getCell(yr, sid, key) {
         return _normaliseCell((_schoolData(yr, sid) || {})[key]);
@@ -529,6 +568,28 @@
     // ─────────────────────────────────────────────────────────────────────────
     // YEAR BAR
     // ─────────────────────────────────────────────────────────────────────────
+    function _nextYearToAdd() {
+        const years = _years
+            .map(year => {
+                const match = String(year).match(/^(\d{4})-(\d{4})$/);
+                return match ? { label: year, start: Number(match[1]), end: Number(match[2]) } : null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.start - b.start);
+        if (!years.length) return null;
+
+        const activeYears = new Set(years.map(year => year.label));
+        for (let i = 0; i < years.length - 1; i++) {
+            const missingStart = years[i].end;
+            const nextStart = years[i + 1].start;
+            const candidate = `${missingStart}-${missingStart + 1}`;
+            if (nextStart > missingStart && !activeYears.has(candidate)) return candidate;
+        }
+
+        const lastEnd = years[years.length - 1].end;
+        return `${lastEnd}-${lastEnd + 1}`;
+    }
+
     function _renderYrBar() {
         const bar = document.getElementById('st-yr-bar');
         if (!bar) return;
@@ -571,13 +632,8 @@
             ? (_activeSchools().find(s => s.id === _selectedSchoolId)?.name || 'All Schools')
             : 'All Schools';
 
-        // Calculate next year for the add button
-        const lastYr = _years[_years.length - 1] || '';
-        const lastMatch = lastYr.match(/^(\d{4})-(\d{4})$/);
-        const nextYr = lastMatch
-            ? (parseInt(lastMatch[2]) + '-' + (parseInt(lastMatch[2]) + 1))
-            : null;
-        const nextExists = nextYr && _years.includes(nextYr);
+        // Fill the earliest gap before extending the sequence into the future.
+        const nextYr = _nextYearToAdd();
 
         html += `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
             <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">`;
@@ -612,8 +668,8 @@
             </div>`;
         });
 
-        // Add year button — shows the pre-calculated next year label, one click adds it
-        if (nextYr && !nextExists) {
+        // Add year button restores the earliest missing year or adds the next one.
+        if (nextYr) {
             html += `<button class="st-yr-add" onclick="ST._addNextYear()"
                 title="Add ${_esc(nextYr)}"
                 style="display:inline-flex;align-items:center;gap:5px;">
@@ -836,6 +892,8 @@
             </div>`;
 
         for (const cat of CATEGORIES) {
+            const lockedModeCategory = _lockedTuitionMode(_panelTemp);
+            const lockedByTuitionMode = TUITION_MODE_KEYS.includes(cat.key) && lockedModeCategory === cat.key;
             // Collect all checked keys in this category for the timestamp editor
             const catCheckedKeys = [];
             for (const row of cat.rows) {
@@ -850,6 +908,7 @@
                 <div class="st-cat-title-row">
                     <span class="st-cat-title">${_esc(cat.label)}</span>
                     <button class="st-ts-edit-btn" 
+                        data-category="${_esc(cat.key)}" ${lockedByTuitionMode ? 'disabled title="Blocked while the other tuition mode has checked statuses"' : ''}
                         onclick="ST._openTsEditor('${_esc(cat.key)}')"
                         title="Edit timestamps for this section">
                         <i class="fa-solid fa-clock"></i> Edit Timestamps
@@ -869,8 +928,9 @@
                     const k    = _cbKey(cat.key, row, step);
                     const cell = _normaliseCell(_panelTemp[k]);
                     const managed = ((_managedCellsByYear[_currentYear] || {})[s.id] || []).includes(k);
+                    const blockedByTuitionMode = TUITION_MODE_KEYS.includes(cat.key) && lockedByTuitionMode && !cell.checked;
                     html += `<td class="st-cb-cell">
-                        <input type="checkbox"${cell.checked ? ' checked' : ''}${managed ? ' disabled title="Status is managed from the school submission"' : ''} data-key="${_esc(k)}" onchange="ST._onCbChange(this)">
+                        <input type="checkbox"${cell.checked ? ' checked' : ''}${managed || blockedByTuitionMode ? ' disabled' : ''}${managed ? ' title="Status is managed from the school submission"' : blockedByTuitionMode ? ` title="Blocked while ${lockedModeCategory === 'no_increase' ? 'Increase on Tuition Fee' : 'No Increase on Tuition Fee'} has checked statuses. Uncheck all boxes in that section to switch tuition modes."` : ''} data-managed="${managed ? '1' : '0'}" data-key="${_esc(k)}" onchange="ST._onCbChange(this)">
                         ${_tsBadgeHtml(cell)}
                     </td>`;
                 }
@@ -881,6 +941,7 @@
         }
 
         body.innerHTML = html;
+        _syncTuitionModeLocks();
         _updatePanelRing();
     }
 
@@ -937,6 +998,8 @@
             nowChecked ? (existing.q || null) : null,
         );
 
+        _syncTuitionModeLocks();
+
         // Update the timestamp badge in the same cell without re-rendering the entire panel
         const cell = el.closest('.st-cb-cell');
         if (cell) {
@@ -983,6 +1046,7 @@
     // ─────────────────────────────────────────────────────────────────────────
 
     function _openTsEditor(catKey) {
+        if (TUITION_MODE_KEYS.includes(catKey) && _lockedTuitionMode(_panelTemp) === catKey) return;
         // Find the matching category
         const cat = CATEGORIES.find(c => c.key === catKey);
         if (!cat) return;
@@ -1281,24 +1345,23 @@
             _renderAll();
         },
 
-        // ── Add next year automatically (no text input) ──
-        _addNextYear() {
-            const lastYear = _years[_years.length - 1] || '';
-            const match = lastYear.match(/^(\d{4})-(\d{4})$/);
-            if (!match) return;
-            const nextStart = parseInt(match[2]);
-            const nextYear  = nextStart + '-' + (nextStart + 1);
-            if (_years.includes(nextYear)) return;
+        // ── Add or restore the earliest missing school year ──
+        async _addNextYear() {
+            const nextYear = _nextYearToAdd();
+            if (!nextYear) return;
 
-            _years.push(nextYear);
-            _currentYear = nextYear;
-            _renderAll();
-
-            _apiPost('add_year', { school_year: nextYear }).then(json => {
-                if (json.success && json.year) {
-                    _yearIdMap[nextYear] = json.year.id;
-                }
-            }).catch(() => {});
+            try {
+                const json = await _apiPost('add_year', { school_year: nextYear });
+                if (!json.success || !json.year) throw new Error(json.message || 'Could not add school year.');
+                _yearIdMap[nextYear] = Number(json.year.id);
+                if (!_years.includes(nextYear)) _years.push(nextYear);
+                _years.sort((a, b) => Number(a.slice(0, 4)) - Number(b.slice(0, 4)));
+                _currentYear = nextYear;
+                await _loadYearData(nextYear);
+                _renderAll();
+            } catch (e) {
+                alert(e.message || 'Could not add school year. Please try again.');
+            }
         },
 
         // ── Delete year (only if no checked records) ──

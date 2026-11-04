@@ -148,17 +148,20 @@ body {
 /* ── MAIN LAYOUT ── */
 .main-container {
     display: flex;
-    height: 100vh;
+    width: 100%;
+    height: 100dvh;
+    min-height: 100vh;
     overflow: hidden
 }
 
 /* ── SIDEBAR ── */
 .sidebar {
-    width: 240px;
-    height: 100vh;
+    width: 260px;
+    flex: 0 0 260px;
+    height: 100dvh;
     background: linear-gradient(180deg, #0a1f3d 0%, #0f2d5a 100%);
     box-shadow: 4px 0 20px rgba(0, 0, 0, .4);
-    padding: 20px 14px;
+    padding: 20px 16px;
     overflow-y: auto;
     flex-shrink: 0;
     display: flex;
@@ -205,9 +208,9 @@ body {
 .school-pill-sidebar {
     background: rgba(255, 255, 255, .07);
     border: 1px solid rgba(255, 255, 255, .1);
-    border-radius: 9px;
-    padding: 9px 11px;
-    margin-bottom: 18px
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 20px
 }
 
 .school-pill-label {
@@ -233,12 +236,12 @@ body {
 }
 
 .nav-menu {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     flex: 1
 }
 
 .nav-section-label {
-    font-size: 9px;
+    font-size: 9.5px;
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
@@ -250,9 +253,9 @@ body {
 .nav-btn {
     width: 100%;
     text-align: left;
-    padding: 9px 12px;
+    padding: 10px 14px;
     border: none;
-    border-radius: 7px;
+    border-radius: 8px;
     font-weight: 500;
     font-size: 13px;
     color: #a0bcda;
@@ -261,8 +264,8 @@ body {
     transition: all .2s;
     display: flex;
     align-items: center;
-    gap: 9px;
-    margin-bottom: 2px;
+    gap: 10px;
+    margin-bottom: 3px;
     font-family: var(--font);
     text-decoration: none
 }
@@ -295,16 +298,16 @@ body {
 }
 
 .user-info-sidebar {
-    padding-top: 14px;
+    padding-top: 16px;
     border-top: 1px solid rgba(255, 255, 255, .12);
     display: flex;
     align-items: center;
-    gap: 9px
+    gap: 10px
 }
 
 .user-avatar-sidebar {
-    width: 38px;
-    height: 38px;
+    width: 44px;
+    height: 44px;
     background: linear-gradient(135deg, #2456a4, #3b7dd8);
     border-radius: 50%;
     display: flex;
@@ -312,8 +315,8 @@ body {
     justify-content: center;
     font-weight: 700;
     color: #fff;
-    font-size: 15px;
-    border: 2px solid rgba(255, 255, 255, .25);
+    font-size: 18px;
+    border: 2px solid rgba(255, 255, 255, .3);
     flex-shrink: 0;
     overflow: hidden
 }
@@ -326,24 +329,24 @@ body {
 }
 
 .user-details h3 {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: #fff
 }
 
 .user-details p {
-    font-size: 10px;
+    font-size: 11px;
     color: #7a9fc0
 }
 
 .sidebar-logout-btn {
     display: flex;
     align-items: center;
-    gap: 9px;
-    width: 100%;
-    margin-top: 12px;
-    padding: 9px 14px;
-    border-radius: 9px;
+    gap: 10px;
+    width: calc(100% - 32px);
+    margin: 12px 16px 16px;
+    padding: 10px 16px;
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, .1);
     background: rgba(220, 38, 38, .15);
     color: #fca5a5;
@@ -380,7 +383,7 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     background: #f0f4f8;
     min-width: 0
@@ -396,6 +399,8 @@ body {
     justify-content: space-between;
     border-bottom: 3px solid #f5d800;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+    gap: 16px;
 }
 
 .page-header-left h1 {
@@ -1954,19 +1959,20 @@ body {
 }
 
 /* Saved docs */
-.saved-docs-view { padding:22px 24px;overflow-y:auto;flex:1;min-height:0; }
+.saved-docs-view { padding:24px 28px;overflow-y:auto;flex:1;min-height:0; }
 .saved-docs-header h2 { font-size:19px;font-weight:800;color:#0a1f3d;display:flex;align-items:center;gap:9px; }
 .saved-docs-header-main { display:flex;align-items:flex-start;justify-content:space-between;gap:12px; }
+.saved-docs-actions-only { align-items:center;justify-content:flex-end;min-height:42px; }
 .saved-docs-header p { margin-top:5px;color:#64748b;font-size:12.5px; }
-.filter-row { display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px; }
-.filter-btn { padding:6px 14px;border-radius:20px;border:1.5px solid #e5e7eb;background:white;color:#6b7280;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.2s;display:inline-flex;align-items:center;gap:5px; }
-.filter-btn:hover { border-color:var(--mid);color:var(--mid); }
-.filter-btn.active { background:var(--mid);border-color:var(--mid);color:white; }
-.sub-search-wrap { margin-left:auto;display:flex;align-items:center;gap:8px;border:1.5px solid #dbe4ef;border-radius:20px;padding:6px 12px;background:#fff;min-width:220px; }
+.saved-docs-toolbar { display:grid;grid-template-columns:minmax(160px,210px) minmax(220px,1fr) auto;align-items:center;gap:10px; }
+.saved-docs-select-filter { width:100%;min-width:0;min-height:40px;padding:8px 34px 8px 12px;border:1px solid #dbe4ef;border-radius:10px;background:#fff;color:#334155;font:600 13px var(--font);cursor:pointer; }
+.saved-docs-select-filter:focus-visible { outline:3px solid rgba(36,86,164,.2);border-color:var(--mid); }
+.sub-search-wrap { margin:0;display:flex;align-items:center;gap:8px;border:1px solid #dbe4ef;border-radius:10px;padding:6px 12px;background:#fff;min-width:0;width:100%;min-height:40px; }
 .sub-search-wrap i { color:#64748b;font-size:11px; }
 .sub-search-wrap input { border:none;outline:none;background:transparent;width:100%;font-size:12px;font-family:var(--font);color:#1f2937; }
 @media (max-width: 760px) {
-    .sub-search-wrap { margin-left:0;width:100%;min-width:0; }
+    .saved-docs-toolbar { grid-template-columns:minmax(130px,.85fr) minmax(150px,1.15fr); }
+    .saved-docs-create-btn { grid-column:1 / -1;justify-self:end; }
 }
 .saved-docs-content { margin-top:14px; }
 .saved-docs-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px; }
@@ -1975,14 +1981,23 @@ body {
 .saved-doc-card:hover { border-color:#2456a4;box-shadow:0 4px 16px rgba(36,86,164,.1); }
 .sdc-header { display:flex;align-items:flex-start;gap:12px;padding:14px 14px 8px; }
 .sdc-title-block { flex:1;min-width:0; }
-.sdc-title { font-size:13px;font-weight:700;color:#0a1f3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.sdc-card-focus { font-size:15px;font-weight:800;color:#0a1f3d;line-height:1.3;margin-bottom:6px; }
+.sdc-card-context { display:flex;align-items:center;gap:6px;flex-wrap:wrap; }
+.tuition-mode-tag,.tuition-year-tag { display:inline-flex;align-items:center;border:1px solid;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;white-space:nowrap; }
+.tuition-mode-tag.no-increase { background:#f0fdf4;color:#15803d;border-color:#86efac; }
+.tuition-mode-tag.with-increase { background:#fef2f2;color:#b91c1c;border-color:#fca5a5; }
+.tuition-year-tag { background:#f8fafc;color:#475569;border-color:#e2e8f0; }
 .sdc-meta { font-size:11px;color:#9ca3af;padding:0 14px 8px;display:flex;align-items:center;gap:5px; }
 .sdc-actions { display:flex;gap:8px;padding:10px 14px 14px;flex-wrap:wrap; }
 .sdc-open-btn { flex:1;min-width:100px;background:#2456a4;color:#fff;border:none; }
 .sdc-open-btn:hover { background:#1e3a5f; }
 .sdc-trash-btn { background:none;border:1px solid #e2e8f0;color:#9ca3af;border-radius:8px;padding:6px 8px;cursor:pointer;font-size:12px; }
 .sdc-trash-btn:hover { color:#dc2626;border-color:#fca5a5;background:#fef2f2; }
-.sdc-status-badge { display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap; }
+.sdc-status-badge { display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap; }
+@media (max-width: 1000px) {
+    .saved-docs-toolbar { grid-template-columns:minmax(130px,.85fr) minmax(150px,1.15fr); }
+    .saved-docs-create-btn { grid-column:1 / -1;justify-self:end; }
+}
 /* Draft — blue */
 .sdc-status-draft    { background:#eff6ff;color:#2456a4;border:1px solid #bfdbfe; }
 /* Submitted / Locked — amber */
@@ -2021,8 +2036,8 @@ body {
     .form-panel { width:100% !important;min-width:0 !important;height:auto;max-height:44vh;border-right:none;border-top:1px solid #e5e7eb; }
     .preview-panel { height:auto;padding:12px; }
     .paper { width:100%;margin:0 auto 14px; }
-    .saved-docs-header-main { flex-direction:column;align-items:stretch; }
-    .saved-docs-create-btn { width:100%;justify-content:center; }
+    .saved-docs-toolbar { grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); }
+    .saved-docs-create-btn { grid-column:1 / -1;justify-self:stretch;justify-content:center; }
     .saved-docs-grid { grid-template-columns:1fr; }
 }
 
@@ -2494,6 +2509,29 @@ body {
 }
 .tf-custom-fee-notice i { flex-shrink: 0; margin-top: 1px; color: #d97706; }
 
+/* Tuition builder actions: keep the workspace actions in the left rail and
+   collapse the three utility actions into the overflow menu on phones. */
+.tf-toolbar-more { display: none; }
+.tf-toolbar-desktop { display: inline-flex; }
+.dsn-final-submit-btn {
+    margin-top: 7px;
+    color: #fff;
+    background: linear-gradient(135deg, #15803d, #16a34a);
+    border-color: #15803d;
+}
+.dsn-final-submit-btn:hover { background: linear-gradient(135deg, #166534, #15803d); }
+.dsn-final-submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+@media (max-width: 760px) {
+    .top-bar { padding: 8px 10px; gap: 6px; }
+    .top-bar-actions { flex-wrap: nowrap; }
+    .tf-toolbar-desktop { display: none !important; }
+    .tf-toolbar-more { display: block; }
+    .tf-toolbar-more .tba-more-btn { min-width: 36px; justify-content: center; }
+    .top-bar-title { font-size: 12px; }
+    .top-bar-sub { max-width: 36vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
 
 /* ══════════════════════════════════════════════════════
    SUBMITTED / LOCKED BANNER
@@ -2815,3 +2853,19 @@ body {
 .cert-sig-block-left .cert-sig-name, .cert-sig-block-right .cert-sig-name { display:inline-block; }
 .cert-noted-label { font-weight:700; font-size:10.5px; text-align:right; }
 .cert-sig-office { font-size:10px; color:#555; }
+
+/* Keep the portal shell scrollable on compact screens instead of clipping
+   the tool page inside a fixed-height frame. */
+@media (max-width: 900px) {
+    .main-container {
+        height: auto;
+        min-height: 100dvh;
+        overflow: visible;
+    }
+    .main-content {
+        height: auto;
+        min-height: 100dvh;
+        overflow-x: hidden;
+        overflow-y: visible;
+    }
+}

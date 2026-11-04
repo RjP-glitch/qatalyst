@@ -97,6 +97,10 @@ function submissionTrackerMapping(array $submission): ?array {
     $docType = strtolower(trim((string)($submission['document_type'] ?? '')));
     $status = strtolower(trim((string)($submission['status'] ?? '')));
 
+    // Drafts are not submissions and must not hide an SDO-created
+    // endorsement from the tracker when no submitted record exists.
+    if ($status === 'draft') return null;
+
     $category = null;
     $rows = [''];
     if ($type === 'calendar') {
@@ -148,6 +152,33 @@ function submissionTrackerMapping(array $submission): ?array {
         if ($currentRank >= 3) $steps[] = 'Released';
     }
 
+    return ['category' => $category, 'rows' => $rows, 'steps' => $steps];
+}
+
+/** Map a saved indorsement to tracker steps when no online submission exists. */
+function indorsementTrackerMapping(array $indorsement): ?array {
+    $type = strtolower(trim((string)($indorsement['type'] ?? '')));
+    $indNumber = (int)($indorsement['ind_number'] ?? 0);
+    if ($indNumber < 1) return null;
+
+    $category = null;
+    $rows = [''];
+    if ($type === 'school_calendar') {
+        $category = 'school_calendar';
+        $rows = ['School Calendar'];
+    } elseif ($type === 'tuition_increase') {
+        $category = 'tuition_increase';
+        $rows = ['Pre-School', 'Elementary', 'Junior HS', 'Senior HS'];
+    } elseif ($type === 'no_increase') {
+        $category = 'no_increase';
+        $rows = ['Pre-School', 'Elementary', 'Junior HS', 'Senior HS'];
+    } elseif ($type === 'school_permit') {
+        $category = 'renewal_permit';
+    }
+    if ($category === null) return null;
+
+    $steps = $indNumber >= 3 ? ['Endorsed to RO', 'Approved'] : ['Endorsed to RO'];
+    if ($category === 'school_calendar') array_unshift($steps, 'Received w/ Compliance');
     return ['category' => $category, 'rows' => $rows, 'steps' => $steps];
 }
 
@@ -262,6 +293,7 @@ try {
         $subStmt->execute();
         $managedCells = [];
         $claimedCategories = [];
+        $submittedTuitionCategory = [];
         foreach ($subStmt->fetchAll(PDO::FETCH_ASSOC) as $submission) {
             $submissionYear = normalizeTrackerSchoolYear((string)($submission['school_year'] ?? ''));
             if ($submissionYear !== $trackerYear && !($submissionYear === '' && $yearId === $latestActiveYearId)) continue;
@@ -270,6 +302,10 @@ try {
 
             $sid = (int)$submission['target_school_id'];
             $category = $mapping['category'];
+            if (in_array($category, ['tuition_increase', 'no_increase'], true)) {
+                if (isset($submittedTuitionCategory[$sid]) && $submittedTuitionCategory[$sid] !== $category) continue;
+                $submittedTuitionCategory[$sid] = $category;
+            }
             $claim = $sid . '|' . $category;
             if (isset($claimedCategories[$claim])) continue;
             $claimedCategories[$claim] = true;
@@ -291,6 +327,87 @@ try {
                         'source' => 'submission',
                     ];
                     $managedCells[$sid][] = $key;
+                }
+            }
+        }
+
+        // If there is no online submission for a category, use the saved
+        // endorsement as the tracker source so admin-created endorsements are
+        // visible in the same summary and their status cells stay read-only.
+        $endorsementSchoolColumn = $schoolType === 'private' ? 'private_school_id' : 'school_id';
+        $endorsementSchoolWhere = $schoolType === 'private'
+            ? '(private_school_id IS NOT NULL AND private_school_id > 0 OR (private_school_id IS NULL AND school_id IS NOT NULL AND school_id > 0))'
+            : '(school_id IS NOT NULL AND school_id > 0)';
+        $indStmt = $pdo->prepare(
+            "SELECT id, {$endorsementSchoolColumn} AS target_school_id, school_id,
+                    private_school_id, type, ind_number, school_year,
+                    COALESCE(updated_at, created_at) AS status_at
+             FROM school_indorsements
+             WHERE {$endorsementSchoolWhere}
+             ORDER BY COALESCE(updated_at, created_at) DESC, id DESC"
+        );
+        $indStmt->execute();
+        foreach ($indStmt->fetchAll(PDO::FETCH_ASSOC) as $indorsement) {
+            $indYear = normalizeTrackerSchoolYear((string)($indorsement['school_year'] ?? ''));
+            if ($indYear !== $trackerYear) continue;
+            $mapping = indorsementTrackerMapping($indorsement);
+            if ($mapping === null) continue;
+
+            $sid = (int)($indorsement['target_school_id'] ?? 0);
+            if ($schoolType === 'private' && empty($indorsement['private_school_id'])) {
+                $sid = (int)($indorsement['school_id'] ?? 0); // legacy private indorsements
+            }
+            if (!$sid) continue;
+            $category = $mapping['category'];
+            if (in_array($category, ['tuition_increase', 'no_increase'], true)) {
+                if (isset($submittedTuitionCategory[$sid]) && $submittedTuitionCategory[$sid] !== $category) continue;
+                $submittedTuitionCategory[$sid] = $category;
+            }
+            $claim = $sid . '|' . $category;
+            if (isset($claimedCategories[$claim])) continue;
+            $claimedCategories[$claim] = true;
+            if (!isset($data[$sid])) $data[$sid] = [];
+            if (!isset($managedCells[$sid])) $managedCells[$sid] = [];
+
+            $allSteps = $category === 'school_calendar'
+                ? ['Received w/ Compliance', 'Endorsed to RO', 'Approved', 'Released']
+                : ['Endorsed to RO', 'Approved', 'Released'];
+            foreach ($mapping['rows'] as $rowLabel) {
+                foreach ($allSteps as $stepLabel) {
+                    $key = $category . '|' . $rowLabel . '|' . $stepLabel;
+                    $isChecked = in_array($stepLabel, $mapping['steps'], true);
+                    $data[$sid][$key] = [
+                        'checked' => $isChecked,
+                        'ts' => $isChecked ? ($indorsement['status_at'] ?: null) : null,
+                        'by' => null,
+                        'q' => null,
+                        'source' => 'endorsement',
+                    ];
+                    $managedCells[$sid][] = $key;
+                }
+            }
+        }
+
+        // The current tuition mode is authoritative. Hide and lock any old
+        // manually saved checks in the opposite mode so legacy marks cannot
+        // overlap the school's newer submission or keep the wrong mode locked.
+        $tuitionRows = ['Pre-School', 'Elementary', 'Junior HS', 'Senior HS'];
+        $tuitionSteps = ['Endorsed to RO', 'Approved', 'Released'];
+        foreach ($submittedTuitionCategory as $sid => $activeCategory) {
+            $oppositeCategory = $activeCategory === 'no_increase' ? 'tuition_increase' : 'no_increase';
+            if (!isset($data[$sid])) $data[$sid] = [];
+            if (!isset($managedCells[$sid])) $managedCells[$sid] = [];
+            foreach ($tuitionRows as $rowLabel) {
+                foreach ($tuitionSteps as $stepLabel) {
+                    $key = $oppositeCategory . '|' . $rowLabel . '|' . $stepLabel;
+                    $data[$sid][$key] = [
+                        'checked' => false,
+                        'ts' => null,
+                        'by' => null,
+                        'q' => null,
+                        'source' => 'tuition_mode',
+                    ];
+                    if (!in_array($key, $managedCells[$sid], true)) $managedCells[$sid][] = $key;
                 }
             }
         }
@@ -356,11 +473,20 @@ try {
         $managedStmt->execute([':school_id' => $schoolId]);
         $managedCellKeys = [];
         $managedCategories = [];
+        $submittedTuitionCategory = null;
+        $submittedTuitionCheckedCategory = null;
         foreach ($managedStmt->fetchAll(PDO::FETCH_ASSOC) as $submission) {
             $submissionYear = normalizeTrackerSchoolYear((string)($submission['school_year'] ?? ''));
             if ($submissionYear !== $targetYear && !($submissionYear === '' && $yearId === $latestActiveYearId)) continue;
             $mapping = submissionTrackerMapping($submission);
             if ($mapping === null || isset($managedCategories[$mapping['category']])) continue;
+            if (in_array($mapping['category'], ['tuition_increase', 'no_increase'], true)) {
+                if ($submittedTuitionCategory !== null && $submittedTuitionCategory !== $mapping['category']) continue;
+                $submittedTuitionCategory = $mapping['category'];
+                if ($submittedTuitionCheckedCategory === null && !empty($mapping['steps'])) {
+                    $submittedTuitionCheckedCategory = $mapping['category'];
+                }
+            }
             $managedCategories[$mapping['category']] = true;
             $steps = $mapping['category'] === 'school_calendar'
                 ? ['Received w/ Compliance', 'Endorsed to RO', 'Approved', 'Released']
@@ -370,6 +496,95 @@ try {
                     $managedCellKeys[$mapping['category'] . '|' . $rowLabel . '|' . $stepLabel] = true;
                 }
             }
+        }
+
+        // A saved endorsement also owns its workflow cells when there is no
+        // matching online submission, so direct API saves cannot override it.
+        $indSchoolCondition = $schoolType === 'private'
+            ? '(private_school_id = :school_id OR (private_school_id IS NULL AND school_id = :legacy_school_id))'
+            : '(school_id = :school_id AND private_school_id IS NULL)';
+        $indStmt = $pdo->prepare(
+            "SELECT type, ind_number, school_year, private_school_id
+             FROM school_indorsements
+             WHERE {$indSchoolCondition}
+             ORDER BY COALESCE(updated_at, created_at) DESC, id DESC"
+        );
+        $indParams = [':school_id' => $schoolId];
+        if ($schoolType === 'private') $indParams[':legacy_school_id'] = $schoolId;
+        $indStmt->execute($indParams);
+        foreach ($indStmt->fetchAll(PDO::FETCH_ASSOC) as $indorsement) {
+            if (normalizeTrackerSchoolYear((string)($indorsement['school_year'] ?? '')) !== $targetYear) continue;
+            $mapping = indorsementTrackerMapping($indorsement);
+            if ($mapping === null || isset($managedCategories[$mapping['category']])) continue;
+            if (in_array($mapping['category'], ['tuition_increase', 'no_increase'], true)) {
+                if ($submittedTuitionCategory !== null && $submittedTuitionCategory !== $mapping['category']) continue;
+                $submittedTuitionCategory = $mapping['category'];
+                if ($submittedTuitionCheckedCategory === null && !empty($mapping['steps'])) {
+                    $submittedTuitionCheckedCategory = $mapping['category'];
+                }
+            }
+            $managedCategories[$mapping['category']] = true;
+            $steps = $mapping['category'] === 'school_calendar'
+                ? ['Received w/ Compliance', 'Endorsed to RO', 'Approved', 'Released']
+                : ['Endorsed to RO', 'Approved', 'Released'];
+            foreach ($mapping['rows'] as $rowLabel) {
+                foreach ($steps as $stepLabel) {
+                    $managedCellKeys[$mapping['category'] . '|' . $rowLabel . '|' . $stepLabel] = true;
+                }
+            }
+        }
+
+        // Ignore legacy checked cells from the opposite tuition mode whenever
+        // a current submission or saved endorsement establishes the active mode.
+        if ($submittedTuitionCategory !== null) {
+            $oppositeCategory = $submittedTuitionCategory === 'no_increase' ? 'tuition_increase' : 'no_increase';
+            foreach (['Pre-School', 'Elementary', 'Junior HS', 'Senior HS'] as $rowLabel) {
+                foreach (['Endorsed to RO', 'Approved', 'Released'] as $stepLabel) {
+                    $managedCellKeys[$oppositeCategory . '|' . $rowLabel . '|' . $stepLabel] = true;
+                }
+            }
+        }
+
+        // Enforce mutually exclusive tuition modes against the final saved
+        // checkbox state, while still allowing admins to clear existing marks.
+        $tuitionCellState = [];
+        $existingTuitionStmt = $pdo->prepare(
+            "SELECT category_key, row_label, step_label
+             FROM school_tracker_checklist
+             WHERE year_id = :year_id
+               AND school_type = :school_type
+               AND is_checked = 1
+               AND category_key IN ('tuition_increase', 'no_increase')
+               AND " . ($schoolType === 'private' ? 'private_school_id' : 'school_id') . " = :school_id"
+        );
+        $existingTuitionStmt->execute([
+            ':year_id' => $yearId,
+            ':school_type' => $schoolType,
+            ':school_id' => $schoolId,
+        ]);
+        foreach ($existingTuitionStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $key = $row['category_key'] . '|' . $row['row_label'] . '|' . $row['step_label'];
+            if ($submittedTuitionCategory !== null && str_starts_with($key, $oppositeCategory . '|')) continue;
+            $tuitionCellState[$key] = true;
+        }
+        foreach ($cells as $compositeKey => $cellValue) {
+            if (isset($managedCellKeys[$compositeKey])) continue;
+            $parts = explode('|', (string)$compositeKey, 3);
+            if (count($parts) !== 3 || !in_array($parts[0], ['tuition_increase', 'no_increase'], true)) continue;
+            $isChecked = is_array($cellValue) ? !empty($cellValue['checked']) : (bool)$cellValue;
+            if ($isChecked) $tuitionCellState[$compositeKey] = true;
+            else unset($tuitionCellState[$compositeKey]);
+        }
+        $hasIncrease = false;
+        $hasNoIncrease = false;
+        foreach (array_keys($tuitionCellState) as $key) {
+            if (str_starts_with($key, 'tuition_increase|')) $hasIncrease = true;
+            if (str_starts_with($key, 'no_increase|')) $hasNoIncrease = true;
+        }
+        if ($submittedTuitionCheckedCategory === 'tuition_increase') $hasIncrease = true;
+        if ($submittedTuitionCheckedCategory === 'no_increase') $hasNoIncrease = true;
+        if ($hasIncrease && $hasNoIncrease) {
+            jsonError('Increase and No Increase tuition statuses cannot both be marked. Clear all checked boxes in one section before saving.', 409);
         }
 
         // Detect whether checked_at can be NULL (some deployments may have stricter schemas).
@@ -500,8 +715,9 @@ try {
         }
 
         $ins = $pdo->prepare(
-            "INSERT IGNORE INTO school_tracker_years (school_year, label, created_by)
-             VALUES (:sy, :label, :user)"
+            "INSERT INTO school_tracker_years (school_year, label, created_by, is_active)
+             VALUES (:sy, :label, :user, 1)
+             ON DUPLICATE KEY UPDATE label = VALUES(label), is_active = 1"
         );
         $ins->execute([
             ':sy'    => $sy,
@@ -509,19 +725,16 @@ try {
             ':user'  => $authUser['id'] ?? null,
         ]);
 
-        if ($ins->rowCount() === 0) {
-            $exist = $pdo->prepare(
-                "SELECT id, school_year, label FROM school_tracker_years WHERE school_year = :sy"
-            );
-            $exist->execute([':sy' => $sy]);
-            $row = $exist->fetch(PDO::FETCH_ASSOC);
-            jsonOut(['success' => true, 'already_exists' => true, 'year' => $row]);
-        }
-
-        $newId = (int)$pdo->lastInsertId();
+        $yearStmt = $pdo->prepare(
+            'SELECT id, school_year, label FROM school_tracker_years WHERE school_year = :sy AND is_active = 1'
+        );
+        $yearStmt->execute([':sy' => $sy]);
+        $year = $yearStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$year) jsonError('Could not activate the school year.', 500);
         jsonOut([
             'success' => true,
-            'year'    => ['id' => $newId, 'school_year' => $sy, 'label' => 'SY ' . $sy],
+            'already_exists' => $ins->rowCount() === 0,
+            'year'    => $year,
         ]);
     }
 

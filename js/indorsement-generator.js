@@ -23,6 +23,8 @@ let _indPersonnelLoaded = false;
 let _indCurrentType = null;
 let _indSelectedSchoolId = null;
 let _indSelectedPrivateSchoolId = null;
+let _indSubmissionEligibility = null;
+let _indEligibilityRequestSeq = 0;
 
 const _indTypeMeta = {
     school_calendar: {
@@ -100,7 +102,88 @@ function _indNormalizeType(type) {
  * the Indorsements view, even though the row is really there.
  */
 function _indNormalizeSY(sy) {
-    return String(sy || '').trim().replace(/\s*[\u2010-\u2015\u2212-]\s*/g, '-');
+    return String(sy || '').trim().replace(/^SY\s*/i, '').replace(/\s*[\u2010-\u2015\u2212-]\s*/g, '-');
+}
+
+function _indEligibilityKey() {
+    const schoolKey = _indSelectedPrivateSchoolId
+        ? `private:${_indSelectedPrivateSchoolId}`
+        : _indSelectedSchoolId ? `public:${_indSelectedSchoolId}` : '';
+    return [schoolKey, _indCurrentType || '', _indNormalizeSY(document.getElementById('ind_sy')?.value)].join('|');
+}
+
+async function _indCheckSubmissionEligibility(force = false) {
+    const schoolId = _indSelectedSchoolId;
+    const privateSchoolId = _indSelectedPrivateSchoolId;
+    const type = _indCurrentType;
+    const schoolYear = _indNormalizeSY(document.getElementById('ind_sy')?.value);
+    const key = _indEligibilityKey();
+    const messageEl = document.getElementById('ind_submissionGateMsg');
+    const hasSchool = !!(schoolId || privateSchoolId);
+
+    if (!hasSchool || !type || !schoolYear) {
+        _indSubmissionEligibility = { key, eligible: false, checking: false, message: '' };
+        if (messageEl) {
+            const help = !hasSchool ? 'Select a school from the search list to check its submissions.'
+                : !type ? 'Select an indorsement type.'
+                    : 'Select a school year to check for a matching submission.';
+            messageEl.textContent = help;
+            messageEl.style.display = (type && (hasSchool || schoolYear)) ? 'block' : 'none';
+            messageEl.style.background = '#f8fafc';
+            messageEl.style.borderColor = '#cbd5e1';
+            messageEl.style.color = '#475569';
+        }
+        _indUpdateSaveButtonState();
+        return false;
+    }
+
+    if (!force && _indSubmissionEligibility?.key === key && !_indSubmissionEligibility.checking) {
+        _indUpdateSaveButtonState();
+        return !!_indSubmissionEligibility.eligible;
+    }
+
+    const requestSeq = ++_indEligibilityRequestSeq;
+    _indSubmissionEligibility = { key, eligible: false, checking: true, message: 'Checking for a matching school submission…' };
+    if (messageEl) {
+        messageEl.textContent = _indSubmissionEligibility.message;
+        messageEl.style.display = 'block';
+        messageEl.style.background = '#eff6ff';
+        messageEl.style.borderColor = '#bfdbfe';
+        messageEl.style.color = '#1d4ed8';
+    }
+    _indUpdateSaveButtonState();
+
+    try {
+        const params = new URLSearchParams({ type, school_year: schoolYear });
+        if (privateSchoolId) params.set('private_school_id', privateSchoolId);
+        else params.set('school_id', schoolId);
+        const response = await fetch(CONFIG.API_URL + `/school-indorsements.php?action=eligibility&${params}`, { credentials: 'include' });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Could not check for a matching submission.');
+        if (requestSeq !== _indEligibilityRequestSeq || key !== _indEligibilityKey()) return false;
+        _indSubmissionEligibility = { key, eligible: true, checking: false, message: data.message || 'Endorsement can be saved and will appear in the summary report.' };
+        if (messageEl) {
+            messageEl.textContent = _indSubmissionEligibility.message;
+            messageEl.style.display = 'block';
+            messageEl.style.background = data.has_submission ? '#f0fdf4' : '#eff6ff';
+            messageEl.style.borderColor = data.has_submission ? '#bbf7d0' : '#bfdbfe';
+            messageEl.style.color = data.has_submission ? '#166534' : '#1d4ed8';
+        }
+        _indUpdateSaveButtonState();
+        return true;
+    } catch (error) {
+        if (requestSeq !== _indEligibilityRequestSeq) return false;
+        _indSubmissionEligibility = { key, eligible: true, checking: false, message: 'Could not check for an existing submission. You can still save the endorsement, and it will appear in the summary report.' };
+        if (messageEl) {
+            messageEl.textContent = _indSubmissionEligibility.message;
+            messageEl.style.display = 'block';
+            messageEl.style.background = '#eff6ff';
+            messageEl.style.borderColor = '#bfdbfe';
+            messageEl.style.color = '#1d4ed8';
+        }
+        _indUpdateSaveButtonState();
+        return true;
+    }
 }
 
 /* Ordinal label for an indorsement number (1 -> "1st", 2 -> "2nd", ...).
@@ -228,6 +311,8 @@ function _indSetType(type) {
 
     _indUpdateIndNoteLabel();
     _indUpdatePreview();
+    _indSubmissionEligibility = null;
+    _indCheckSubmissionEligibility();
     _indUpdateSaveButtonState();
     if (_indSelectedSchoolId || _indSelectedPrivateSchoolId) {
         _indLoadSavedStatus(_indSelectedSchoolId || _indSelectedPrivateSchoolId);
@@ -340,12 +425,15 @@ function _indRenderSchoolDropdown(q) {
 function _indSelectSchool(id) {
     const s = _indSchools.find(x => Number(x.id) === Number(id));
     if (!s) return;
-    _indSelectedSchoolId = Number(s.id);
+    _indSelectedSchoolId = null;
+    _indSelectedPrivateSchoolId = Number(s.id);
     _indSetVal('ind_schoolName', (s.name || '').toUpperCase());
     _indSetVal('ind_address', s.address || '');
     _indSetVal('ind_schoolSearch', s.name || '');
     _indHideSchoolDropdown();
     _indUpdatePreview();
+    _indSubmissionEligibility = null;
+    _indCheckSubmissionEligibility();
     _indUpdateSaveButtonState();
     indClearMsg();
     _indLoadSavedStatus(Number(s.id));
@@ -600,6 +688,8 @@ async function openIndorsementModal(prefill) {
     _indCurrentType      = null;
     _indSelectedSchoolId = null;
     _indSelectedPrivateSchoolId = null;
+    _indSubmissionEligibility = null;
+    _indEligibilityRequestSeq++;
 
     // FIX #5: reset listener-bound flag so listeners re-attach cleanly
     _indPreviewBound = false;
@@ -642,6 +732,8 @@ async function openIndorsementModal(prefill) {
     // Hide saved badge
     const badge = document.getElementById('ind_savedBadge');
     if (badge) badge.style.display = 'none';
+    const gateMessage = document.getElementById('ind_submissionGateMsg');
+    if (gateMessage) { gateMessage.style.display = 'none'; gateMessage.textContent = ''; }
 
     // Hide signatory wrap by default (FIX #4 companion: ensure display:none wins)
     const sigWrap = document.getElementById('ind_signatoryWrap');
@@ -860,7 +952,35 @@ function _indAttachPreviewListeners() {
             el.addEventListener('change', _indUpdatePreview);
         }
     });
+    document.getElementById('ind_sy')?.addEventListener('change', () => {
+        _indSubmissionEligibility = null;
+        _indCheckSubmissionEligibility();
+    });
     _indPreviewBound = true;
+}
+
+async function _indEnsureTrackerYear(schoolYear) {
+    const trackerBase = CONFIG.API_URL + '/school-tracker.php';
+    const normalize = value => _indNormalizeSY(String(value || '').replace(/^SY\s*/i, ''));
+    const requested = normalize(schoolYear);
+    const yearsResponse = await fetch(trackerBase + '?action=years', { credentials: 'include' });
+    const yearsData = await yearsResponse.json();
+    if (!yearsResponse.ok || !yearsData.success) throw new Error(yearsData.message || 'Could not load tracker school years.');
+    const years = Array.isArray(yearsData.years) ? yearsData.years : [];
+    const existing = years.find(year => normalize(year.school_year) === requested);
+    if (existing?.id) return Number(existing.id);
+
+    const addResponse = await fetch(trackerBase + '?action=add_year', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ school_year: requested, label: 'SY ' + requested }),
+    });
+    const addData = await addResponse.json().catch(() => ({}));
+    if (!addResponse.ok || !addData.success || !addData.year?.id) {
+        throw new Error(addData.message || `Could not add SY ${requested} to the tracker.`);
+    }
+    return Number(addData.year.id);
 }
 
 function _indUpdatePreview() {
@@ -972,8 +1092,13 @@ function _indUpdateSaveButtonState() {
     if (!btn) return;
     const hasSchool = !!document.getElementById('ind_schoolName')?.value?.trim();
     const hasType   = !!_indCurrentType;
-    btn.disabled    = !(hasSchool && hasType);
-    btn.style.opacity = (hasSchool && hasType) ? '1' : '0.5';
+    const hasSelectedSchool = !!(_indSelectedSchoolId || _indSelectedPrivateSchoolId);
+    const eligible = _indSubmissionEligibility?.key === _indEligibilityKey()
+        && !_indSubmissionEligibility.checking
+        && !!_indSubmissionEligibility.eligible;
+    const canSave = hasSchool && hasType && hasSelectedSchool && eligible;
+    btn.disabled = !canSave;
+    btn.style.opacity = canSave ? '1' : '0.5';
 }
 
 async function saveIndorsement() {
@@ -1011,6 +1136,12 @@ async function saveIndorsement() {
     let saveSucceeded = false;
 
     try {
+        if (!(_indSelectedSchoolId || _indSelectedPrivateSchoolId)) {
+            throw new Error('Select a school from the search list so the endorsement can update the correct school report.');
+        }
+        await _indCheckSubmissionEligibility(true);
+        await _indEnsureTrackerYear(sy);
+
         const payload = {
             school_id:          _indSelectedSchoolId || null,
             private_school_id:  _indSelectedPrivateSchoolId || null,
@@ -1037,79 +1168,33 @@ async function saveIndorsement() {
         try { saved = await saveRes.json(); } catch (e) { /* ignore */ }
         if (!saveRes.ok) throw new Error(saved.message || 'Save failed (HTTP ' + saveRes.status + ')');
 
-        // Auto-check tracker step
         const meta         = _indTypeMeta[_indCurrentType];
         const stepsToCheck = meta?.steps?.[indNum] || [];
-        schoolId           = _indSelectedSchoolId || saved.school_id || schoolId;
-
-        if (schoolId && stepsToCheck.length) {
-            const trackerBase = CONFIG.API_URL + '/school-tracker.php';
-            try {
-                const yearsRes  = await fetch(trackerBase + '?action=years', { credentials: 'include' });
-                const yearsJson = await yearsRes.json();
-                const years     = Array.isArray(yearsJson?.years) ? yearsJson.years : [];
-
-                const normalizeSchoolYear  = (value) => String(value || '').replace(/^SY\s*/i, '').trim();
-                // FIX #7: always use local `sy`, never rely on saved.school_year
-                const requestedSchoolYear  = normalizeSchoolYear(sy);
-
-                let yearId = null;
-
-                if (requestedSchoolYear && years.length) {
-                    const matchedYear = years.find(y => normalizeSchoolYear(y.school_year) === requestedSchoolYear);
-                    if (matchedYear?.id) yearId = Number(matchedYear.id);
-                }
-
-                if (!yearId && /^\d{4}-\d{4}$/.test(requestedSchoolYear)) {
-                    const addYearRes  = await fetch(trackerBase + '?action=add_year', {
-                        method:  'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ school_year: requestedSchoolYear, label: 'SY ' + requestedSchoolYear }),
-                    });
-                    const addYearJson = await addYearRes.json().catch(() => ({}));
-                    if (addYearRes.ok && addYearJson?.success && addYearJson?.year?.id) {
-                        yearId = Number(addYearJson.year.id);
-                    }
-                }
-
-                if (!yearId && years.length) {
-                    const newestYear = [...years].sort((a, b) =>
-                        normalizeSchoolYear(b.school_year).localeCompare(normalizeSchoolYear(a.school_year))
-                    )[0];
-                    yearId = newestYear?.id ? Number(newestYear.id) : null;
-                }
-
-                if (yearId) {
-                    const rowLabel = _indGetRowLabelForLevel(level);
-                    const cells    = {};
-                    for (const stepLabel of stepsToCheck) {
-                        cells[`${meta.categoryKey}|${rowLabel}|${stepLabel}`] = true;
-                    }
-                    await fetch(trackerBase + '?action=save', {
-                        method:  'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ year_id: yearId, school_id: schoolId, cells }),
-                    });
-                } else {
-                    console.warn('Could not auto-check tracker step: no active school year found');
-                }
-            } catch (err) {
-                console.warn('Could not auto-check tracker step:', err);
-            }
-        }
+        schoolId = _indSelectedPrivateSchoolId || saved.private_school_id || _indSelectedSchoolId || saved.school_id || schoolId;
+        const trackerMessage = saved.tracker_updated
+            ? ` Tracker updated to ${saved.workflow_status}.`
+            : !saved.has_submission
+                ? ' Summary report updated from this saved endorsement.'
+                : (stepsToCheck.length ? ' Tracker already reflects the current workflow status.' : '');
 
         if (typeof showToast === 'function') {
-            showToast(`${_indOrdinal(indNum)} Indorsement saved!${stepsToCheck.length ? ' "' + stepsToCheck.join(', ') + '" checked in tracker.' : ''}`, 'success');
+            showToast(`${_indOrdinal(indNum)} Indorsement saved.${trackerMessage}`, 'success');
         }
         _indShowMsg(
             `✓ Saved as ${_indOrdinal(indNum)} Indorsement for ${schoolName}.` +
-            (stepsToCheck.length ? ` "${stepsToCheck.join(' & ')}" auto-checked in the tracker.` : ''),
+            trackerMessage,
             'success'
         );
 
         if (typeof ST !== 'undefined' && typeof ST.refresh === 'function') ST.refresh();
+        try {
+            localStorage.setItem('school_tracker_data_updated', JSON.stringify({
+                school_year: sy,
+                school_type: 'private',
+                school_id: schoolId,
+                changed_at: Date.now(),
+            }));
+        } catch (_) { /* the saved submission remains the report source */ }
         await _indLoadSavedStatus(schoolId);
         saveSucceeded = true;
 

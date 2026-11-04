@@ -19,25 +19,6 @@
     min-height: 0;
 }
 
-.ann-content-heading {
-    margin-bottom: 14px;
-}
-
-.ann-content-heading h2 {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    color: #0a1f3d;
-    font-size: 19px;
-    font-weight: 800;
-}
-
-.ann-content-heading p {
-    margin-top: 5px;
-    color: #64748b;
-    font-size: 12.5px;
-}
-
 /* ── Stats bar ─────────────────────────────────────────────────────────── */
 .ann-stats-bar {
     display: flex;

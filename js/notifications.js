@@ -192,11 +192,12 @@ const NotificationSystem = {
                     </a>`;
             }
 
-            if (type === 'calendar') {
+            if (type === 'calendar' || type === 'calendar_edit_request') {
                 // ── Calendar submission notification ──────────────────────
                 const schoolName  = this.escapeHtml(n.school_name  || 'A school');
                 const docTitle    = this.escapeHtml(n.submission_title || 'School Calendar');
                 const submissionId = parseInt(n.id, 10) || 0;
+                const isEditRequest = type === 'calendar_edit_request';
 
                 return `
                     <div class="notification-item ${n.is_new ? 'unread' : ''}"
@@ -208,7 +209,7 @@ const NotificationSystem = {
                         </div>
                         <div class="notification-content">
                             <p class="notification-text">
-                                <strong>${schoolName}</strong> submitted a school calendar for review
+                                <strong>${schoolName}</strong> ${isEditRequest ? 'requested permission to edit a school calendar' : 'submitted a school calendar for review'}
                             </p>
                             <span class="notification-meta">
                                 ${docTitle} · ${n.time_ago}

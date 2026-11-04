@@ -652,6 +652,14 @@ function ensureCalendarDocumentsSchema(PDO $pdo): bool
         $hasActiveTabCol = tableHasColumn($pdo, 'school_calendar_documents', 'active_tab');
     }
 
+    if (!tableHasColumn($pdo, 'school_calendar_documents', 'edit_request_status')) {
+        try {
+            $pdo->exec("ALTER TABLE school_calendar_documents ADD COLUMN edit_request_status VARCHAR(30) NOT NULL DEFAULT 'none'");
+        } catch (Throwable $e) {
+            error_log('ensureCalendarDocumentsSchema edit_request_status: ' . $e->getMessage());
+        }
+    }
+
     // Lightweight summary columns (department, school year, opening/closing
     // dates, total school days) so the saved-documents list endpoint can
     // show these on each card without parsing payload_json per row.
@@ -1613,6 +1621,15 @@ function handleEditRequest(PDO $pdo, array $user, array $jsonBody): void
         jsonError('No submitted calendar found for this document.', 404);
     }
 
+    $docStateStmt = $pdo->prepare(
+        'SELECT edit_request_status FROM school_calendar_documents WHERE id = :doc_id AND user_id = :user_id LIMIT 1'
+    );
+    $docStateStmt->execute([':doc_id' => $docId, ':user_id' => (int)$user['id']]);
+    $docEditRequestStatus = strtolower(trim((string)($docStateStmt->fetchColumn() ?: 'none')));
+    if ($docEditRequestStatus === 'pending') {
+        jsonError('Your edit request is already waiting for SDO review.', 409);
+    }
+
     $submissionId = (int)$submission['id'];
     $currentStatus = trim((string)($submission['status'] ?? ''));
     $normalizedStatus = normalizeSubmissionStatusKey($currentStatus);
@@ -1670,27 +1687,22 @@ function handleEditRequest(PDO $pdo, array $user, array $jsonBody): void
 
     $historyJson = json_encode($history, JSON_UNESCAPED_UNICODE);
 
-    // Only bump the status back to "pending" when reopening a calendar that was
-    // already finalized — if it's still mid-review (submitted/pending/under
-    // review/for endorsement), leave the status alone so the request doesn't
-    // yank it out of whatever review stage SDO staff currently has it in.
-    $finalizedStates = ['approved', 'endorsed', 'released to school'];
-    $newStatus = in_array($normalizedStatus, $finalizedStates, true)
-        ? getStatusValueForSchoolSubmission($pdo)
-        : $currentStatus;
-
     $update = $pdo->prepare(
         "UPDATE school_submissions
-         SET status = :status,
-             history_json = :history,
+         SET history_json = :history,
              updated_at = NOW()
          WHERE id = :id"
     );
     $update->execute([
-        ':status' => $newStatus,
         ':history' => $historyJson,
         ':id' => $submissionId,
     ]);
+
+    $pdo->prepare(
+        "UPDATE school_calendar_documents
+         SET edit_request_status = 'pending', updated_at = NOW()
+         WHERE id = :doc_id AND user_id = :user_id"
+    )->execute([':doc_id' => $docId, ':user_id' => (int)$user['id']]);
 
     $notifMsg = 'Your request to edit the school calendar has been submitted to SDO for review.';
     if ($reason !== '') {

@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="css/documents-submitted.css?v14" />
+    <link rel="stylesheet" href="css/documents-submitted.css?v16" />
     <link rel="stylesheet" href="css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
     <!--<link rel="stylesheet" href="css/file-preview.css" />-->
@@ -149,9 +149,12 @@
             </div>
             <div class="dsd-body" id="adsDetailBody"></div>
             <div class="dsd-modal-footer">
-                <div class="dsd-footer-group">
-                    <label class="dsf-label"><i class="fa-solid fa-flag"></i> Update Status</label>
-                    <select id="adsDetailStatus" class="all-docs-select dsd-footer-select">
+                <div class="dsd-footer-group dsd-footer-status">
+                    <div class="dsd-footer-status-copy">
+                        <label class="dsf-label" for="adsDetailStatus"><i class="fa-solid fa-flag"></i> Update status</label>
+                        <span id="adsDetailStatusHelp" class="dsf-status-help">Choose the next review step</span>
+                    </div>
+                    <select id="adsDetailStatus" class="all-docs-select dsd-footer-select" aria-describedby="adsDetailStatusHelp">
                         <option value="Pending Review">Pending Review</option>
                         <option value="Approved">Approved</option>
                         <option value="Returned for Correction">Returned for Correction</option>
@@ -1155,7 +1158,7 @@
     <script src="js/config.js?v3"></script>
     <script src="js/permissions.js?v6"></script>
     <script src="js/indorsement-generator.js?v10"></script>
-    <script src="js/documents-submitted-all.js?v17"></script>
+    <script src="js/documents-submitted-all.js?v21"></script>
 
     <!-- Tab switcher for mobile indorsement modal -->
     <script>

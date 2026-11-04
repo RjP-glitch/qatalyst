@@ -100,18 +100,6 @@ function fmtPlainDate(v) {
     const d = new Date(String(v) + 'T00:00:00');
     return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
 }
-/* Color-codes a department/level badge so a row of cards for the same
-   school can be scanned at a glance. */
-function deptBadgeMeta(dept) {
-    const d = String(dept || '').toLowerCase();
-    if (d.includes('kinder') || d.includes('preschool')) return { css: 'sdc-dept-kinder' };
-    if (d.includes('elementary'))                        return { css: 'sdc-dept-elem' };
-    if (d.includes('junior high') || d === 'jhs')         return { css: 'sdc-dept-jhs' };
-    if (d.includes('senior high') || d === 'shs')         return { css: 'sdc-dept-shs' };
-    if (d.includes('college'))                            return { css: 'sdc-dept-college' };
-    if (d.includes('sped'))                               return { css: 'sdc-dept-sped' };
-    return { css: 'sdc-dept-other' };
-}
 /* Fallback for cards saved before the department/school_year summary
    columns existed — pulls the level back out of the generated title
    (see buildCalendarDocumentTitle: "... - {dept} (sy1-sy2)"). */
@@ -308,11 +296,10 @@ let currentActivePage = 'pg-cover';
 
 /* ── Doc-flow navigation state (from enhanced) ── */
 const BUILDER_STEPS = [
-    { id:1, label:'School Info',  icon:'fa-school',       page:'pg-cover',       desc:'Fill in your school name, ID, and upload your school logo.' },
+    { id:1, label:'Info',          icon:'fa-school',       page:'pg-cover',       desc:'Fill in your school name, ID, and upload your school logo.' },
     { id:2, label:'Letters',      icon:'fa-envelope',     page:'pg-transmittal', desc:'Complete the transmittal letter and letter of intent.' },
     { id:3, label:'Mark Dates',   icon:'fa-calendar-plus',page:null,             desc:'Open the Calendar Picker to mark holidays, activities, and exams.' },
     { id:4, label:'Review',       icon:'fa-table-list',   page:'pg-summary',     desc:'Check the summary table. Total must be 200–220 school days.' },
-    { id:5, label:'Submit',       icon:'fa-paper-plane',  page:null,             desc:'Save your final calendar and submit it for approval.' },
 ];
 let currentBuilderStep = 1;
 const DOC_FLOW_PAGES = ['pg-cover','pg-transmittal','pg-loi-cover','pg-loi','pg-cal-cover','pg-summary','pg-checklist','pg-monthly'];
@@ -425,13 +412,14 @@ function syncDocFlowNavLocks() {
         }
 
         const idx = getDocFlowIndex(pageId);
+        const isCoverPage = pageId === 'pg-cover' || pageId.endsWith('-cover');
         if (idx < 0) {
             btn.classList.add('dsn-locked'); btn.disabled = true;
             btn.setAttribute('aria-disabled', 'true');
             btn.title = 'Please follow the page flow.';
             return;
         }
-        const locked = idx > docFlowUnlockedIndex;
+        const locked = idx > docFlowUnlockedIndex && !isCoverPage;
         btn.classList.toggle('dsn-locked', locked);
         btn.disabled = locked;
         btn.setAttribute('aria-disabled', locked ? 'true' : 'false');
@@ -470,6 +458,9 @@ function unlockNextDocFlowPage() {
 /* Internal base — does the actual DOM work, no guard checks */
 function _switchPageBase(id) {
     currentActivePage = id;
+    if (id === 'pg-cover') currentBuilderStep = 1;
+    else if (['pg-transmittal', 'pg-loi-cover', 'pg-loi', 'pg-cal-cover'].includes(id)) currentBuilderStep = 2;
+    else if (['pg-summary', 'pg-summary-term', 'pg-checklist', 'pg-monthly'].includes(id)) currentBuilderStep = 4;
     if (id !== 'all') {
         document.querySelectorAll('.doc-page').forEach(p => p.classList.remove('active'));
         const target = document.getElementById(id);
@@ -506,13 +497,14 @@ function _switchPageBase(id) {
 /* Public switchPage — enforces doc-flow lock, updates sidebar nav, auto-opens picker on Summary */
 function switchPage(id) {
     const idx = getDocFlowIndex(id);
-    if (idx >= 0 && idx > docFlowUnlockedIndex) {
+    if (idx >= 0 && idx > docFlowUnlockedIndex && !String(id).endsWith('-cover')) {
         showToast('Please save this page first before opening the next one.', 'fa-lock');
         syncDocFlowNavLocks();
         return;
     }
     _switchPageBase(id);
     if (idx >= 0) docFlowCurrentIndex = idx;
+    renderBuilderStepper();
     syncDocFlowNavLocks();
     if (id === 'pg-summary' && typeof openCalPicker === 'function') {
         setTimeout(openCalPicker, 150);
@@ -747,45 +739,30 @@ function renderBuilderStepper() {
     if (!el) {
         el = document.createElement('div');
         el.id = 'calBuilderStepper';
-        el.className = 'cal-stepper';
-        const topBar = document.querySelector('.top-bar');
-        if (topBar && topBar.parentNode) topBar.parentNode.insertBefore(el, topBar.nextSibling);
+        el.className = 'cal-step-progress';
+        const nav = document.getElementById('docSideNav');
+        if (nav) nav.insertBefore(el, nav.firstChild);
     }
-    const grand = computeGrandTotal();
-    const isValid = grand >= 200 && grand <= 220;
-    el.innerHTML = `<div class="cal-stepper-inner">${BUILDER_STEPS.map(step => {
+    el.innerHTML = `<div class="cal-step-progress-inner">${BUILDER_STEPS.map(step => {
         const done = currentBuilderStep > step.id;
         const active = currentBuilderStep === step.id;
-        const cls = done ? 'cs-done' : active ? 'cs-active' : '';
-        return `<div class="cs-step ${cls}" onclick="goToBuilderStep(${step.id})" title="${step.desc}">
-            <div class="cs-bubble">${done ? '<i class="fa-solid fa-check"></i>' : `<i class="fa-solid ${step.icon}"></i>`}</div>
-            <div class="cs-label">${step.label}</div>
-        </div>${step.id < BUILDER_STEPS.length ? '<div class="cs-line' + (done ? ' cs-line-done' : '') + '"></div>' : ''}`;
+        const cls = done ? 'done' : active ? 'active' : '';
+        return `<div class="cal-progress-item ${cls}" onclick="goToBuilderStep(${step.id})" title="${step.desc}">
+            <div class="cal-progress-dot">${step.id}</div>
+            <div class="cal-progress-label">${step.label}</div>
+        </div>${step.id < BUILDER_STEPS.length ? `<div class="cal-progress-connector ${done ? 'done' : ''}"></div>` : ''}`;
     }).join('')}</div>`;
-    let subBar = document.getElementById('calStepperSubBar');
-    if (!subBar) {
-        subBar = document.createElement('div');
-        subBar.id = 'calStepperSubBar';
-        subBar.className = 'cal-stepper-subbar';
-        el.parentNode.insertBefore(subBar, el.nextSibling);
-    }
-    subBar.innerHTML = `<div class="cs-hint">${BUILDER_STEPS[currentBuilderStep - 1]?.desc || ''}</div>
-        ${grand > 0 ? `<div class="cs-days-badge ${isValid ? 'cs-days-ok' : 'cs-days-warn'}">
-            <i class="fa-solid ${isValid ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i>
-            Total school days: <strong>${grand}</strong>
-            ${isValid ? '✓ Within 200–220' : grand < 200 ? '— Below minimum 200' : '— Exceeds maximum 220'}
-        </div>` : ''}`;
 }
 function goToBuilderStep(stepId) {
     currentBuilderStep = stepId;
     const step = BUILDER_STEPS.find(s => s.id === stepId);
     if (step && step.page) switchPage(step.page);
     else if (stepId === 3) openCalPicker();
-    else if (stepId === 5) showFinalSubmitDialog();
     renderBuilderStepper();
 }
 function advanceBuilderStep() {
-    if (currentBuilderStep < BUILDER_STEPS.length) { currentBuilderStep++; renderBuilderStepper(); }
+    currentBuilderStep = 4;
+    renderBuilderStepper();
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1571,9 +1548,7 @@ function _setSaveBtnState(state) {
             btn.classList.add('saving');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…'; break;
         case 'done':
-            btn.classList.add('save-done');
-            btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Saved!';
-            setTimeout(() => _resetSaveBtn(btn), 2200); break;
+            _resetSaveBtn(btn); break;
         case 'error':
             btn.classList.add('save-error');
             btn.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Save Failed';
@@ -1653,8 +1628,6 @@ async function saveAndContinueDocFlow() {
     }
 
     if (nextPage) { unlockNextDocFlowPage(); _switchPageBase(nextPage); syncDocFlowNavLocks(); }
-    if (currentBuilderStep < 4) advanceBuilderStep();
-
     const afterPage = _getActiveDomPage();
     const movedForward = beforePage && afterPage && beforePage !== afterPage;
     _setSaveBtnState('done');
@@ -1762,7 +1735,7 @@ async function confirmFinalSubmit() {
         hideReturnedBanner();
         document.getElementById('calEditApprovedBanner')?.remove();
         showToast('Calendar submitted for final approval!', 'fa-circle-check');
-        currentBuilderStep = 5; renderBuilderStepper();
+        currentBuilderStep = 4; renderBuilderStepper();
         lockBuilderForSubmitted();
         await loadSavedCalendarDocs();
 
@@ -3337,46 +3310,9 @@ function buildCalendarSavePayload() {
     // list can show it on every card without re-deriving it per row.
     return { form: formData, marks, savedMarks, remarks, savedRemarks, legends, logoDataUrl: logoDataUrl || storedLogo, active_tab: currentActivePage, totalDays: computeGrandTotal() };
 }
-/* ── Autosave status tracking (UX Issue B) ───────────────────────────────
-   Tracks whether the form has unsaved changes ("dirty") and the timestamp
-   of the last successful save. Call _markFormDirty() on any user edit to
-   show "● Unsaved changes". Call _updateSaveStatus(updatedAt) after a
-   successful save to show "Last saved X min ago".                          */
-let _lastSavedAt = null;
-let _formIsDirty = false;
-let _saveStatusTimer = null;
-
-function _markFormDirty() {
-    if (_formIsDirty) return;
-    _formIsDirty = true;
-    _renderSaveStatus();
-}
-function _updateSaveStatus(serverUpdatedAt) {
-    _formIsDirty = false;
-    _lastSavedAt = serverUpdatedAt ? new Date(serverUpdatedAt) : new Date();
-    _renderSaveStatus();
-    clearInterval(_saveStatusTimer);
-    _saveStatusTimer = setInterval(_renderSaveStatus, 60000); // refresh "X min ago" every minute
-}
-function _renderSaveStatus() {
-    const el = document.getElementById('calSaveStatusLabel');
-    if (!el) return;
-    if (_formIsDirty) {
-        el.className = 'cal-save-status status-dirty';
-        el.innerHTML = '<span class="css-dot">●</span> Unsaved changes';
-        return;
-    }
-    if (!_lastSavedAt) {
-        el.className = 'cal-save-status status-saved';
-        el.innerHTML = '<span class="css-dot">●</span> Draft';
-        return;
-    }
-    const diffMs  = Date.now() - _lastSavedAt.getTime();
-    const diffMin = Math.round(diffMs / 60000);
-    const label   = diffMin < 1 ? 'just now' : diffMin === 1 ? '1 min ago' : `${diffMin} min ago`;
-    el.className = 'cal-save-status status-saved';
-    el.innerHTML = `<span class="css-dot">●</span> Last saved ${label}`;
-}
+/* Save feedback is shown through temporary toast messages. */
+function _markFormDirty() {}
+function _updateSaveStatus() {}
 
 async function calSaveCalendar() {
     if (_builderLocked) { showToast('This calendar is locked. Request edit approval first.', 'fa-lock'); return false; }
@@ -3402,14 +3338,11 @@ async function calSaveCalendar() {
         // refresh them now that one does.
         if (hadNoDocId && currentCalendarDocumentId) renderChecklistFormFields();
         calShowToast('School calendar saved successfully!', 'success');
-        if (saveBtn) { saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Saved!'; }
-        setTimeout(() => {
-            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Calendar'; }
-        }, 2000);
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save &amp; Continue'; }
         return true;
     } catch (err) {
         calShowToast('Save failed: ' + (err.message || 'Unknown error'), 'error');
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Calendar'; }
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save &amp; Continue'; }
         return false;
     }
 }
@@ -3763,10 +3696,17 @@ async function openCalendarBuilder(documentId = null) {
         const editApproved = String(doc?.edit_request_status || '').toLowerCase() === 'approved';
         if (editApproved) {
             /* SDO approved an edit request — unlock the builder and show the edit banner */
+            docFlowUnlockedIndex = DOC_FLOW_PAGES.length - 1;
+            docFlowCurrentIndex = Math.max(0, getDocFlowIndex(hydratePayload.active_tab || 'pg-cover'));
+            syncDocFlowNavLocks();
             unlockBuilder(); lockDeptField(); hideReturnedBanner();
             _showEditApprovedBanner();
             const finalBtn = document.getElementById('calBtnFinalSubmit');
             if (finalBtn) finalBtn.style.display = '';
+        } else if (String(doc?.edit_request_status || '').toLowerCase() === 'pending') {
+            lockBuilderForSubmitted(); hideReturnedBanner();
+            const pendingBanner = document.getElementById('calLockedBanner');
+            if (pendingBanner) pendingBanner.innerHTML = '<i class="fa-solid fa-clock"></i> Your request to edit this calendar is waiting for SDO approval.';
         } else if (_isReturnedStatus(effectiveStatus)) {
             unlockBuilder(); lockDeptField(); showReturnedBanner(doc?.admin_remarks || '');
             const finalBtn = document.getElementById('calBtnFinalSubmit');
@@ -3922,8 +3862,8 @@ function handleSavedDocsSearch(value) {
 }
 function filterSavedDocs(status) {
     savedDocsStatusFilter = status;
-    document.querySelectorAll('#savedDocsView .filter-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`f-${status}`)?.classList.add('active');
+    const statusFilter = document.getElementById('savedDocsStatusFilter');
+    if (statusFilter && statusFilter.value !== status) statusFilter.value = status;
     renderSavedCalendarDocs();
 }
 function statusCategory(rawStatus, editApproved) {
@@ -4031,7 +3971,6 @@ function renderSavedCalendarDocs() {
     }
     content.innerHTML = `<div class="saved-docs-list">${docs.map((sub) => {
         const rawTitle   = sub.title || 'Untitled School Calendar';
-        const title      = escHtml(rawTitle);
         const rawStatus  = getEffectiveStatus(sub);
         const dateText   = escHtml(formatDate(sub.updated_at || sub.created_at));
         const docId      = Number(sub.id) || 0;
@@ -4055,27 +3994,13 @@ function renderSavedCalendarDocs() {
            open in the (hidden) builder DOM, so a freshly-edited doc
            reflects unsaved changes immediately — mirrors the existing
            cachedDays/computeGrandTotal() fallback pattern below. */
-        const department = sub.department || (isCurrentDoc ? v('f_dept') : '') || '';
+        const department = sub.department || (isCurrentDoc ? v('f_dept') : '') || deptFromTitleFallback(rawTitle);
         const schoolYear  = sub.school_year || (isCurrentDoc ? (() => {
             const sy1 = v('f_sy1'), sy2 = v('f_sy2');
             return (sy1 && sy2) ? `${sy1}-${sy2}` : '';
         })() : '');
         const openingRaw = sub.opening_date || (isCurrentDoc ? v('f_opening') : '') || '';
         const closingRaw = sub.closing_date || (isCurrentDoc ? v('f_closing') : '') || '';
-
-        /* ── Shorten the title ── department and school year now have
-           their own badges below, so strip them back out of the generated
-           "School Calendar - {school} - {dept} (sy1-sy2)" string instead
-           of letting the title's ellipsis cut them off mid-word. */
-        let shortTitleRaw = rawTitle;
-        if (department && schoolYear) {
-            const suffix = ` - ${department} (${schoolYear})`;
-            if (shortTitleRaw.endsWith(suffix)) shortTitleRaw = shortTitleRaw.slice(0, -suffix.length);
-        } else if (schoolYear) {
-            const suffix = ` (${schoolYear})`;
-            if (shortTitleRaw.endsWith(suffix)) shortTitleRaw = shortTitleRaw.slice(0, -suffix.length);
-        }
-        const shortTitle = escHtml(shortTitleRaw);
 
         const cachedDays = typeof sub.total_days === 'number' ? sub.total_days : null;
         const grandTotal = cachedDays !== null ? cachedDays : (isCurrentDoc ? computeGrandTotal() : null);
@@ -4125,11 +4050,9 @@ function renderSavedCalendarDocs() {
             </div>${remarksHtml}`
             : remarksHtml;
 
-        /* ── Department + school-year badges ── */
-        const deptMeta = department ? deptBadgeMeta(department) : null;
-        const badgesRow = (deptMeta || schoolYear)
+        /* ── School-year badge ── */
+        const badgesRow = schoolYear
             ? `<div class="sdc-badges-row">
-                ${deptMeta ? `<span class="sdc-dept-badge ${deptMeta.css}"><i class="fa-solid fa-layer-group"></i> ${escHtml(department)}</span>` : ''}
                 ${schoolYear ? `<span class="sdc-sy-badge"><i class="fa-solid fa-calendar"></i> S.Y. ${escHtml(schoolYear)}</span>` : ''}
             </div>`
             : '';
@@ -4152,7 +4075,7 @@ function renderSavedCalendarDocs() {
             <div class="sdc-header">
                 ${logoHtml}
                 <div class="sdc-title-block">
-                    <div class="sdc-title" title="${title}">${shortTitle}</div>
+                    <div class="sdc-level-title">${escHtml(department || 'School-wide')}</div>
                     <span class="sdc-status-badge ${meta.css}">${meta.label}</span>
                 </div>
                 ${!isSubmitted ? `<button class="sdc-dots-btn sdc-trash-btn" onclick="deleteCalendarDocument(${docId})" title="Delete">
@@ -4230,7 +4153,7 @@ const TOUR_STEPS = [
     { title:'Step 2 — Letters', body:'Complete the Transmittal Letter and Letter of Intent tabs with official addresses, signatories, and body text.', anchor:null, icon:'fa-envelope' },
     { title:'Step 3 — Calendar Picker', body:'Click "Calendar Picker" to mark holidays (✕), school activities (□), and exams (△). You can apply marks to a date range.', anchor:null, icon:'fa-calendar-plus' },
     { title:'Step 4 — Check Your Totals', body:'Go to the Summary tab to see the monthly school-day counts. The total must be between 200 and 220 days.', anchor:null, icon:'fa-table-list' },
-    { title:'Step 5 — Save & Submit', body:'Click Save to keep a draft at any time. When ready, click "Submit for Final Approval". Once submitted the calendar is locked.', anchor:'#calBtnSave', icon:'fa-paper-plane' },
+    { title:'Step 5 — Save & Submit', body:'Use Save & Continue to save your progress and move through the document pages. When all required pages are ready, choose Final Submit in the left Actions panel. Once submitted, the calendar is locked.', anchor:'#calBtnSave', icon:'fa-paper-plane' },
     { title:'Export Anytime', body:'Use the Export button to download a PDF (via print), a Word document, or a JSON backup of your calendar data.', anchor:null, icon:'fa-download' },
 ];
 let tourStep = 0;
@@ -4266,13 +4189,13 @@ function tourPrev() { if (tourStep > 0) { tourStep--; renderTourOverlay(); } }
 function closeTour() { const overlay = document.getElementById('calTourOverlay'); if (overlay) overlay.style.display = 'none'; localStorage.setItem('edu_cal_tour_seen','1'); }
 
 function injectSubmitFinalButton() {
-    const topBarActions = document.querySelector('.top-bar-actions');
-    if (!topBarActions || document.getElementById('calBtnFinalSubmit')) return;
+    const actionRail = document.querySelector('#docSideNav');
+    if (!actionRail || document.getElementById('calBtnFinalSubmit')) return;
     const btn = document.createElement('button');
-    btn.id = 'calBtnFinalSubmit'; btn.className = 'tba-btn tba-submit-btn';
+    btn.id = 'calBtnFinalSubmit'; btn.className = 'dsn-action-btn cal-final-submit-btn';
     btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Final Submit';
     btn.onclick = showFinalSubmitDialog;
-    topBarActions.appendChild(btn);
+    actionRail.appendChild(btn);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -4436,8 +4359,6 @@ function _isAllPagesUnlocked() {
 
 function syncFinalSubmitVisibility() {
     const allUnlocked = _isAllPagesUnlocked();
-    const dropItem = document.querySelector('.tba-drop-item-submit');
-    if (dropItem) dropItem.style.display = allUnlocked ? '' : 'none';
     const finalBtn = document.getElementById('calBtnFinalSubmit');
     if (finalBtn) finalBtn.style.display = allUnlocked ? '' : 'none';
 }
@@ -4456,6 +4377,14 @@ function syncFinalSubmitVisibility() {
 ══════════════════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
     setBuilderModeUi(false);
+    if (localStorage.getItem('edu_cal_preview_hidden') === '1') {
+        document.querySelector('#builderShell .workspace')?.classList.add('cal-preview-hidden');
+        document.getElementById('calTogglePreviewIcon')?.classList.replace('fa-eye-slash', 'fa-eye');
+        const previewLabel = document.getElementById('calTogglePreviewLabel');
+        const menuPreviewLabel = document.getElementById('calMenuPreviewLabel');
+        if (previewLabel) previewLabel.textContent = 'Show Preview';
+        if (menuPreviewLabel) menuPreviewLabel.textContent = 'Show Preview';
+    }
     initSidebarProfile();
     loadSavedCalendarDocs();
     loadDashboard();

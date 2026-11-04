@@ -789,6 +789,7 @@ body {
     background: #fff;
     border-radius: var(--ds-radius);
     box-shadow: var(--ds-shadow);
+    position: relative;
     width: 95vw;
     max-width: 1100px;
     height: 88vh;
@@ -898,6 +899,7 @@ body {
 /* When preview is hidden, sidebar expands to fill the full width */
 .dsd-layout.preview-hidden .dsd-sidebar {
     width: 100%;
+    padding-right: 340px;
     border-right: none;
 }
 
@@ -1644,10 +1646,40 @@ body {
 
 .dsd-modal-head-actions {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 14px;
+    position: absolute;
+    z-index: 5;
+    top: 160px;
+    right: 24px;
+    width: min(300px, 28vw);
+    margin: 0;
     flex-shrink: 0;
+}
+
+.dsd-modal-head-actions > button {
+    width: 100%;
+    min-height: 52px;
+    justify-content: center;
+    font-size: 13px;
+}
+
+.dsd-modal.preview-open .dsd-modal-head-actions {
+    position: static;
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-left: auto;
     flex-wrap: wrap;
+}
+
+.dsd-modal.preview-open .dsd-modal-head-actions > button {
+    width: auto;
+    min-height: 0;
 }
 
 /* Modal fixed footer */
@@ -1655,11 +1687,12 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 20px;
+    padding: 12px 20px;
     border-top: 1px solid #e2e8f0;
-    background: #fff;
+    background: #f7faff;
     flex-shrink: 0;
     flex-wrap: wrap;
+    box-shadow: 0 -4px 12px rgba(15, 23, 42, .04);
 }
 
 .dsd-footer-group {
@@ -1673,15 +1706,49 @@ body {
     white-space: nowrap;
 }
 
+.dsd-footer-status {
+    gap: 10px;
+    padding: 7px 10px;
+    border: 1px solid #c9dbf3;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.dsd-footer-status-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.dsd-footer-status-copy .dsf-label {
+    color: #123763;
+    font-size: 13px;
+}
+
+.dsf-status-help {
+    padding-left: 20px;
+    color: #64748b;
+    font-size: 10px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
 .dsd-footer-select {
     width: auto !important;
-    min-width: 160px;
-    padding: 7px 10px !important;
+    min-width: 200px;
+    min-height: 40px;
+    padding: 8px 12px !important;
+    border: 1.5px solid #a8c0df !important;
+    border-radius: 8px !important;
+    color: #123763 !important;
+    font-size: 13px !important;
+    font-weight: 700;
+    background-color: #f8fbff !important;
 }
 
 .dsd-footer-remarks {
     flex: 1;
-    min-width: 160px;
+    min-width: 200px;
 }
 
 .dsd-footer-input {
@@ -1692,9 +1759,11 @@ body {
     background: #fff;
     color: #0f172a;
     font-size: 13px;
-    padding: 7px 11px;
+    padding: 9px 12px;
     font-family: var(--ds-font);
     outline: none;
+    min-height: 40px;
+    box-sizing: border-box;
 }
 
 .dsd-footer-input:focus {
@@ -1707,6 +1776,13 @@ body {
     gap: 10px;
     margin-left: auto;
     flex-shrink: 0;
+}
+
+.dsd-modal-footer-right .dsf-btn-save {
+    min-height: 42px;
+    padding: 9px 18px;
+    box-shadow: 0 2px 5px rgba(36, 86, 164, .2);
+    white-space: nowrap;
 }
 
 /* Preview panel toggle ────────────────────────────────────────────── */
@@ -1734,6 +1810,51 @@ body {
 .dsd-btn-toggle-preview:hover {
     background: #e0e7ff;
     border-color: #a5b4fc;
+}
+
+@media (max-width: 900px) {
+    .dsd-modal-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .dsd-modal-head h2 {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    .dsd-modal-head-actions {
+        position: static;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: auto;
+        margin: 0;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .dsd-modal-head-actions > button {
+        width: auto;
+        min-height: 0;
+    }
+    .dsd-modal-head .ds-close-btn {
+        grid-column: 2;
+        grid-row: 1;
+    }
+    .dsd-layout.preview-hidden .dsd-sidebar {
+        padding-right: 0;
+    }
+    .dsd-footer-status {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .dsd-footer-select {
+        flex: 1;
+        min-width: 0;
+    }
+    .dsd-footer-remarks {
+        flex: 1 1 100%;
+    }
 }
 
 .dsd-preview-collapsed-placeholder {

@@ -243,11 +243,16 @@ function actionList(PDO $pdo): void
         }
  
         $r['history']      = json_decode((string)($r['history_json'] ?? '[]'), true) ?: [];
+        $r['edit_request_pending'] = isEditRequestPending($r['history']);
+        if ($r['edit_request_pending']) {
+            $r['status'] = 'Edit Requested';
+        }
         $r['cal_opening']  = null;
         $r['cal_closing']  = null;
         $r['cal_days']     = null;
         $r['cal_level']    = null;
         $r['school_address'] = null;
+        $r['tuition_levels'] = [];
  
         if (!empty($r['cal_payload_json'])) {
             $calPayload = json_decode((string)$r['cal_payload_json'], true);
@@ -262,11 +267,40 @@ function actionList(PDO $pdo): void
                 $r['cal_days'] = $totalDays > 0 ? (string)$totalDays : null;
             }
         }
+
+        if (in_array($typeRaw, ['tuition', 'no_tuition'], true)) {
+            $tuitionDoc = dsFindTuitionDocument($pdo, $r);
+            if ($tuitionDoc) {
+                $tuitionPayload = json_decode((string)($tuitionDoc['payload_json'] ?? ''), true);
+                $tuitionForm = is_array($tuitionPayload['form'] ?? null) ? $tuitionPayload['form'] : [];
+                $levelFlags = [
+                    'kinder' => (bool)($tuitionDoc['has_kinder'] ?? $tuitionPayload['has_kinder'] ?? $tuitionForm['has_kinder'] ?? false),
+                    'elem'   => (bool)($tuitionDoc['has_elem']   ?? $tuitionPayload['has_elem']   ?? $tuitionForm['has_elem']   ?? false),
+                    'jhs'    => (bool)($tuitionDoc['has_jhs']    ?? $tuitionPayload['has_jhs']    ?? $tuitionForm['has_jhs']    ?? false),
+                    'shs'    => (bool)($tuitionDoc['has_shs']    ?? $tuitionPayload['has_shs']    ?? $tuitionForm['has_shs']    ?? false),
+                ];
+                foreach (dsTuitionLevelLabels() as $levelKey => $levelLabel) {
+                    if (!empty($levelFlags[$levelKey])) $r['tuition_levels'][] = $levelLabel;
+                }
+            }
+        }
         unset($r['cal_payload_json'], $r['history_json']);
     }
     unset($r);
  
     respond(true, 'OK', ['records' => $records]);
+}
+
+function isEditRequestPending(array $history): bool
+{
+    $lastRequest = -1;
+    $lastApproval = -1;
+    foreach ($history as $index => $event) {
+        if (!is_array($event)) continue;
+        if (($event['event'] ?? '') === 'edit_request') $lastRequest = $index;
+        if (($event['event'] ?? '') === 'edit_approved') $lastApproval = $index;
+    }
+    return $lastRequest > $lastApproval;
 }
 
 function actionPreview(PDO $pdo): void
@@ -883,6 +917,32 @@ function dsPrepareSchoolLogoForTcpdf(string $raw, ?string &$tmpFileOut = null): 
     return $raw;
 }
 
+function normalizeSubmissionWorkflowStatus(string $status): string
+{
+    $key = strtolower(str_replace('_', ' ', trim($status)));
+    return match ($key) {
+        'pending', 'pending review', 'submitted', 'review pending' => 'Pending Review',
+        'review', 'endorsed', 'for endorsement' => 'For Endorsement',
+        'approved' => 'Approved',
+        'released', 'released to school' => 'Released to School',
+        'returned', 'rejected', 'returned for correction' => 'Returned for Correction',
+        'draft', 'draft (for edit)' => 'draft',
+        default => trim($status),
+    };
+}
+
+function nextSubmissionWorkflowStatuses(string $status): array
+{
+    return match (normalizeSubmissionWorkflowStatus($status)) {
+        'Pending Review' => ['For Endorsement', 'Returned for Correction'],
+        'For Endorsement' => ['Approved', 'Returned for Correction'],
+        'Approved' => ['Released to School', 'Returned for Correction'],
+        'Returned for Correction' => ['Pending Review', 'draft'],
+        'draft' => ['Pending Review'],
+        default => [],
+    };
+}
+
 function actionUpdate(PDO $pdo, array $body, array $authUser): void
 {
     $id = (int)($body['id'] ?? 0);
@@ -896,6 +956,11 @@ function actionUpdate(PDO $pdo, array $body, array $authUser): void
 
     if (!$rec) {
         respond(false, 'Record not found', null, 404);
+    }
+
+    $recordHistory = json_decode((string)($rec['history_json'] ?? '[]'), true);
+    if (is_array($recordHistory) && isEditRequestPending($recordHistory)) {
+        respond(false, 'This document is locked while its edit request is waiting for SDO approval.', null, 409);
     }
 
     $newStatus = clean($body['status'] ?? $rec['status']);
@@ -913,6 +978,18 @@ function actionUpdate(PDO $pdo, array $body, array $authUser): void
         respond(false, 'Invalid status value', null, 422);
     }
 
+    $currentWorkflowStatus = normalizeSubmissionWorkflowStatus((string)$rec['status']);
+    $newWorkflowStatus = normalizeSubmissionWorkflowStatus($newStatus);
+    $statusChanged = $newWorkflowStatus !== $currentWorkflowStatus;
+    if ($statusChanged && !in_array($newWorkflowStatus, nextSubmissionWorkflowStatuses($currentWorkflowStatus), true)) {
+        respond(false, sprintf(
+            'This status change skips a workflow step. The next allowed status after "%s" is: %s.',
+            $currentWorkflowStatus,
+            implode(' or ', nextSubmissionWorkflowStatuses($currentWorkflowStatus)) ?: 'none; this submission is already complete'
+        ), null, 409);
+    }
+    $newStatus = $newWorkflowStatus;
+
     $now = date('Y-m-d H:i:s');
 
     $userName = trim((string)($authUser['full_name'] ?? $authUser['email'] ?? 'Admin'));
@@ -920,7 +997,7 @@ function actionUpdate(PDO $pdo, array $body, array $authUser): void
 
     $history = json_decode((string)($rec['history_json'] ?? '[]'), true) ?: [];
 
-    if ($newStatus !== (string)$rec['status'] || $newRemarks !== (string)($rec['remarks'] ?? '')) {
+    if ($statusChanged || $newRemarks !== (string)($rec['remarks'] ?? '')) {
         $history[] = [
             'event'      => 'status_update',
             'status'     => $newStatus,
@@ -931,7 +1008,6 @@ function actionUpdate(PDO $pdo, array $body, array $authUser): void
     }
 
     $actionedStatuses = ['Approved', 'Returned for Correction', 'For Endorsement', 'Released to School'];
-    $statusChanged = $newStatus !== (string)$rec['status'];
     if (in_array($newStatus, $actionedStatuses, true) && $statusChanged) {
         $dateActioned = date('Y-m-d');
     } else {
@@ -1088,18 +1164,20 @@ function actionApproveEdit(PDO $pdo, array $body, array $authUser): void
             'created_at' => $now,
             'note'       => '',
         ];
-        // Keep school_submissions status as 'Returned for Correction' so the
-        // record stays visible on the SDO side. Only the linked document row
-        // (school_calendar_documents / school_tuition_documents) is unlocked to
-        // 'draft'. When the school re-submits, upsertSchoolCalendar/TuitionSubmission
-        // will update school_submissions.status back to 'Pending Review'.
+        // Mark it returned so it leaves Pending Review while the school edits.
+        // On resubmission, the portal moves the record back to Pending Review.
         $pdo->prepare(
             "UPDATE school_submissions
-             SET history_json = :hj,
+             SET status = 'Returned for Correction',
+                 history_json = :hj,
+                 date_actioned = CURDATE(),
+                 reviewed_by = :reviewed_by,
+                 reviewed_at = NOW(),
                  updated_at   = NOW()
              WHERE id = :id"
         )->execute([
             ':hj' => json_encode($history, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ':reviewed_by' => $adminId ?: null,
             ':id' => $submissionId,
         ]);
     } catch (Throwable $e) {

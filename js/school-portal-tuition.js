@@ -14,6 +14,9 @@ let saveTimer       = null;
 let pctComputeTimer = null;
 let logoDataUrl     = '';
 let _builderLocked  = false;  // true when a submitted doc is open (mirrors calendar)
+let submittedTuitionModes = [];
+let _reviewHasAnyFee = false;
+let lastAutoSaveToastAt = 0;
 
 /* ══════════════════════════════════════════════
    HELPERS
@@ -24,6 +27,41 @@ const num  = id  => parseFloat($(id)?.value) || 0;
 const r2   = n   => Math.round(n * 100) / 100;
 const setV = (id, v) => { const el = $(id); if (el) el.value = v !== '' ? r2(v) : ''; };
 const getPct = () => parseFloat(val('tfIncreasePct')) || 0;
+function normalizeTuitionSY(value) {
+    return String(value || '').trim().replace(/^SY\s*/i, '').replace(/[\u2010-\u2015\u2212]/g, '-').replace(/\s*-\s*/g, '-');
+}
+function hasSubmittedTuitionForYear(proposedSY, excludeDocumentId = null) {
+    const targetSY = normalizeTuitionSY(proposedSY);
+    return !!targetSY && submittedTuitionModes.some(item =>
+        Number(item.id) !== Number(excludeDocumentId) && normalizeTuitionSY(item.proposed_sy) === targetSY
+    );
+}
+function tuitionConflictMessage(mode, proposedSY) {
+    return `A tuition document has already been submitted for SY ${proposedSY}. You can save a draft, but only one tuition document can be submitted for a school year.`;
+}
+function updateTuitionSubmissionGuard() {
+    const mode = tfMode === 'no-increase' ? 'no_increase' : tfMode;
+    const proposedSY = val('tfProposedSY').trim();
+    const conflict = hasSubmittedTuitionForYear(proposedSY, docId);
+    const message = conflict ? tuitionConflictMessage(mode, proposedSY) : '';
+    const notice = $('tfTuitionConflictNotice');
+    if (notice) {
+        notice.textContent = message;
+        notice.style.display = conflict ? 'block' : 'none';
+    }
+    ['btnSubmitReview', 'tfBtnFinalSubmitDrop'].forEach(id => {
+        const button = $(id);
+        if (!button) return;
+        button.disabled = conflict || !_reviewHasAnyFee;
+        button.title = conflict ? message : (_reviewHasAnyFee ? '' : 'Please enter at least one fee before submitting.');
+    });
+    const modalSubmit = $('tfSubmitBtn');
+    if (modalSubmit && conflict) {
+        modalSubmit.disabled = true;
+        modalSubmit.title = message;
+    }
+    return conflict;
+}
 const DEFAULT_PRINCIPAL_POSITION = 'School Principal';
 const DEFAULT_REVIEWED_BY_POSITION = 'SDO, EPS In Charge';
 const DEFAULT_VALIDATED_BY_POSITION = 'EPS,QAD DepEd RO 3';
@@ -77,11 +115,7 @@ function fmt(n) {
 }
 
 function setSaveStatus(status, text) {
-    const el = $('tfAutosave2');
-    if (!el) return;
-    el.className = 'autosave-status ' + status;
-    const span = el.querySelector('span');
-    if (span) span.textContent = text;
+    // Saving feedback is shown as a temporary toast; avoid a persistent saved label.
 }
 
 function formatDate(d) {
@@ -424,8 +458,7 @@ function goToStep(n) {
     if (n === 3) applyModeToStep3();
     if (n === 4) buildReview();
 
-    // Show Final Submit button in top bar only on step 4
-    // (legacy fallback path — workspace UI uses tfSwitchPage)
+    // Final Submit remains available in the document action rail.
 }
 
 /* ══════════════════════════════════════════════
@@ -437,6 +470,7 @@ function selectMode(mode) {
     $('modeCardNoIncrease').classList.toggle('selected', mode === 'no-increase');
     $('btnStep1Next').disabled = false;
     applyPctFieldVisibility();
+    updateTuitionSubmissionGuard();
     scheduleSave();
 }
 
@@ -643,13 +677,13 @@ const KINDER_FIELDS = [
 ];
 
 const ELEM_FIELDS = [
-    'e_tuition',
+    'e1_tuition', 'e2_tuition', 'e3_tuition', 'e4_tuition', 'e5_tuition', 'e6_tuition',
     'e_id', 'e_ins', 'e_handbook', 'e_lab', 'e_water', 'e_itm', 'e_med',
     'e_reg', 'e_books', 'e_paces1', 'e_paces2'
 ];
 
 const JHS_FIELDS = [
-    'j_tuition',
+    'j7_tuition', 'j8_tuition', 'j9_tuition', 'j10_tuition',
     'j_id', 'j_ins', 'j_handbook', 'j_comp', 'j_water', 'j_itm', 'j_med',
     'j_reg', 'j_books', 'j_paces1', 'j_paces2'
 ];
@@ -1536,7 +1570,8 @@ function tfRenderFeeInputs() {
         }
     });
     const elemRows = [
-        rowHtml('Tuition Fee (annually)', 'e_tuition'),
+        `<div class="tf-fee-section-sublabel">Enter the approved annual tuition separately for each grade. Reuse the same amount where applicable.</div>`,
+        ...[1, 2, 3, 4, 5, 6].map(grade => rowHtml(`Tuition Fee (annually) — Grade ${grade}`, `e${grade}_tuition`)),
         `<div class="tf-fee-section-sublabel" data-form-section="e_misc"><span class="tf-sublabel-roman">II.</span> Miscellaneous Fees</div>`,
         ...elemMiscBuiltins
             .filter(([, fid]) => !elemDeleted.has(fid))
@@ -1572,7 +1607,8 @@ function tfRenderFeeInputs() {
         }
     });
     const jhsRows = [
-        rowHtml('Tuition Fee (annually)', 'j_tuition'),
+        `<div class="tf-fee-section-sublabel">Enter the approved annual tuition separately for each grade. Reuse the same amount where applicable.</div>`,
+        ...[7, 8, 9, 10].map(grade => rowHtml(`Tuition Fee (annually) — Grade ${grade}`, `j${grade}_tuition`)),
         `<div class="tf-fee-section-sublabel" data-form-section="j_misc"><span class="tf-sublabel-roman">II.</span> Miscellaneous Fees</div>`,
         ...jhsMiscBuiltins
             .filter(([, fid]) => !jhsDeleted.has(fid))
@@ -1776,7 +1812,7 @@ function buildPayload() {
 ══════════════════════════════════════════════ */
 // FIX #10: saveDraft now returns a boolean indicating success/failure
 // so callers (generatePDF, submitDocument) can react appropriately.
-async function saveDraft(step) {
+async function saveDraft(step, quiet = false) {
     if (_builderLocked) {
         showToast('This document is locked. Request edit approval first.', 'circle-xmark');
         return false;
@@ -1815,7 +1851,11 @@ async function saveDraft(step) {
         if (data.success) {
             if (data.data?.document_id) docId = data.data.document_id;
             setSaveStatus('saved', 'Saved ✓');
-            showToast('Draft saved!', 'circle-check');
+            const now = Date.now();
+            if (!quiet || now - lastAutoSaveToastAt > 6000) {
+                showToast('Updated successfully.', 'circle-check');
+                if (quiet) lastAutoSaveToastAt = now;
+            }
             return true;
         } else {
             setSaveStatus('error', 'Save failed');
@@ -1841,7 +1881,7 @@ function scheduleSave() {
         active.classList.add('tf-input-saving');
         setTimeout(() => active.classList.remove('tf-input-saving'), 1400);
     }
-    saveTimer = setTimeout(() => saveDraft(currentStep), 1500);
+    saveTimer = setTimeout(() => saveDraft(currentStep, true), 1500);
 }
 
 /* ══════════════════════════════════════════════
@@ -1893,6 +1933,7 @@ function backToTuitionDocs() {
 async function loadSavedTuitionDocs() {
     const content = $('tfSavedDocsContent');
     if (!content) return;
+    submittedTuitionModes = [];
     content.innerHTML = `<div class="saved-docs-empty"><i class="fa-solid fa-spinner fa-spin"></i><p>Loading your saved documents...</p></div>`;
     try {
         const res  = await fetch(`${TF_API}?action=list`, { credentials: 'include' });
@@ -1902,6 +1943,7 @@ async function loadSavedTuitionDocs() {
             throw new Error(data.message || 'Failed to load saved documents.');
         }
         allTuitionDocs = data.data?.documents ?? (Array.isArray(data.data) ? data.data : []);
+        submittedTuitionModes = Array.isArray(data.data?.submitted_modes) ? data.data.submitted_modes : [];
 
         // Merge workflow statuses from submissions API.
         // Fetch both 'tuition' (fee increase) and 'no_tuition' (no increase) submission
@@ -1964,8 +2006,8 @@ function handleTuitionDocsSearch(value) {
 
 function filterSavedDocs(status) {
     tuitionDocsStatusFilter = status;
-    document.querySelectorAll('#tfSavedDocsView .filter-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`tf-f-${status}`)?.classList.add('active');
+    const statusFilter = document.getElementById('tfSavedDocsStatusFilter');
+    if (statusFilter && statusFilter.value !== status) statusFilter.value = status;
     renderSavedTuitionDocs();
 }
 
@@ -2041,7 +2083,6 @@ function renderSavedTuitionDocs() {
 
     content.innerHTML = `<div class="saved-docs-grid">${filtered.map(doc => {
         const docId  = doc.id;
-        const title  = escHtml(doc.title || 'Untitled Document');
         const rawStatus = getEffectiveStatus(doc);
         // The SDO's approve_edit endpoint resets the document row to 'draft'
         // but intentionally leaves school_submissions (and therefore
@@ -2065,19 +2106,28 @@ function renderSavedTuitionDocs() {
             : '';
 
         const progressLine = !isDraft
-            ? `<div class="sdc-progress-line" style="padding:0 14px 8px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
-                <span class="sdc-status-badge ${meta.css}">${meta.label}</span>
-                ${doc.workflow_updated_at ? `<span style="font-size:10.5px;color:#9ca3af;"><i class="fa-solid fa-clock" style="margin-right:3px;"></i>Updated ${escHtml(formatDate(doc.workflow_updated_at))}</span>` : ''}
-               </div>${remarksHtml}`
+            ? `${doc.workflow_updated_at ? `<div class="sdc-progress-line" style="padding:0 14px 8px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;"><span style="font-size:10.5px;color:#9ca3af;"><i class="fa-solid fa-clock" style="margin-right:3px;"></i>Updated ${escHtml(formatDate(doc.workflow_updated_at))}</span></div>` : ''}${remarksHtml}`
             : '';
 
         const modeTag = doc.mode === 'no_increase'
-            ? '<span style="font-size:10.5px;background:#f0fdf4;color:#16a34a;border:1px solid #86efac;border-radius:4px;padding:1px 7px;font-weight:700;">No Increase</span>'
+            ? '<span class="tuition-mode-tag no-increase">No Increase</span>'
             : doc.mode === 'increase'
-            ? `<span style="font-size:10.5px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:4px;padding:1px 7px;font-weight:700;">With Increase${doc.increase_pct ? ' ('+doc.increase_pct+'%)' : ''}</span>`
+            ? `<span class="tuition-mode-tag with-increase">With Increase${doc.increase_pct ? ' ('+escHtml(doc.increase_pct)+'%)' : ''}</span>`
             : '';
 
+        const tuitionLevels = [
+            Number(doc.has_kinder) === 1 ? 'Pre-School' : '',
+            Number(doc.has_elem) === 1 ? 'Elementary' : '',
+            Number(doc.has_jhs) === 1 ? 'Junior High School' : '',
+            Number(doc.has_shs) === 1 ? 'Senior High School' : '',
+        ].filter(Boolean).join(' · ') || (doc.mode === 'no_increase' ? 'No Increase' : 'Tuition Fee Increase');
+        const proposedYear = doc.proposed_sy ? String(doc.proposed_sy).replace('-', '–') : '';
+
         const canSubmit = isDraft;
+        const hasModeConflict = hasSubmittedTuitionForYear(doc.proposed_sy, doc.id);
+        const conflictTitle = hasModeConflict
+            ? tuitionConflictMessage(doc.mode, doc.proposed_sy)
+            : (isSubmitted ? 'Already submitted' : 'Submit to SDO');
         let submitStyle   = '';
         let submitOnclick = '';
         if (isSubmitted) {
@@ -2097,11 +2147,11 @@ function renderSavedTuitionDocs() {
                     <i class="fa-solid fa-file-invoice-dollar" style="font-size:20px;color:#2456a4;"></i>
                 </div>
                 <div class="sdc-title-block">
-                    <div class="sdc-title">${title}</div>
-                    <div style="font-size:10px;color:#94a3b8;margin-bottom:2px;">Doc #${docId}</div>
-                    <div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;">
+                    <div class="sdc-card-focus">${escHtml(tuitionLevels)}</div>
+                    <div class="sdc-card-context">
                         <span class="sdc-status-badge ${meta.css}">${meta.label}</span>
                         ${modeTag}
+                        ${proposedYear ? `<span class="tuition-year-tag">S.Y. ${escHtml(proposedYear)}</span>` : ''}
                     </div>
                 </div>
                 ${isDraft || isReturned ? `<button class="sdc-dots-btn sdc-trash-btn" onclick="deleteTuitionDocument(${docId})" title="Delete">
@@ -2117,8 +2167,8 @@ function renderSavedTuitionDocs() {
                     <i class="fa-solid ${isReturned ? 'fa-pen' : isSubmitted ? 'fa-eye' : 'fa-pen'}"></i>
                     ${isReturned ? 'Open & Edit' : isSubmitted ? 'View' : 'Open Builder'}
                 </button>
-                <button class="tba-btn" style="${submitStyle}" title="${isSubmitted ? 'Already submitted' : 'Submit to SDO'}" ${submitOnclick} ${!canSubmit && !isReturned ? 'disabled' : ''}>
-                    <i class="fa-solid fa-paper-plane"></i> ${isReturned ? 'Resubmit' : 'Final Submit'}
+                <button class="tba-btn" style="${submitStyle}" title="${escHtml(conflictTitle)}" ${submitOnclick} ${hasModeConflict || (!canSubmit && !isReturned) ? 'disabled' : ''}>
+                    <i class="fa-solid fa-paper-plane"></i> ${hasModeConflict ? 'Blocked' : isReturned ? 'Resubmit' : 'Final Submit'}
                 </button>
             </div>
         </div>`;
@@ -2202,6 +2252,7 @@ async function loadSavedDoc(id) {
         $('tfGovRecogNo').value       = f.gov_recog         || '';
         $('tfCurrentSY').value        = f.current_sy        || '';
         $('tfProposedSY').value       = f.proposed_sy       || '';
+        updateTuitionSubmissionGuard();
         $('tfIncreasePct').value      = f.increase_pct      || '';
         $('tfPrincipal').value        = f.principal         || localStorage.getItem('edu_elem_principal') || localStorage.getItem('edu_jhs_principal') || localStorage.getItem('edu_shs_principal') || localStorage.getItem('edu_registrar_name') || '';
         $('tfPrincipalContact').value = f.principal_contact || localStorage.getItem('edu_elem_contact')   || localStorage.getItem('edu_jhs_contact')   || localStorage.getItem('edu_shs_contact')   || localStorage.getItem('edu_registrar_contact') || '';
@@ -2229,10 +2280,19 @@ async function loadSavedDoc(id) {
         const e = d.payload_json?.elem || {};
         restoreCustomFees('elem', e, customFeeDefs.elem);
         ELEM_FIELDS.forEach(fld => { const el = $(fld+'_curr'); if (el) el.value = e[fld+'_curr'] ?? ''; });
+        // Older drafts stored one elementary tuition amount. Use it to seed each
+        // grade when loading those drafts; newly saved drafts keep each grade separate.
+        if (![1, 2, 3, 4, 5, 6].some(grade => (parseFloat(e[`e${grade}_tuition_curr`]) || 0) > 0) && (parseFloat(e.e_tuition_curr) || 0) > 0) {
+            [1, 2, 3, 4, 5, 6].forEach(grade => { const el = $(`e${grade}_tuition_curr`); if (el) el.value = e.e_tuition_curr; });
+        }
 
         const j = d.payload_json?.jhs || {};
         restoreCustomFees('jhs', j, customFeeDefs.jhs);
         JHS_FIELDS.forEach(fld => { const el = $(fld+'_curr'); if (el) el.value = j[fld+'_curr'] ?? ''; });
+        // Preserve compatibility with drafts that had one shared JHS amount.
+        if (![7, 8, 9, 10].some(grade => (parseFloat(j[`j${grade}_tuition_curr`]) || 0) > 0) && (parseFloat(j.j_tuition_curr) || 0) > 0) {
+            [7, 8, 9, 10].forEach(grade => { const el = $(`j${grade}_tuition_curr`); if (el) el.value = j.j_tuition_curr; });
+        }
 
         const s = d.payload_json?.shs || {};
         restoreCustomFees('shs', s, customFeeDefs.shs);
@@ -2318,6 +2378,7 @@ async function loadSavedDoc(id) {
 function startNewDoc() {
     docId          = null;
     tfMode         = null;
+    _reviewHasAnyFee = false;
     _builderLocked = false;
     // New doc — clear any persisted doc ID so refresh doesn't re-open an old one.
     try { sessionStorage.removeItem('tf_active_doc_id'); } catch {}
@@ -2341,6 +2402,7 @@ function startNewDoc() {
     // Re-apply autofill after reset
     prefillTuitionFormFromSession();
     renderSupportingDocsChecklist();
+    updateTuitionSubmissionGuard();
     goToStep(1);
 }
 
@@ -2447,7 +2509,7 @@ function buildReview() {
         const eCustom = splitCustomFeesBySection('elem', eActive);
         $('reviewElemBody').innerHTML = buildReviewTable([
             { section: 'I. Tuition Fee' },
-            ['Tuition Fee (annually)',         'e_tuition'],
+            ...[1, 2, 3, 4, 5, 6].map(grade => [`Tuition Fee — Grade ${grade} (annually)`, `e${grade}_tuition`]),
             { section: 'II. Miscellaneous Fees' },
             ...([
                 ['Identification Card',            'e_id'],
@@ -2476,7 +2538,7 @@ function buildReview() {
         const jCustom = splitCustomFeesBySection('jhs', jActive);
         $('reviewJHSBody').innerHTML = buildReviewTable([
             { section: 'I. Tuition Fee' },
-            ['Tuition Fee (annually)',         'j_tuition'],
+            ...[7, 8, 9, 10].map(grade => [`Tuition Fee — Grade ${grade} (annually)`, `j${grade}_tuition`]),
             { section: 'II. Miscellaneous Fees' },
             ...([
                 ['Identification Card',            'j_id'],
@@ -2600,6 +2662,8 @@ function buildReviewTable(rows, pfxChar, curr, prop, isInc, pct) {
     if (finalSubmitBtn) {
         finalSubmitBtn.disabled = !hasAnyFee;
     }
+    _reviewHasAnyFee = hasAnyFee;
+    updateTuitionSubmissionGuard();
 
     return html;
 }
@@ -2961,6 +3025,11 @@ function updateSubmitButtonHint() {
     const missing = getSupportingDocsMissingCount();
     const btn     = $('btnSubmitReview');
     if (!btn) return;
+    const mode = tfMode === 'no-increase' ? 'no_increase' : tfMode;
+    if (hasSubmittedTuitionForYear(val('tfProposedSY'), docId)) {
+        btn.title = tuitionConflictMessage(mode, val('tfProposedSY').trim());
+        return;
+    }
     if (missing > 0) {
         btn.title = `${missing} supporting document${missing > 1 ? 's' : ''} not yet ticked — you can still submit, but prepare them before visiting the SDO.`;
     } else {
@@ -2999,6 +3068,10 @@ function renderSupportingDocsDialogWarning() {
 }
 
 function showTuitionSubmitDialog() {
+    if (updateTuitionSubmissionGuard()) {
+        showToast(tuitionConflictMessage(tfMode === 'increase' ? 'increase' : 'no_increase', val('tfProposedSY').trim()), 'circle-xmark');
+        return;
+    }
     let overlay = $('tfSubmitOverlay');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -3136,8 +3209,8 @@ function runDepEdComplianceChecks() {
     // field set depending on whether per-grade mode is active.
     const levelMap = [
         { flag: 'chkKinder', fields: ['k_tuition_curr'], label: 'Kindergarten' },
-        { flag: 'chkElem',   fields: ['e_tuition_curr'], label: 'Elementary' },
-        { flag: 'chkJHS',    fields: ['j_tuition_curr'], label: 'Junior High School' },
+        { flag: 'chkElem',   fields: [1, 2, 3, 4, 5, 6].map(grade => ({ field: `e${grade}_tuition_curr`, label: `Elementary (Grade ${grade})` })), label: 'Elementary' },
+        { flag: 'chkJHS',    fields: [7, 8, 9, 10].map(grade => ({ field: `j${grade}_tuition_curr`, label: `Junior High School (Grade ${grade})` })), label: 'Junior High School' },
     ];
 
     const isSHSPerGrade = !!document.getElementById('chkSHSPerGrade')?.checked;
@@ -3203,6 +3276,10 @@ function renderComplianceErrors(errors) {
 }
 
 async function confirmTuitionSubmit() {
+    if (updateTuitionSubmissionGuard()) {
+        showToast(tuitionConflictMessage(tfMode === 'increase' ? 'increase' : 'no_increase', val('tfProposedSY').trim()), 'circle-xmark');
+        return;
+    }
     const agreed = $('tfSubmitAgreeCheck')?.checked;
     if (!agreed) { showToast('Please check the confirmation box first.', 'circle-exclamation'); return; }
 
@@ -3318,7 +3395,7 @@ async function confirmTuitionSubmit() {
 }
 
 function injectTuitionSubmitButton() {
-    // Final Submit button is now permanently in the top bar HTML (id=tfBtnFinalSubmitDrop).
+    // Final Submit button is permanently in the document action rail.
     // Nothing to inject.
 }
 
@@ -3356,7 +3433,7 @@ function lockBuilderForSubmitted(editRequestPending = false) {
         if (el.classList.contains('tf-sd-checkbox')) return; // supporting-docs checklist is always interactive
         el.disabled = true; el.style.opacity = '0.6'; el.style.cursor = 'not-allowed';
     });
-    const saveBtn = document.querySelector('.top-bar-actions .tba-primary');
+    const saveBtn = document.querySelector('#tfDocNav .dsn-save-continue-btn');
     if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.5'; }
     const finalBtn = document.getElementById('tfBtnFinalSubmitDrop');
     if (finalBtn) finalBtn.style.display = 'none';
@@ -3379,7 +3456,7 @@ function unlockBuilder() {
     // Re-render supporting-docs checklist after unlock so any previously-disabled
     // checkboxes are replaced with fresh, fully-interactive elements.
     setTimeout(() => { if (typeof renderSupportingDocsChecklist === 'function') renderSupportingDocsChecklist(); }, 60);
-    const saveBtn = document.querySelector('.top-bar-actions .tba-primary');
+    const saveBtn = document.querySelector('#tfDocNav .dsn-save-continue-btn');
     if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = ''; }
     // Restore dropdown submit item when unlocking
     const dropItem = document.getElementById('tfBtnFinalSubmitDrop');
@@ -3481,7 +3558,7 @@ function showReturnedBanner(adminRemarks) {
     document.querySelectorAll('#tfWorkspace input, #tfWorkspace select, #tfWorkspace textarea').forEach(el => {
         el.disabled = false; el.style.opacity = ''; el.style.cursor = '';
     });
-    const saveBtn = document.querySelector('.top-bar-actions .tba-primary');
+    const saveBtn = document.querySelector('#tfDocNav .dsn-save-continue-btn');
     if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = ''; }
     // Re-render the supporting-docs checklist so checkboxes are guaranteed
     // fresh and enabled — not left over from a prior lockBuilderForSubmitted() call.
@@ -3636,6 +3713,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ['tfSchoolName','tfDivision','tfAddress','tfSchoolId','tfGovRecogNo','tfCurrentSY','tfProposedSY','tfIncreasePct','tfPrincipal','tfPrincipalContact','tfPrincipalPosition','tfReviewedByPosition']
         .forEach(id => $(id)?.addEventListener('input', scheduleSave));
+    $('tfProposedSY')?.addEventListener('input', updateTuitionSubmissionGuard);
 
     ['chkKinder','chkElem','chkJHS','chkSHS']
         .forEach(id => $(id)?.addEventListener('change', () => {
@@ -3905,15 +3983,14 @@ function tfLiveUpdate() {
     setText('.pv-bd-k-total',    localFmt(kTotProp));
 
     // ── ELEMENTARY (repeat per-grade columns) ──
-    const eTuCurr = num('e_tuition_curr');
-    const eTuProp = num('e_tuition_prop');
-    const eMiscCurr = ELEM_FIELDS.filter(f => f !== 'e_tuition').reduce((s,f) => s + num(f + '_curr'), 0)
+    const eMiscCurr = ELEM_FIELDS.filter(f => !/^e[1-6]_tuition$/.test(f)).reduce((s,f) => s + num(f + '_curr'), 0)
                     + sumCustom('e', '_curr');
-    const eMiscProp = ELEM_FIELDS.filter(f => f !== 'e_tuition').reduce((s,f) => s + num(f + '_prop'), 0)
+    const eMiscProp = ELEM_FIELDS.filter(f => !/^e[1-6]_tuition$/.test(f)).reduce((s,f) => s + num(f + '_prop'), 0)
                     + sumCustom('e', '_prop');
-    const eTotProp  = num('e_total_prop');
 
     [1,2,3,4,5,6].forEach(g => {
+        const eTuCurr = num(`e${g}_tuition_curr`);
+        const eTuProp = num(`e${g}_tuition_prop`);
         // Elem — comparative schedule
         setText(`.pv-e${g}-tf-curr`, localFmt(eTuCurr));
         setText(`.pv-e${g}-tf-prop`, localFmt(eTuProp));
@@ -3937,20 +4014,19 @@ function tfLiveUpdate() {
         setText(`.pv-bd-e${g}-books`,   localFmt(num('e_books_prop')));
         setText(`.pv-bd-e${g}-paces1`,  localFmt(num('e_paces1_prop')));
         setText(`.pv-bd-e${g}-paces2`,  localFmt(num('e_paces2_prop')));
-        setText(`.pv-bd-e${g}-total`,   localFmt(eTotProp));
+        setText(`.pv-bd-e${g}-total`,   localFmt(eTuProp + eMiscProp));
     });
 
     // ── JHS (repeat per-grade columns) ──
-    const jTuCurr = num('j_tuition_curr');
-    const jTuProp = num('j_tuition_prop');
-    const jMiscCurr = JHS_FIELDS.filter(f => f !== 'j_tuition').reduce((s,f) => s + num(f + '_curr'), 0)
+    const jMiscCurr = JHS_FIELDS.filter(f => !/^j(7|8|9|10)_tuition$/.test(f)).reduce((s,f) => s + num(f + '_curr'), 0)
                     + sumCustom('j', '_curr');
-    const jMiscProp = JHS_FIELDS.filter(f => f !== 'j_tuition').reduce((s,f) => s + num(f + '_prop'), 0)
+    const jMiscProp = JHS_FIELDS.filter(f => !/^j(7|8|9|10)_tuition$/.test(f)).reduce((s,f) => s + num(f + '_prop'), 0)
                     + sumCustom('j', '_prop');
-    const jTotProp  = num('j_total_prop');
 
     [7,8,9,10].forEach(g => {
         const gk = `${g}`;
+        const jTuCurr = num(`j${g}_tuition_curr`);
+        const jTuProp = num(`j${g}_tuition_prop`);
         // JHS — comparative schedule
         setText(`.pv-j${gk}-tf-curr`, localFmt(jTuCurr));
         setText(`.pv-j${gk}-tf-prop`, localFmt(jTuProp));
@@ -3974,7 +4050,7 @@ function tfLiveUpdate() {
         setText(`.pv-bd-j${gk}-books`,   localFmt(num('j_books_prop')));
         setText(`.pv-bd-j${gk}-paces1`,  localFmt(num('j_paces1_prop')));
         setText(`.pv-bd-j${gk}-paces2`,  localFmt(num('j_paces2_prop')));
-        setText(`.pv-bd-j${gk}-total`,   localFmt(jTotProp));
+        setText(`.pv-bd-j${gk}-total`,   localFmt(jTuProp + jMiscProp));
     });
 
     // ── SHS certification + SHS breakdown (UNIFIED fee catalog) ──

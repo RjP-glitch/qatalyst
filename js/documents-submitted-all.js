@@ -78,6 +78,7 @@ const ADS = (() => {
     function statusMeta(status) {
         const map = {
             'Pending Review':          { cls: 'ds-pending',     icon: 'fa-clock' },
+            'Edit Requested':          { cls: 'ds-returned',    icon: 'fa-lock' },
             'Approved':                { cls: 'ds-approved',    icon: 'fa-circle-check' },
             'Returned for Correction': { cls: 'ds-returned',    icon: 'fa-circle-xmark' },
             'For Endorsement':         { cls: 'ds-endorsement', icon: 'fa-file-signature' },
@@ -85,6 +86,49 @@ const ADS = (() => {
             'draft':                   { cls: 'ds-draft',       icon: 'fa-pen-to-square' },
         };
         return map[status] || { cls: 'ds-pending', icon: 'fa-clock' };
+    }
+
+    function normalizeWorkflowStatus(status) {
+        const key = String(status || '').trim().toLowerCase().replace(/_/g, ' ');
+        if (['pending', 'pending review', 'submitted', 'review pending'].includes(key)) return 'Pending Review';
+        if (['review', 'endorsed', 'for endorsement'].includes(key)) return 'For Endorsement';
+        if (key === 'approved') return 'Approved';
+        if (['released', 'released to school'].includes(key)) return 'Released to School';
+        if (['returned', 'rejected', 'returned for correction'].includes(key)) return 'Returned for Correction';
+        if (key === 'draft' || key === 'draft (for edit)') return 'draft';
+        return 'Pending Review';
+    }
+
+    function nextWorkflowStatuses(status) {
+        const current = normalizeWorkflowStatus(status);
+        const next = {
+            'Pending Review': ['For Endorsement', 'Returned for Correction'],
+            'For Endorsement': ['Approved', 'Returned for Correction'],
+            'Approved': ['Released to School', 'Returned for Correction'],
+            'Released to School': [],
+            'Returned for Correction': ['Pending Review', 'draft'],
+            'draft': ['Pending Review'],
+        };
+        return [current, ...(next[current] || [])];
+    }
+
+    function populateStatusOptions(select, record, batchRecords = null) {
+        if (!select) return;
+        const current = normalizeWorkflowStatus(record?.status);
+        let allowed = nextWorkflowStatuses(current);
+        if (Array.isArray(batchRecords) && batchRecords.length > 1) {
+            for (const item of batchRecords) {
+                const itemAllowed = new Set(nextWorkflowStatuses(item.status));
+                allowed = allowed.filter(status => itemAllowed.has(status));
+            }
+        }
+        if (record?.edit_request_pending) allowed = ['Edit Requested'];
+        const labels = { draft: 'Draft (For Edit)' };
+        select.innerHTML = allowed.map(status =>
+            `<option value="${esc(status)}">${esc(labels[status] || status)}</option>`
+        ).join('');
+        select.value = record?.edit_request_pending ? 'Edit Requested' : current;
+        select.disabled = !!record?.edit_request_pending;
     }
 
     function fileExt(nameOrPath) {
@@ -308,6 +352,16 @@ const ADS = (() => {
             if (!res.ok || !json.success) throw new Error(json.message || 'Failed to load submissions.');
             allRecords = Array.isArray(json.records) ? json.records : [];
             renderCards();
+            const requestedId = Number(new URLSearchParams(window.location.search).get('id')) || 0;
+            if (!queryRecordOpened && requestedId) {
+                const requestedRecord = allRecords.find((record) => Number(record.id) === requestedId);
+                if (requestedRecord) {
+                    queryRecordOpened = true;
+                    if (requestedRecord.edit_request_pending) activeTab = 'edit-requested';
+                    renderCards();
+                    openDetailModal(requestedId);
+                }
+            }
         } catch (err) {
             if (silent) console.warn('documents-submitted: background refresh failed', err);
             else if (body) body.innerHTML = `<div class="all-docs-empty">${esc(err.message || 'Could not load submissions.')}</div>`;
@@ -319,6 +373,7 @@ const ADS = (() => {
     ───────────────────────────────────────────────────────────────── */
     const STATUS_TABS = [
         { key: 'pending',  label: 'Pending Review',  status: 'Pending Review' },
+        { key: 'edit-requested', label: 'Edit Requested', status: 'Edit Requested' },
         { key: 'returned', label: 'Returned',         status: 'Returned for Correction' },
         { key: 'endorsed', label: 'Indorsed to RO',   status: 'For Endorsement' },
         { key: 'approved', label: 'Approved',         status: 'Approved' },
@@ -328,6 +383,7 @@ const ADS = (() => {
 
     let activeTab = 'pending';
     let historyRecordId = null;
+    let queryRecordOpened = false;
 
     function renderCards() {
         const body = document.getElementById('adsBody');
@@ -569,6 +625,13 @@ const ADS = (() => {
         const status     = statusMeta(r.status);
         const editReqs   = getEditRequests(r);
         const hasEditReq = editReqs.length > 0;
+        const tuitionLevels = Array.isArray(r.tuition_levels) ? r.tuition_levels : [];
+        const levelHtml = tuitionLevels.length
+            ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">${tuitionLevels.map(level => `
+                    <span class="ds-doc-type-chip ads-cal-level-chip ${deptChipClass(level)}">
+                        <i class="fa-solid fa-graduation-cap"></i>${esc(level)}
+                    </span>`).join('')}</div>`
+            : '—';
 
         return `
             <tr class="ads-cal-table-row ads-card-click" role="button" tabindex="0"
@@ -580,7 +643,7 @@ const ADS = (() => {
                     </div>
                     ${hasEditReq ? `<span class="ads-edit-req-badge ads-edit-req-badge-sm"><i class="fa-solid fa-pen-to-square"></i> Edit Req.</span>` : ''}
                 </td>
-                <td>—</td>
+                <td>${levelHtml}</td>
                 <td>${esc(r.school_name || r.title || '—')}</td>
                 <td>
                     <span class="ds-status-badge ${status.cls}">
@@ -1218,6 +1281,7 @@ const ADS = (() => {
                         ${req.reason ? `<div class="ads-edit-req-reason">${esc(req.reason)}</div>` : '<div class="ads-edit-req-reason ads-edit-req-no-reason">No reason provided</div>'}
                     </div>
                 `).join('')}
+                <div class="ads-edit-req-reason">Review is paused until the SDO approves this edit request.</div>
                 <button class="ads-approve-edit-btn" id="adsApproveEditBtn"
                     data-action="approve-edit" data-id="${Number(record.id)}"
                     onclick="ADS.approveEditRequest(${Number(record.id)})">
@@ -1286,9 +1350,13 @@ const ADS = (() => {
 
         /* Restore form values */
         const statusEl  = document.getElementById('adsDetailStatus');
+        const saveStatusBtn = document.getElementById('adsDetailSaveBtn');
         const remarksEl = document.getElementById('adsDetailRemarks');
         const msgEl     = document.getElementById('adsDetailMsg');
-        if (statusEl)  statusEl.value  = seedStatus || 'Pending Review';
+        if (statusEl) {
+            populateStatusOptions(statusEl, { ...record, status: seedStatus }, isPermit ? permitBatch : null);
+        }
+        if (saveStatusBtn) saveStatusBtn.disabled = !!record.edit_request_pending;
         if (remarksEl) remarksEl.value = record.remarks || '';
         if (msgEl && !preserveMsg) { msgEl.className = 'dsf-msg'; msgEl.textContent = ''; }
 
@@ -1297,6 +1365,7 @@ const ADS = (() => {
         if (isInlinePdf) loadInlineFilePreview(fileUrl, fileName, rawFilePath);
 
         overlay.classList.add('open');
+        document.querySelector('.dsd-modal')?.classList.remove('preview-open');
         document.body.style.overflow = 'hidden';
     }
 
@@ -3552,11 +3621,13 @@ const ADS = (() => {
         if (isHidden) {
             panel.classList.remove('preview-hidden');
             layout?.classList.remove('preview-hidden');
+            layout?.closest('.dsd-modal')?.classList.add('preview-open');
             if (icon)  { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
             if (label) label.textContent = 'Hide Document Preview';
         } else {
             panel.classList.add('preview-hidden');
             layout?.classList.add('preview-hidden');
+            layout?.closest('.dsd-modal')?.classList.remove('preview-open');
             if (icon)  { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
             if (label) label.textContent = 'Show Document Preview';
         }

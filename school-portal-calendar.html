@@ -10,7 +10,7 @@
 		rel="stylesheet" />
 	<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-	<link rel="stylesheet" href="css/school-portal-calendar.css?v5" />
+	<link rel="stylesheet" href="css/school-portal-calendar.css?v9" />
 	<style>
 		/* Supporting-document upload widget (Checklist tab). Kept inline since
 		   these classes are new and css/school-portal-calendar.css is a
@@ -99,33 +99,30 @@
 			<!-- SAVED DOCS VIEW -->
 			<div class="saved-docs-view" id="savedDocsView">
 				<div class="saved-docs-header">
-					<div class="saved-docs-header-main">
-						<div>
-							<h2><i class="fa-solid fa-folder-open"></i> My Saved Calendar Documents</h2>
-							<p>Showing saved school calendar submissions for your account.</p>
+					<div class="calendar-saved-toolbar">
+						<label class="sr-only" for="savedDocsStatusFilter">Filter documents by status</label>
+						<select id="savedDocsStatusFilter" class="saved-docs-status-filter" onchange="filterSavedDocs(this.value)">
+							<option value="all">All statuses</option>
+							<option value="draft">Draft</option>
+							<option value="pending">Pending</option>
+							<option value="review">Under Review</option>
+							<option value="approved">Approved</option>
+							<option value="returned">Returned</option>
+						</select>
+						<div class="sub-search-wrap">
+							<i class="fa-solid fa-magnifying-glass"></i>
+							<input id="savedDocsSearch" type="search" placeholder="Search by title or status"
+								oninput="handleSavedDocsSearch(this.value)" />
 						</div>
 						<div class="saved-docs-create-group">
 							<select id="newCalLevelSelect" class="new-cal-level-select" style="display:none;"
 								onchange="syncCreateNewButtonState()" title="Choose which department level to create a calendar for"></select>
 							<button class="tba-btn tba-primary saved-docs-create-btn" id="btnCreateNewCalendar" onclick="handleCreateNewCalendarClick()">
-								<i class="fa-solid fa-plus"></i> Create New Calendar Document
+								<i class="fa-solid fa-plus"></i> Create Calendar
 							</button>
 						</div>
 					</div>
-				<div class="filter-row">
-					<button class="filter-btn active" onclick="filterSavedDocs('all')"      id="f-all"><i class="fa-solid fa-border-all"></i> All</button>
-					<button class="filter-btn" onclick="filterSavedDocs('draft')"            id="f-draft"><i class="fa-solid fa-pen"></i> Draft</button>
-					<button class="filter-btn" onclick="filterSavedDocs('pending')"          id="f-pending"><i class="fa-solid fa-clock"></i> Pending</button>
-					<button class="filter-btn" onclick="filterSavedDocs('review')"           id="f-review"><i class="fa-solid fa-hourglass-half"></i> Under Review</button>
-					<button class="filter-btn" onclick="filterSavedDocs('approved')"         id="f-approved"><i class="fa-solid fa-circle-check"></i> Approved</button>
-					<button class="filter-btn" onclick="filterSavedDocs('returned')"         id="f-returned"><i class="fa-solid fa-rotate-left"></i> Returned</button>
-					<div class="sub-search-wrap">
-						<i class="fa-solid fa-magnifying-glass"></i>
-						<input id="savedDocsSearch" type="search" placeholder="Search by title or status"
-							oninput="handleSavedDocsSearch(this.value)" />
-					</div>
 				</div>
-			</div>
 				<div id="savedDocsContent" class="saved-docs-content">
 					<div class="saved-docs-empty"><i class="fa-solid fa-spinner fa-spin"></i>
 						<p>Loading your saved documents...</p>
@@ -136,7 +133,7 @@
 			<!-- ══ BUILDER SHELL ══ -->
 			<div id="builderShell" style="display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden;">
 
-				<!-- TOP BAR — streamlined: back · title · autosave · actions -->
+				<!-- TOP BAR — back · title · document tools -->
 				<div class="top-bar">
 					<div class="top-bar-left">
 						<button class="tba-btn tba-ghost" onclick="backToSavedDocs()" title="Back to My Documents"
@@ -150,57 +147,43 @@
 						</div>
 					</div>
 					<div class="top-bar-actions">
-						<!-- Autosave status — dynamically updated by _renderSaveStatus() (UX Issue B) -->
-						<span class="cal-save-status status-saved" id="calSaveStatusLabel">
-							<span class="css-dot">●</span> Draft
-						</span>
-						<!-- Export PDF surfaced as visible action (UX Issue D) -->
-						<button class="tba-btn tba-ghost" id="calBtnExportPdf" title="Export as PDF" style="display:none;" onclick="exportCalendarPDF()">
-							<i class="fa-solid fa-file-pdf"></i> Export PDF
+						<button class="tba-btn tba-ghost cal-toolbar-desktop" id="calBtnTogglePreview" onclick="toggleCalendarPreview()" title="Hide document preview">
+							<i class="fa-solid fa-eye-slash" id="calTogglePreviewIcon"></i> <span id="calTogglePreviewLabel">Hide Preview</span>
 						</button>
-						<!-- Save button (primary action) -->
-						<button class="tba-btn tba-primary" id="calBtnSave" onclick="calSaveCalendar()">
-							<i class="fa-solid fa-floppy-disk"></i> Save
+						<button class="tba-btn tba-ghost cal-toolbar-desktop" onclick="exportCalendarWord()">
+							<i class="fa-solid fa-file-word"></i> Export to Word
 						</button>
-						<!-- More actions dropdown -->
-						<div class="tba-more-wrap">
+						<button class="tba-btn tba-ghost cal-toolbar-desktop" onclick="openHelp()">
+							<i class="fa-solid fa-circle-question"></i> Help / Tutorial
+						</button>
+						<div class="tba-more-wrap cal-toolbar-more">
 							<button class="tba-btn tba-ghost tba-more-btn" onclick="toggleTopBarMenu()"
 								title="More actions">
 								<i class="fa-solid fa-ellipsis-vertical"></i>
 							</button>
 							<div class="tba-dropdown" id="topBarMenu">
-								<button class="tba-drop-item tba-drop-item-submit"
-									onclick="showFinalSubmitDialog();closeTopBarMenu()">
-									<i class="fa-solid fa-paper-plane"></i> Final Submit
+								<button class="tba-drop-item" onclick="toggleCalendarPreview();closeTopBarMenu()">
+									<i class="fa-solid fa-eye"></i> <span id="calMenuPreviewLabel">Hide Preview</span>
 								</button>
 								<div class="tba-drop-divider"></div>
-								<button class="tba-drop-item" onclick="openCalPicker();closeTopBarMenu()">
-									<i class="fa-solid fa-calendar-plus"></i> Calendar Picker
+								<button class="tba-drop-item" onclick="exportCalendarWord();closeTopBarMenu()">
+									<i class="fa-solid fa-file-word"></i> Export to Word
 								</button>
+								<div class="tba-drop-divider"></div>
 								<button class="tba-drop-item" onclick="openHelp();closeTopBarMenu()">
 									<i class="fa-solid fa-circle-question"></i> Help / Tutorial
-								</button>
-								<div class="tba-drop-divider"></div>
-								<button class="tba-drop-item" onclick="exportCalendarPDF();closeTopBarMenu()">
-									<i class="fa-solid fa-file-pdf"></i> Export PDF
-								</button>
-								<button class="tba-drop-item" onclick="exportCalendarWord();closeTopBarMenu()">
-									<i class="fa-solid fa-file-word"></i> Export Word
 								</button>
 							</div>
 						</div>
 					</div>
 				</div>
 
-				<!-- PROGRESS STEPPER — compact pill row -->
-				<div id="calBuilderStepper"></div>
-				<div id="calStepperSubBar" style="display:none;"></div>
-
 				<!-- WORKSPACE: left-nav | preview | form -->
 				<div class="workspace" style="flex:1;min-height:0;overflow:hidden;">
 
 					<!-- ══ LEFT DOC-NAV (replaces 8-tab strip) ══ -->
 					<nav class="doc-side-nav" id="docSideNav">
+						<div id="calBuilderStepper" class="cal-step-progress"></div>
 						<div class="doc-side-nav-label">Documents</div>
 						<button class="dsn-btn active" onclick="switchPage('pg-cover')" data-page="pg-cover">
 							<i class="fa-solid fa-book-open"></i> Cover Page
@@ -230,13 +213,18 @@
 							<i class="fa-solid fa-list-ul"></i> Show All Fields
 						</button>
 
-						<div class="doc-side-nav-label" style="margin-top:8px;">Actions</div>
-						<button class="dsn-action-btn dsn-save-continue-btn" onclick="saveAndContinueDocFlow()">
-							<i class="fa-solid fa-floppy-disk"></i> Save &amp; Continue
-						</button>
-						<button class="dsn-action-btn" onclick="openCalPicker()">
-							<i class="fa-solid fa-calendar-plus"></i> Calendar Picker
-						</button>
+						<div class="cal-nav-actions">
+							<div class="doc-side-nav-label" style="margin-top:8px;">Actions</div>
+							<button class="dsn-action-btn dsn-save-continue-btn" id="calBtnSave" onclick="saveAndContinueDocFlow()">
+								<i class="fa-solid fa-floppy-disk"></i> Save &amp; Continue
+							</button>
+							<button class="dsn-action-btn cal-final-submit-btn" id="calBtnFinalSubmit" onclick="showFinalSubmitDialog()" style="display:none;">
+								<i class="fa-solid fa-paper-plane"></i> Final Submit
+							</button>
+							<button class="dsn-action-btn" onclick="openCalPicker()">
+								<i class="fa-solid fa-calendar-plus"></i> Calendar Picker
+							</button>
+						</div>
 					</nav>
 
 					<!-- ══ FORM PANEL ══ -->
@@ -334,35 +322,44 @@
 						<div class="form-divider" data-tabs="pg-transmittal pg-loi"></div>
 
 						<!-- REGIONAL DIRECTOR -->
-						<div class="form-section" data-tabs="pg-transmittal pg-loi">
+						<div class="form-section sig-managed-section" data-tabs="pg-transmittal pg-loi">
 							<div class="form-section-hdr">
 								<i class="fa-solid fa-user-tie"></i>Regional Director
 								<button type="button" class="sig-load-btn" onclick="openSignatoryPicker('rd','Regional Director')" title="Load from saved signatories">
-									<i class="fa-solid fa-address-book"></i> Load
+									<i class="fa-solid fa-address-book"></i> Load signatory
 								</button>
 							</div>
 							<div id="sig-picker-rd" class="sig-picker-bar" style="display:none;"></div>
-							<span class="sig-locked-note"><i class="fa-solid fa-lock"></i> Managed by the SDO/SMME office — use Load to select</span>
-							<div class="fg"><label>Full Name & Credentials</label><input id="f_rd_name"
-									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
-							<div class="fg"><label>Position / Title</label><input id="f_rd_pos"
-									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
-							<div class="fg"><label>Office</label><input id="f_rd_office"
-									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+							<div class="sig-managed-note" role="note">
+								<span class="sig-managed-note-icon"><i class="fa-solid fa-lock"></i></span>
+								<span class="sig-managed-note-copy"><strong>Office-managed signatory</strong><small>Load the approved Regional Director details from saved signatories.</small></span>
+							</div>
+							<div class="sig-managed-fields">
+								<div class="fg"><label>Full Name & Credentials</label><input id="f_rd_name"
+										value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+								<div class="fg"><label>Position / Title</label><input id="f_rd_pos"
+										value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+								<div class="fg"><label>Office</label><input id="f_rd_office"
+										value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+							</div>
 						</div>
 
 						<div class="form-divider" data-tabs="pg-transmittal pg-loi"></div>
 
 						<!-- SDS -->
-						<div class="form-section" data-tabs="pg-transmittal pg-loi">
+						<div class="form-section sig-managed-section" data-tabs="pg-transmittal pg-loi">
 							<div class="form-section-hdr">
 								<i class="fa-solid fa-user-graduate"></i>Schools Division Superintendent
 								<button type="button" class="sig-load-btn" onclick="openSignatoryPicker('sds','Schools Division Superintendent')" title="Load from saved signatories">
-									<i class="fa-solid fa-address-book"></i> Load
+									<i class="fa-solid fa-address-book"></i> Load signatory
 								</button>
 							</div>
 							<div id="sig-picker-sds" class="sig-picker-bar" style="display:none;"></div>
-							<span class="sig-locked-note"><i class="fa-solid fa-lock"></i> Managed by the SDO/SMME office — use Load to select</span>
+							<div class="sig-managed-note" role="note">
+								<span class="sig-managed-note-icon"><i class="fa-solid fa-lock"></i></span>
+								<span class="sig-managed-note-copy"><strong>Office-managed signatory</strong><small>Load the approved superintendent details from saved signatories.</small></span>
+							</div>
+							<div class="sig-managed-fields">
 							<div class="fg"><label>Full Name & Credentials</label><input id="f_sds_name"
 									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
 							<div class="fg"><label>Position</label><input id="f_sds_pos"
@@ -372,6 +369,7 @@
 							</div>
 							<div class="fg"><label>City / Location</label><input id="f_sds_city"
 									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+							</div>
 						</div>
 
 						<div class="form-divider" data-tabs="pg-transmittal"></div>
@@ -458,15 +456,19 @@ Photocopy of Government Recognition/Permit</textarea>
 
 						<div class="form-divider" data-tabs="pg-summary pg-summary-term"></div>
 
-						<div class="form-section" data-tabs="pg-summary pg-summary-term">
+						<div class="form-section sig-managed-section" data-tabs="pg-summary pg-summary-term">
 							<div class="form-section-hdr">
 								<i class="fa-solid fa-thumbs-up"></i>Recommending Approval
 								<button type="button" class="sig-load-btn" onclick="openSignatoryPicker('recommending','Recommending Approval')" title="Load from saved signatories">
-									<i class="fa-solid fa-address-book"></i> Load
+									<i class="fa-solid fa-address-book"></i> Load signatory
 								</button>
 							</div>
 							<div id="sig-picker-recommending" class="sig-picker-bar" style="display:none;"></div>
-							<span class="sig-locked-note"><i class="fa-solid fa-lock"></i> Managed by the SDO/SMME office — use Load to select</span>
+							<div class="sig-managed-note" role="note">
+								<span class="sig-managed-note-icon"><i class="fa-solid fa-lock"></i></span>
+								<span class="sig-managed-note-copy"><strong>Office-managed signatory</strong><small>Load the approved recommending official from saved signatories.</small></span>
+							</div>
+							<div class="sig-managed-fields">
 							<div class="fg"><label>Name</label><input id="f_recommending"
 									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
 							<div class="fg"><label>Position</label><input id="f_rec_pos"
@@ -474,25 +476,31 @@ Photocopy of Government Recognition/Permit</textarea>
 							<div class="fg"><label>Organization</label><input id="f_rec_org"
 									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" />
 							</div>
+							</div>
 						</div>
 
 						<div class="form-divider" data-tabs="pg-summary pg-summary-term"></div>
 
-						<div class="form-section" data-tabs="pg-summary pg-summary-term">
+						<div class="form-section sig-managed-section" data-tabs="pg-summary pg-summary-term">
 							<div class="form-section-hdr">
 								<i class="fa-solid fa-check-double"></i>Final Approval
 								<button type="button" class="sig-load-btn" onclick="openSignatoryPicker('final_approver','Final Approver')" title="Load from saved signatories">
-									<i class="fa-solid fa-address-book"></i> Load
+									<i class="fa-solid fa-address-book"></i> Load signatory
 								</button>
 							</div>
 							<div id="sig-picker-final_approver" class="sig-picker-bar" style="display:none;"></div>
-							<span class="sig-locked-note"><i class="fa-solid fa-lock"></i> Managed by the SDO/SMME office — use Load to select</span>
+							<div class="sig-managed-note" role="note">
+								<span class="sig-managed-note-icon"><i class="fa-solid fa-lock"></i></span>
+								<span class="sig-managed-note-copy"><strong>Office-managed signatory</strong><small>Load the approved final approver details from saved signatories.</small></span>
+							</div>
+							<div class="sig-managed-fields">
 							<div class="fg"><label>Approved By</label><input id="f_approved"
 									value="JESSIE L. AMIN, EdD, CESO V" oninput="liveUpdate()" readonly tabindex="-1" /></div>
 							<div class="fg"><label>Position</label><input id="f_app_pos"
 									value="Assistant Regional Director" oninput="liveUpdate()" readonly tabindex="-1" /></div>
 							<div class="fg"><label>Organization</label><input id="f_app_org"
 									value="" oninput="liveUpdate()" readonly tabindex="-1" placeholder="Load from saved signatories" /></div>
+							</div>
 						</div>
 
 						<div class="form-section-last" style="padding-top:14px">
@@ -1029,6 +1037,21 @@ Photocopy of Government Recognition/Permit</textarea>
             const m = document.getElementById('topBarMenu');
             if (m && !m.contains(e.target)) closeTopBarMenu();
             else if (m) document.addEventListener('click', _closeTopBarOutside, { once: true });
+        }
+
+        function toggleCalendarPreview() {
+            const workspace = document.querySelector('#builderShell .workspace');
+            if (!workspace) return;
+            const hidden = workspace.classList.toggle('cal-preview-hidden');
+            const icon = document.getElementById('calTogglePreviewIcon');
+            const label = document.getElementById('calTogglePreviewLabel');
+            const menuLabel = document.getElementById('calMenuPreviewLabel');
+            if (icon) icon.className = hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+            if (label) label.textContent = hidden ? 'Show Preview' : 'Hide Preview';
+            if (menuLabel) menuLabel.textContent = hidden ? 'Show Preview' : 'Hide Preview';
+            const button = document.getElementById('calBtnTogglePreview');
+            if (button) button.title = hidden ? 'Show document preview' : 'Hide document preview';
+            localStorage.setItem('edu_cal_preview_hidden', hidden ? '1' : '0');
         }
     
         /* ── Patch switchPage to also update the side nav buttons ── */
@@ -1740,11 +1763,7 @@ Photocopy of Government Recognition/Permit</textarea>
         function syncFinalSubmitVisibility() {
             const allUnlocked = _isAllPagesUnlocked();
     
-            /* 1. Dropdown menu item */
-            const dropItem = document.querySelector('.tba-drop-item-submit');
-            if (dropItem) dropItem.style.display = allUnlocked ? '' : 'none';
-    
-            /* 2. Injected top-bar button (added by injectSubmitFinalButton) */
+            /* Final Submit is in the document action rail. */
             const finalBtn = document.getElementById('calBtnFinalSubmit');
             if (finalBtn) finalBtn.style.display = allUnlocked ? '' : 'none';
         }
@@ -1904,7 +1923,7 @@ Photocopy of Government Recognition/Permit</textarea>
 	<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 	<script src="js/config.js?v4"></script>
 	<script src="js/school-portal-permissions.js"></script>
-	<script src="js/school-portal-calendar.js?v10"></script>
+	<script src="js/school-portal-calendar.js?v13"></script>
 </body>
 
 </html>

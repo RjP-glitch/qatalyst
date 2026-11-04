@@ -73,11 +73,77 @@ const VALID_IND_TYPES = ['school_calendar', 'tuition_increase', 'no_increase', '
  * and by GET list, even though the row exists in the table.
  */
 function normalizeSchoolYear(string $sy): string {
-    $sy = trim($sy);
+    $sy = preg_replace('/^SY\s*/i', '', trim($sy));
     // Collapse en dash (–, U+2013), em dash (—, U+2014), and any run of
     // hyphen-like characters/whitespace around them into a single "-".
     $sy = preg_replace('/\s*[\x{2010}-\x{2015}\x{2212}-]\s*/u', '-', $sy);
     return $sy;
+}
+
+function isEndorsementSubmissionEligible(string $status): bool {
+    $statusKey = strtolower(str_replace('_', ' ', trim($status)));
+    return in_array($statusKey, [
+        'pending', 'pending review', 'submitted', 'review', 'under review',
+        'for endorsement', 'endorsed', 'approved', 'released', 'released to school',
+    ], true);
+}
+
+function findMatchingEndorsementSubmission(PDO $pdo, ?int $schoolId, ?int $privateSchoolId, string $type, string $schoolYear): ?array {
+    $submissionType = [
+        'school_calendar' => 'calendar',
+        'tuition_increase' => 'tuition',
+        'no_increase' => 'no_tuition',
+        'school_permit' => 'permit',
+    ][$type] ?? null;
+    if (!$submissionType || (!$schoolId && !$privateSchoolId)) return null;
+
+    $schoolColumn = $privateSchoolId ? 'private_school_id' : 'school_id';
+    $targetSchoolId = $privateSchoolId ?: $schoolId;
+    $stmt = $pdo->prepare(
+        "SELECT id, status, school_year, title, history_json
+         FROM school_submissions
+         WHERE {$schoolColumn} = :school_id AND type = :type
+         ORDER BY COALESCE(updated_at, submitted_at) DESC, id DESC"
+    );
+    $stmt->execute([':school_id' => $targetSchoolId, ':type' => $submissionType]);
+    $yearless = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        // A later draft must not hide an earlier, valid submission for the
+        // same school, document type, and year.
+        if (!isEndorsementSubmissionEligible((string)($row['status'] ?? ''))) continue;
+        $rowYear = normalizeSchoolYear((string)($row['school_year'] ?? ''));
+        if ($rowYear === '' && preg_match('/\((\d{4}\s*[-\x{2010}-\x{2015}]\s*\d{4})\)/u', (string)($row['title'] ?? ''), $match)) {
+            $rowYear = normalizeSchoolYear($match[1]);
+        }
+        if ($rowYear === $schoolYear) return $row;
+        if ($rowYear === '') $yearless[] = $row;
+    }
+    return count($yearless) === 1 ? $yearless[0] : null;
+}
+
+function endorsementTargetStatus(int $indorsementNumber): ?string {
+    return match ($indorsementNumber) {
+        1 => 'For Endorsement',
+        3 => 'Approved',
+        default => null,
+    };
+}
+
+function submissionStatusRank(string $status): int {
+    return match (strtolower(trim($status))) {
+        'for endorsement', 'endorsed' => 1,
+        'approved' => 2,
+        'released', 'released to school' => 3,
+        default => 0,
+    };
+}
+
+function _indorsementTrackerNote(int $indorsementNumber): string {
+    return match ($indorsementNumber) {
+        1 => 'Tracker advanced to For Endorsement when the 1st indorsement was saved.',
+        3 => 'Tracker advanced to Approved when the 3rd indorsement was saved.',
+        default => 'Tracker status updated from saved indorsement.',
+    };
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -93,6 +159,28 @@ if ($method === 'POST') {
 
 try {
     $pdo = getDb();
+
+    if ($method === 'GET' && $action === 'eligibility') {
+        $type = trim((string)($_GET['type'] ?? ''));
+        $schoolYear = normalizeSchoolYear((string)($_GET['school_year'] ?? ''));
+        $schoolId = filter_input(INPUT_GET, 'school_id', FILTER_VALIDATE_INT) ?: null;
+        $privateSchoolId = filter_input(INPUT_GET, 'private_school_id', FILTER_VALIDATE_INT) ?: null;
+        if (!in_array($type, VALID_IND_TYPES, true) || $schoolYear === '' || (!$schoolId && !$privateSchoolId)) {
+            jsonError('A school, document type, and school year are required.', 422);
+        }
+        $submission = findMatchingEndorsementSubmission($pdo, $schoolId, $privateSchoolId, $type, $schoolYear);
+        $status = trim((string)($submission['status'] ?? ''));
+        jsonOut([
+            'success' => true,
+            'eligible' => true,
+            'has_submission' => $submission !== null,
+            'submission_id' => $submission ? (int)$submission['id'] : null,
+            'status' => $status,
+            'message' => $submission !== null
+                ? 'A matching school submission is available for endorsement.'
+                : 'No matching submission was found. You can still save this endorsement; it will appear in the summary report.',
+        ]);
+    }
 
     // ── GET list ───────────────────────────────────────────────────────────
     // Returns all indorsements, optionally filtered by school_year, type, school_id.
@@ -239,6 +327,11 @@ try {
         $preview    = trim((string)($body['preview_text'] ?? '')) ?: null;
         $userId     = $authUser['id'] ?? null;
 
+        $pdo->beginTransaction();
+        try {
+            $submission = findMatchingEndorsementSubmission($pdo, $schoolId, $privateSchoolId, $type, $schoolYear);
+            $submissionStatus = trim((string)($submission['status'] ?? ''));
+
         $stmt = $pdo->prepare("
             INSERT INTO school_indorsements
                 (school_id, private_school_id, school_name, address, school_year, type,
@@ -276,6 +369,34 @@ try {
             ':created_by'        => $userId,
         ]);
 
+        $targetStatus = endorsementTargetStatus($indNumber);
+        $trackerUpdated = false;
+        if ($submission && $targetStatus !== null && submissionStatusRank($submissionStatus) < submissionStatusRank($targetStatus)) {
+            $history = json_decode((string)($submission['history_json'] ?? '[]'), true);
+            if (!is_array($history)) $history = [];
+            $history[] = [
+                'event' => 'status_update',
+                'status' => $targetStatus,
+                'by' => trim((string)($authUser['full_name'] ?? $authUser['email'] ?? 'SDO Admin')),
+                'created_at' => date('Y-m-d H:i:s'),
+                'note' => _indorsementTrackerNote($indNumber),
+            ];
+            $statusUpdate = $pdo->prepare(
+                "UPDATE school_submissions
+                 SET status = :status, history_json = :history,
+                     reviewed_by = :reviewed_by, reviewed_at = NOW(),
+                     date_actioned = CURDATE(), updated_at = NOW()
+                 WHERE id = :id"
+            );
+            $statusUpdate->execute([
+                ':status' => $targetStatus,
+                ':history' => json_encode($history, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                ':reviewed_by' => $userId ?: null,
+                ':id' => (int)$submission['id'],
+            ]);
+            $trackerUpdated = true;
+        }
+
         // lastInsertId returns 0 on an UPDATE, so look the row up if needed
         $newId = (int) $pdo->lastInsertId();
         if (!$newId) {
@@ -297,12 +418,22 @@ try {
             $newId = (int) ($find->fetchColumn() ?: 0);
         }
 
+        $pdo->commit();
         jsonOut([
             'success'           => true,
             'id'                => $newId,
             'school_id'         => $schoolId,
             'private_school_id' => $privateSchoolId,
+            'submission_id'     => (int)$submission['id'],
+            'workflow_status'   => $trackerUpdated ? $targetStatus : ($submissionStatus ?: $targetStatus),
+            'tracker_updated'   => $trackerUpdated,
+            'has_submission'    => $submission !== null,
+            'summary_reflected' => true,
         ]);
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
     }
 
     // ── POST delete ────────────────────────────────────────────────────────

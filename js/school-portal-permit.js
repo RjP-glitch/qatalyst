@@ -596,8 +596,8 @@ function handleAppsSearch(value) {
 
 function filterApps(status) {
     appsStatusFilter = status;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`f-${status}`)?.classList.add('active');
+    const statusFilter = document.getElementById('permitAppsStatusFilter');
+    if (statusFilter && statusFilter.value !== status) statusFilter.value = status;
     renderApplications();
 }
 
@@ -639,18 +639,20 @@ function renderApplications() {
         const canEdit   = ['pending', 'review', 'returned'].includes(app.status);
         const fileCount = app.files.length;
         const modeLabel = app.submission_mode === 'single' ? 'Combined file' : `${fileCount} file${fileCount !== 1 ? 's' : ''}`;
+        const focusLabel = String(app.course || '').trim() || app.app_type_label || 'Permit Application';
+        const contextParts = [app.app_type_label, app.school_year, modeLabel].filter(Boolean);
 
         return `
             <div class="sdc-enhanced">
                 <div class="sdc-header">
                     <div class="sdc-logo-placeholder"><i class="fa-solid fa-file-shield"></i></div>
                     <div class="sdc-title-block">
-                        <div class="sdc-title">${escHtml(app.school_name || 'School Permit Application')}</div>
-                        <div class="sdc-meta">
-                            ${escHtml(app.app_type_label || 'Permit Application')} ${app.school_year ? '· ' + escHtml(app.school_year) : ''} · ${modeLabel}
+                        <div class="permit-card-focus">${escHtml(focusLabel)}</div>
+                        <div class="permit-card-context">
+                            <span class="status-badge ${meta.css}">${meta.label}</span>
+                            <span>${escHtml(contextParts.join(' · '))}</span>
                         </div>
                     </div>
-                    <span class="status-badge ${meta.css}">${meta.label}</span>
                 </div>
 
                 <div class="permit-files-row">
