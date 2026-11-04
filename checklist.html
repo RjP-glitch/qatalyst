@@ -1066,9 +1066,15 @@
                         <div class="clgen-step-label" style="margin-top:4px;"><span
                                 class="clgen-step-badge">3</span>CHECKLIST ITEMS</div>
                         <div id="clgenItemsEditor" class="clgen-items-editor"></div>
-                        <button class="clgen-add-item-btn" onclick="clgenAddItem()">
-                            <i class="fa-solid fa-plus"></i> Add Item
-                        </button>
+                        <div class="clgen-add-row">
+                            <button class="clgen-add-item-btn" onclick="clgenAddItem()">
+                                <i class="fa-solid fa-plus"></i> Add Item
+                            </button>
+                            <button class="clgen-add-item-btn" onclick="clgenAddSubItem()">
+                                <i class="fa-solid fa-plus"></i> Add Sub-item
+                            </button>
+                        </div>
+                        <div class="clgen-items-hint">Each row also has <b>sub</b> (adds a child below it), indent / outdent arrows, and <b>note</b> (plain text line without a check line).</div>
 
                         <!-- Step 4: OTHER FINDINGS -->
                         <div class="clgen-step-label" style="margin-top:4px;"><span
@@ -1142,7 +1148,7 @@
     <script src="js/config.js?v3"></script>
     <script src="js/permissions.js?v6"></script>
     <script src="js/notifications.js?v6"></script>
-    <script src="js/school-tracker.js?v22"></script>
+    <script src="js/school-tracker.js?v23"></script>
     <script src="js/checklist-generator-modal.js?v5"></script>
     <script src="js/checklist.js?v10"></script>
     <script src="js/calendar-image-scan.js"></script>

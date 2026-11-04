@@ -130,6 +130,7 @@
     let _search = '';
     let _panelSid = null;
     let _panelTemp = {};   // { [compositeKey]: { checked: bool, ts: string|null, by: string|null } }
+    let _managedCellsByYear = {}; // submission-backed cells are read-only in the tracker
     let _openActionMenuSchoolId = null;
     let _globalMenuListenersBound = false;
     let _selectedSchoolId = null;
@@ -302,7 +303,8 @@
             _years = [(cur - 1) + '-' + cur];
         }
 
-        _currentYear = _years[0];
+        // years arrive sorted ASC, so the newest year is last (matches summary page)
+        _currentYear = _years[_years.length - 1];
         await _loadYearData(_currentYear);
     }
 
@@ -312,7 +314,8 @@
         try {
             const json = await _apiGet({ action: 'load', year_id: yid, school_type: _schoolType });
             if (json.success) {
-                if (!_data[yr]) _data[yr] = {};
+                _managedCellsByYear[yr] = json.managed_cells || {};
+                _data[yr] = {};
                 for (const [sid, cells] of Object.entries(json.data || {})) {
                     // Normalise every cell to our { checked, ts, by } format
                     const normCells = {};
@@ -336,9 +339,13 @@
 
         // Build the payload — send full cell objects (PHP handles both formats)
         const cells = {};
+        const managed = new Set((_managedCellsByYear[yr] || {})[sid] || []);
         for (const [k, v] of Object.entries(cellsRaw)) {
+            if (managed.has(k)) continue;
             cells[k] = { checked: v.checked, ts: v.ts || null, q: v.q || null };
         }
+
+        if (!Object.keys(cells).length) return;
 
         await _apiPost('save', { year_id: yid, school_id: sid, school_type: _schoolType, cells });
     }
@@ -861,8 +868,9 @@
                 for (const step of cat.steps) {
                     const k    = _cbKey(cat.key, row, step);
                     const cell = _normaliseCell(_panelTemp[k]);
+                    const managed = ((_managedCellsByYear[_currentYear] || {})[s.id] || []).includes(k);
                     html += `<td class="st-cb-cell">
-                        <input type="checkbox"${cell.checked ? ' checked' : ''} data-key="${_esc(k)}" onchange="ST._onCbChange(this)">
+                        <input type="checkbox"${cell.checked ? ' checked' : ''}${managed ? ' disabled title="Status is managed from the school submission"' : ''} data-key="${_esc(k)}" onchange="ST._onCbChange(this)">
                         ${_tsBadgeHtml(cell)}
                     </td>`;
                 }
@@ -986,7 +994,8 @@
             for (const step of cat.steps) {
                 const k    = _cbKey(cat.key, row, step);
                 const cell = _normaliseCell(_panelTemp[k]);
-                entries.push({ key: k, rowLabel: row, stepLabel: step, cell });
+                const managed = ((_managedCellsByYear[_currentYear] || {})[_panelSid] || []).includes(k);
+                entries.push({ key: k, rowLabel: row, stepLabel: step, cell, managed });
             }
         }
 
@@ -1011,7 +1020,7 @@
                     <span class="st-ts-row-check">${isChecked ? '✓' : '○'}</span>
                     <span>${_esc(labelText)}</span>
                 </div>
-                ${isChecked
+                ${isChecked && !e.managed
                     ? `<div class="st-ts-row-input-wrap">
                             <select class="st-ts-mode" data-key="${_esc(e.key)}" onchange="ST._onTsModeChange(this)" title="Choose exact date/time or quarter-only">
                                 <option value="exact"${modeVal === 'exact' ? ' selected' : ''}>Exact</option>
@@ -1034,7 +1043,7 @@
                                 <i class="fa-solid fa-xmark"></i>
                             </button>
                        </div>`
-                    : `<div class="st-ts-row-disabled">Not checked — check the box first</div>`
+                    : `<div class="st-ts-row-disabled">${e.managed ? 'Managed from school submission' : 'Not checked — check the box first'}</div>`
                 }
             </div>`;
         }).join('');
@@ -1108,6 +1117,7 @@
         const modeEls = document.querySelectorAll('#stTsRows select.st-ts-mode');
         modeEls.forEach(modeEl => {
             const key = modeEl.dataset.key;
+            if (((_managedCellsByYear[_currentYear] || {})[_panelSid] || []).includes(key)) return;
             const cell = _normaliseCell(_panelTemp[key]);
             if (!cell.checked) return;
 
@@ -1312,7 +1322,7 @@
             }
             if (!confirm('Delete school year "' + yr + '"?\nThis cannot be undone.')) return;
             _years = _years.filter(y => y !== yr);
-            if (_currentYear === yr) _currentYear = _years[0] || '';
+            if (_currentYear === yr) _currentYear = _years[_years.length - 1] || '';
             _renderAll();
             if (yid) {
                 _apiPost('delete_year', { year_id: yid }).catch(() => {});
@@ -1416,5 +1426,22 @@
         _applyTsEditor,
         _clearTsInput,
     };
+
+    // ── Keep the tracker in sync with changes made on other pages ─────────
+    // (e.g. a status change on Documents Submitted auto-checks "Endorsed to RO").
+    // Without this, a stale tab could also overwrite that check on its next save.
+    // Skipped while the school panel or timestamp editor is open, so in-progress
+    // edits are never clobbered. Throttled to once per 30 seconds.
+    let _lastFocusRefresh = 0;
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState !== 'visible') return;
+        if (Date.now() - _lastFocusRefresh < 30000) return;
+        if (document.querySelector('#st-panel-overlay.open, .st-ts-overlay')) return;
+        _lastFocusRefresh = Date.now();
+        try {
+            await _loadYearData(_currentYear);
+            _renderAll();
+        } catch (e) { console.warn('school-tracker: focus refresh failed', e); }
+    });
 
 })();

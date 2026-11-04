@@ -935,7 +935,7 @@ function actionUpdate(PDO $pdo, array $body, array $authUser): void
     if (in_array($newStatus, $actionedStatuses, true) && $statusChanged) {
         $dateActioned = date('Y-m-d');
     } else {
-        $dateActioned = (string)($rec['date_actioned'] ?? null);
+        $dateActioned = !empty($rec['date_actioned']) ? (string)$rec['date_actioned'] : null;
     }
 
     $stmt = $pdo->prepare(
@@ -988,133 +988,18 @@ function actionUpdate(PDO $pdo, array $body, array $authUser): void
         ? (int)$rec['private_school_id']
         : (int)($rec['school_id'] ?? 0);
 
-    // ── Sync school tracker on every meaningful status change ─────────────────
-    // Maps the online submission workflow to the manual checklist steps so the
-    // hardcopy tracker and the online submissions never show conflicting data:
-    //
-    //  Online status           → Tracker step(s) auto-checked
-    //  ─────────────────────────────────────────────────────
-    //  Pending Review          → "Received w/ Compliance" (calendar only — marks
-    //                            that the school's online submission was received)
-    //  For Endorsement         → "Endorsed to RO"
-    //  Approved                → "Approved"
-    //  Released to School      → "Released"
-    //
-    // Bug fixes vs the previous version:
-    //  1. The INSERT now uses the correct column (private_school_id vs school_id)
-    //     depending on school type, matching the lookup in school-portal-tracker.php.
-    //  2. "Pending Review" now auto-checks "Received w/ Compliance" for calendar
-    //     submissions so the step is never permanently blank for online submitters.
-    //  3. The school type is derived from the submission record directly (via
-    //     private_school_id presence) instead of a second users query, ensuring
-    //     it stays in sync even when the user row is missing.
-    if ($statusChanged && $targetSchoolId > 0) {
-        try {
-            $docType    = strtolower(trim((string)($rec['type'] ?? '')));
-            $schoolType = $isPrivateSchool ? 'private' : 'public';
-            // The DB column to write into depends on school type — this must match
-            // the WHERE clause used by school-portal-tracker.php (schoolIdColumn).
-            $schoolIdColumn = $isPrivateSchool ? 'private_school_id' : 'school_id';
-
-            // Category + row definitions per document type
-            $trackerMap = match($docType) {
-                'calendar'   => ['category_key' => 'school_calendar',  'rows' => ['School Calendar']],
-                'tuition'    => ['category_key' => 'tuition_increase',  'rows' => ['Pre-School', 'Elementary', 'Junior HS', 'Senior HS']],
-                'no_tuition' => ['category_key' => 'no_increase',       'rows' => ['Pre-School', 'Elementary', 'Junior HS', 'Senior HS']],
-                'permit'     => ['category_key' => 'renewal_permit',    'rows' => ['']],
-                default      => null,
-            };
-
-            // Which tracker step(s) to check for this status transition.
-            // 'Pending Review' only applies to the calendar's "Received" step.
-            $trackerSteps = match($newStatus) {
-                'Pending Review'     => ($docType === 'calendar') ? ['Received w/ Compliance'] : [],
-                'For Endorsement'    => ['Endorsed to RO'],
-                'Approved'           => ['Approved'],
-                'Released to School' => ['Released'],
-                default              => [],
-            };
-
-            if ($trackerMap !== null && count($trackerSteps) > 0) {
-                // Resolve the tracker year — prefer exact school_year match,
-                // fall back to the most recent active year.
-                $subSchoolYear = trim((string)($rec['school_year'] ?? ''));
-
-                $yrStmt = $pdo->prepare(
-                    "SELECT id, school_year FROM school_tracker_years ORDER BY id DESC"
-                );
-                $yrStmt->execute();
-                $allYears = $yrStmt->fetchAll(PDO::FETCH_ASSOC);
-
-                $yearId = 0;
-                foreach ($allYears as $yr) {
-                    if (trim((string)$yr['school_year']) === $subSchoolYear) {
-                        $yearId = (int)$yr['id'];
-                        break;
-                    }
-                }
-                // Fallback: first active year, then truly first year
-                if (!$yearId) {
-                    foreach ($allYears as $yr) {
-                        if (!empty($yr['is_active'])) { $yearId = (int)$yr['id']; break; }
-                    }
-                }
-                if (!$yearId && !empty($allYears)) {
-                    $yearId = (int)$allYears[0]['id'];
-                }
-
-                if ($yearId > 0) {
-                    // Prepared statement uses the correct column name for this school type.
-                    // ON DUPLICATE KEY UPDATE: only overwrite is_checked if it is currently
-                    // 0 (unchecked) — never revert a box that was manually checked earlier.
-                    $trkSql = "
-                        INSERT INTO school_tracker_checklist
-                            ({$schoolIdColumn}, year_id, school_type, category_key, row_label, step_label,
-                             is_checked, checked_by, checked_at)
-                        VALUES
-                            (:school_id, :year_id, :school_type, :cat_key, :row_label, :step_label,
-                             1, :user_id, NOW())
-                        ON DUPLICATE KEY UPDATE
-                            is_checked = 1,
-                            checked_by = IF(is_checked = 0, VALUES(checked_by), checked_by),
-                            checked_at = IF(is_checked = 0, NOW(), checked_at)";
-
-                    $trkStmt = $pdo->prepare($trkSql);
-
-                    foreach ($trackerSteps as $trackerStep) {
-                        foreach ($trackerMap['rows'] as $rowLabel) {
-                            $trkStmt->execute([
-                                ':school_id'   => $targetSchoolId,
-                                ':year_id'     => $yearId,
-                                ':school_type' => $schoolType,
-                                ':cat_key'     => $trackerMap['category_key'],
-                                ':row_label'   => $rowLabel,
-                                ':step_label'  => $trackerStep,
-                                ':user_id'     => $userId ?: 0,
-                            ]);
-                        }
-                    }
-                }
-            }
-        } catch (\Throwable $trkErr) {
-            // Tracker sync failure must never fail the status update itself
-            error_log('[documents-submitted] tracker sync error: ' . $trkErr->getMessage()
-                . ' at ' . basename($trkErr->getFile()) . ':' . $trkErr->getLine());
-        }
-    }
+    // Submission status is the source of truth. school-tracker.php derives the
+    // corresponding workflow cells from school_submissions when loading tracker data.
 
     // ── Notify the school when status changes ──────────────────────────────────
     if ($statusChanged && $targetSchoolId > 0) {
-        $uStmt = $pdo->prepare("SELECT school_type FROM users WHERE id = :uid LIMIT 1");
-        $uStmt->execute([':uid' => (int)($rec['user_id'] ?? 0)]);
-        $uRow = $uStmt->fetch(PDO::FETCH_ASSOC);
-        $schoolType = (str_contains(strtolower((string)($uRow['school_type'] ?? '')), 'private'))
-            ? 'private'
-            : 'public';
+        // The submission record was updated above and remains the source of truth.
+        $schoolType = $isPrivateSchool ? 'private' : 'public';
     
         $typeLabel = match(strtolower(trim((string)($rec['type'] ?? '')))) {
             'calendar' => 'School Calendar',
             'tuition'  => 'Tuition Fee Document',
+            'no_tuition' => 'No Tuition Fee Increase Document',
             'permit'   => 'School Permit',
             default    => 'Document Submission',
         };

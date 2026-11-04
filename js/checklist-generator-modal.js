@@ -24,7 +24,8 @@ const _clgen = {
     schools: [],
     schoolsLoaded: false,
     selectedSchoolId: null,
-    items: [],        // [{id, text, found, sub}]  found: true|false|null|'na'
+    items: [],        // [{id, text, found, level, note}]  level: 0 item | 1 sub-item (a) | 2 sub-sub item; found: true|false|null|'na'
+    _seq: 0,
     findings: '',
     recommendations: '',
 };
@@ -133,7 +134,7 @@ function _clgenApplyPrefill(prefill) {
     }
 
     if (prefill.items && prefill.items.length) {
-        _clgen.items = prefill.items.map(i => ({ ...i }));
+        _clgen.items = prefill.items.map(i => _clgenNormalizeItem({ ...i }));
         _clgenRenderItems();
     }
 }
@@ -184,6 +185,46 @@ function _clgenPrefillFromRecord(record) {
         evaluatedByTitle: fields.evaluatedByTitle|| '',
         items:            items.map(i => ({ id: i.id, text: i.text, found: i.found, sub: i.sub || false })),
     };
+}
+
+/* ══════════════════════════════════════════════════════
+   ITEM MODEL HELPERS  (list / sub-list levels)
+   level 0 = main item   → "1.", "2." … (auto-numbered)
+   level 1 = sub-item    → "(a)", "(b)" … (auto-lettered, restarts after each main item)
+   level 2 = sub-sub     → blank check line only, indented deeper
+   note    = plain text line (no check line), e.g. "note: …"
+══════════════════════════════════════════════════════ */
+
+function _clgenNewId() { return 'i' + (++_clgen._seq); }
+
+function _clgenNormalizeItem(i) {
+    let level;
+    if (i.level === 0 || i.level === 1 || i.level === 2) level = i.level;
+    else if (i.sub) level = /^\([a-z]\)/i.test(String(i.text || '')) ? 1 : 2;   // old saved data
+    else level = 0;
+    let text = String(i.text == null ? '' : i.text);
+    if (level === 1) text = text.replace(/^\([a-z]\)\s*/i, '');   // letters are auto-generated now
+    return {
+        id: i.id != null ? i.id : _clgenNewId(),
+        text,
+        found: i.found === undefined ? null : i.found,
+        level,
+        sub: level > 0,
+        note: !!i.note,
+    };
+}
+
+function _clgenLevel(item) { return item.level === 1 || item.level === 2 ? item.level : 0; }
+
+function _clgenLabels(items) {
+    let n = 0, l = -1;
+    return items.map(it => {
+        if (it.note) return {};
+        const lvl = _clgenLevel(it);
+        if (lvl === 0) { n++; l = -1; return { num: n }; }
+        if (lvl === 1) { l++; return { letter: String.fromCharCode(97 + (l % 26)) }; }
+        return {};
+    });
 }
 
 /* ══════════════════════════════════════════════════════
@@ -240,7 +281,7 @@ function _clgenLoadDefaultItems(type) {
         : _clgenBuiltInDefaults;
 
     const src = defaults[type] || defaults.tuition_increase || [];
-    _clgen.items = src.map(i => ({ id: i.id, text: i.text, found: null, sub: !!i.sub }));
+    _clgen.items = src.map(i => _clgenNormalizeItem({ ...i, found: null }));
     _clgenRenderItems();
 }
 
@@ -269,25 +310,40 @@ function _clgenRenderItems() {
     const editor = document.getElementById('clgenItemsEditor');
     if (!editor) return;
 
+    const labels = _clgenLabels(_clgen.items);
+
     editor.innerHTML = _clgen.items.map((item, idx) => {
+        const lvl = _clgenLevel(item);
         const statusKey = _clgenItemStatusKey(item.found);
-        const subBadge = item.sub
-            ? `<span class="clgen-item-sub-badge">sub</span>` : '';
+        const lb = labels[idx] || {};
+        let badge;
+        if (item.note) badge = 'note';
+        else if (lvl === 0) badge = 'Item ' + lb.num;
+        else if (lvl === 1) badge = 'Sub-item (' + lb.letter + ')';
+        else badge = 'Sub-sub item';
+
+        const statusHtml = item.note
+            ? `<div class="clgen-item-status"><div class="clgen-status-cycle" data-status="blank" style="opacity:.35;cursor:default;" title="Notes have no check line">Aa</div></div>`
+            : `<div class="clgen-item-status">
+                 <button class="clgen-status-cycle" data-status="${statusKey}"
+                   onclick="clgenCycleStatus(${idx})"
+                   title="Click to cycle: blank → ✓ → ✗ → N/A">${_clgenStatusLabel[statusKey]}</button>
+               </div>`;
+
         return `
-        <div class="clgen-item-row" id="clgenRow_${idx}">
-          <div class="clgen-item-status">
-            <button class="clgen-status-cycle"
-              data-status="${statusKey}"
-              onclick="clgenCycleStatus(${idx})"
-              title="Click to cycle: blank → ✓ → ✗ → N/A">
-              ${_clgenStatusLabel[statusKey]}
-            </button>
-          </div>
+        <div class="clgen-item-row clgen-lvl-${lvl}${item.note ? ' is-note' : ''}" id="clgenRow_${idx}">
+          ${statusHtml}
           <div class="clgen-item-body">
-            ${subBadge}
+            <span class="clgen-item-sub-badge clgen-badge-${item.note ? 'note' : lvl}">${badge}</span>
             <textarea class="clgen-item-text" rows="2"
               oninput="clgenUpdateItemText(${idx}, this.value)"
             >${_escHtml(item.text)}</textarea>
+            <div class="clgen-item-tools">
+              <button type="button" onclick="clgenOutdent(${idx})" title="Move up a level (less indent)" ${lvl === 0 ? 'disabled' : ''}><i class="fa-solid fa-outdent"></i></button>
+              <button type="button" onclick="clgenIndent(${idx})" title="Move down a level (more indent)" ${(lvl === 2 || idx === 0) ? 'disabled' : ''}><i class="fa-solid fa-indent"></i></button>
+              <button type="button" onclick="clgenAddSubAfter(${idx})" title="Add a sub-item under this one"><i class="fa-solid fa-plus"></i> sub</button>
+              <button type="button" onclick="clgenToggleNote(${idx})" title="Toggle plain note line (no check line)" class="${item.note ? 'on' : ''}"><i class="fa-solid fa-note-sticky"></i> note</button>
+            </div>
           </div>
           <button class="clgen-item-del" onclick="clgenDeleteItem(${idx})" title="Remove item">
             <i class="fa-solid fa-xmark"></i>
@@ -328,15 +384,61 @@ function clgenDeleteItem(idx) {
     clgenUpdatePreview();
 }
 
-function clgenAddItem() {
-    _clgen.items.push({ id: _clgen.items.length + 1, text: '', found: null, sub: false });
-    _clgenRenderItems();
-    clgenUpdatePreview();
-    // Focus the new textarea
+function _clgenFocusRow(idx) {
     setTimeout(() => {
         const rows = document.querySelectorAll('.clgen-item-text');
-        if (rows.length) rows[rows.length - 1].focus();
+        const el = rows[idx];
+        if (el) { el.focus(); el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
     }, 50);
+}
+
+function _clgenInsert(at, level) {
+    _clgen.items.splice(at, 0, { id: _clgenNewId(), text: '', found: null, level, sub: level > 0, note: false });
+    _clgenRenderItems();
+    clgenUpdatePreview();
+    _clgenFocusRow(at);
+}
+
+/** Add a new MAIN item (1., 2., 3. …) at the end of the list */
+function clgenAddItem() {
+    _clgenInsert(_clgen.items.length, 0);
+}
+
+/** Add a new SUB-item ((a), (b) …) at the end of the list */
+function clgenAddSubItem() {
+    _clgenInsert(_clgen.items.length, _clgen.items.length ? 1 : 0);
+}
+
+/** Add a child right below row idx (after any children it already has) */
+function clgenAddSubAfter(idx) {
+    const item = _clgen.items[idx];
+    if (!item) return;
+    const lvl = _clgenLevel(item);
+    let j = idx + 1;
+    while (j < _clgen.items.length && _clgenLevel(_clgen.items[j]) > lvl) j++;
+    _clgenInsert(j, Math.min(lvl + 1, 2));
+}
+
+function clgenIndent(idx) {
+    const item = _clgen.items[idx];
+    if (!item || idx === 0 || _clgenLevel(item) >= 2) return;
+    item.level = _clgenLevel(item) + 1; item.sub = true;
+    _clgenRenderItems(); clgenUpdatePreview();
+}
+
+function clgenOutdent(idx) {
+    const item = _clgen.items[idx];
+    if (!item || _clgenLevel(item) <= 0) return;
+    item.level = _clgenLevel(item) - 1; item.sub = item.level > 0;
+    _clgenRenderItems(); clgenUpdatePreview();
+}
+
+function clgenToggleNote(idx) {
+    const item = _clgen.items[idx];
+    if (!item) return;
+    item.note = !item.note;
+    if (item.note) item.found = null;
+    _clgenRenderItems(); clgenUpdatePreview();
 }
 
 /* ══════════════════════════════════════════════════════
@@ -368,78 +470,63 @@ function clgenUpdatePreview() {
         <td class="value">${_escHtml(val)}</td>
       </tr>`;
 
-        const sectionLinesHtml = (label, text, totalLines) => {
-                const rows = [];
-                rows.push(`
-                    <tr>
-                        <td class="clgen-doc-sec-label">${label}</td>
-                        <td class="clgen-doc-sec-line">${_escHtml(text || '')}</td>
-                    </tr>`);
-                for (let i = 1; i < totalLines; i++) {
-                        rows.push(`
-                    <tr>
-                        <td class="clgen-doc-sec-label"></td>
-                        <td class="clgen-doc-sec-line">&nbsp;</td>
-                    </tr>`);
-                }
-                return `<table class="clgen-doc-sec-table">${rows.join('')}</table>`;
-        };
+        // Ruled lines: typed text sits ON the lines and wraps across them
+        const sectionLinesHtml = (label, text, totalLines) => `
+            <div class="clgen-doc-sec">
+                <div class="clgen-doc-sec-label">${label}</div>
+                <div class="clgen-doc-sec-lines" style="--lines:${totalLines};">${_escHtml(text || '')}</div>
+            </div>`;
 
         const signatoryHtml = `
-            <table class="clgen-doc-sign-block">
-                <tr>
-                    <td class="clgen-doc-sign-left">
+            <div class="clgen-doc-sign">
+                <div class="clgen-doc-sign-top">
+                    <div class="clgen-doc-sign-label">Processed/Evaluated by:</div>
+                    <div class="clgen-doc-sign-name">${_escHtml(evalName)}</div>
+                    <div class="clgen-doc-sign-title">${_escHtml(evalTitle)}</div>
+                </div>
+                <div class="clgen-doc-sign-bottom">
+                    <div class="clgen-doc-sign-left">
                         <div class="clgen-doc-sign-label">Validated by:</div>
-                        <div class="clgen-doc-sign-line">&nbsp;</div>
+                        <div class="clgen-doc-sign-line"></div>
                         <div class="clgen-doc-sign-caption">Name</div>
-                        <div class="clgen-doc-sign-line">&nbsp;</div>
+                        <div class="clgen-doc-sign-line"></div>
                         <div class="clgen-doc-sign-caption">RO-QAD</div>
-                    </td>
-                    <td class="clgen-doc-sign-gap"></td>
-                    <td class="clgen-doc-sign-right">
-                        <div class="clgen-doc-sign-label clgen-doc-sign-label-right">Processed/Evaluated by:</div>
-                        <div class="clgen-doc-sign-line clgen-doc-sign-name">${_escHtml(evalName)}</div>
-                        <div class="clgen-doc-sign-caption clgen-doc-sign-caption-bold">${_escHtml(evalTitle)}</div>
-                        <div class="clgen-doc-sign-line">&nbsp;</div>
+                        <div class="clgen-doc-sign-line"></div>
+                    </div>
+                    <div class="clgen-doc-sign-right">
+                        <div class="clgen-doc-sign-line"></div>
                         <div class="clgen-doc-sign-caption">Date</div>
-                    </td>
-                </tr>
-            </table>`;
+                    </div>
+                </div>
+            </div>`;
 
-    // Checklist items
-            const itemsHtml = _clgen.items.map(item => {
-                const statusKey = _clgenItemStatusKey(item.found);
-                let tick, label = '', rest = '';
-                // Detect (a)/(b)/(c) at start
-                const match = item.text.match(/^\((a|b|c)\)\s*(.*)$/i);
-                const isMainNumber = !item.sub && /^\d+$/.test(String(item.id || ''));
-                const numLabel = isMainNumber ? `${item.id}. ` : '';
-                if (item.sub && match) {
-                        label = match[1].toLowerCase();
-                        rest = match[2];
-                }
-                if (statusKey === 'found')   tick = `<span class="clgen-doc-item-tick found"><span class="clgen-doc-checkline">&#10004;</span></span>`;
-                else if (statusKey === 'missing') tick = `<span class="clgen-doc-item-tick missing">&#10008;&nbsp;&nbsp;</span>`;
-                else if (statusKey === 'na') tick = `<span class="clgen-doc-item-tick na">N/A&nbsp;&nbsp;&nbsp;</span>`;
-                else if (item.sub && match)  tick = `<span class="clgen-doc-item-tick">________(${label})</span>`;
-                else                         tick = `<span class="clgen-doc-item-tick">________</span>`;
+    // Checklist items (levels: 0 = "1.", 1 = "(a)", 2 = blank line only)
+    const _labels = _clgenLabels(_clgen.items);
+    const itemsHtml = _clgen.items.map((item, idx) => {
+        const lvl = _clgenLevel(item);
+        const lb  = _labels[idx] || {};
 
-                // For sub-items with (a)/(b)/(c), show underline before label
-                if (item.sub && match) {
-                        return `<div class="clgen-doc-item sub">
-                            ${tick}
-                            <span>${_escHtml(rest)}</span>
-                        </div>`;
-                } else {
-                        return `<div class="clgen-doc-item${item.sub ? ' sub' : ''}">
-                            ${tick}
-                        <span>${_escHtml(numLabel)}${_escHtml(item.text)}</span>
-                        </div>`;
-                }
-        }).join('');
+        if (item.note) {
+            return `<div class="clgen-doc-item note lvl-${lvl}"><span>${_escHtml(item.text)}</span></div>`;
+        }
+
+        const statusKey = _clgenItemStatusKey(item.found);
+        const tail = (lvl === 1 && lb.letter) ? `(${lb.letter})` : '';
+        let tick;
+        if (statusKey === 'found')        tick = `<span class="clgen-doc-item-tick found"><span class="clgen-doc-checkline">&#10004;</span>${tail}</span>`;
+        else if (statusKey === 'missing') tick = `<span class="clgen-doc-item-tick missing">&#10008;&nbsp;&nbsp;${tail}</span>`;
+        else if (statusKey === 'na')      tick = `<span class="clgen-doc-item-tick na">N/A&nbsp;&nbsp;${tail}</span>`;
+        else                              tick = `<span class="clgen-doc-item-tick">________${tail}</span>`;
+
+        const numLabel = (lvl === 0 && lb.num) ? `${lb.num}. ` : '';
+        return `<div class="clgen-doc-item lvl-${lvl}">
+                    ${tick}
+                    <span>${_escHtml(numLabel + item.text)}</span>
+                </div>`;
+    }).join('');
 
     const findingsHtml = sectionLinesHtml('OTHER FINDINGS (specify)', findings, 4);
-    const recosHtml    = sectionLinesHtml('RECOMMENDATIONS', recos, 4);
+    const recosHtml    = sectionLinesHtml('RECOMMENDATIONS', recos, 5);
 
     preview.innerHTML = `
 <div class="clgen-doc">
@@ -615,7 +702,9 @@ async function clgenDownload() {
             items:           _clgen.items.map(i => ({
                 id:    i.id,
                 text:  i.text,
-                sub:   !!i.sub,
+                level: _clgenLevel(i),
+                sub:   _clgenLevel(i) > 0,
+                note:  !!i.note,
                 // Map 'na' → null so the docx generator renders "N/A" placeholder
                 found: i.found === 'na' ? 'na' : i.found,
             })),
@@ -660,8 +749,8 @@ async function generateChecklistDocxExtended(school, options = {}) {
             WidthType, BorderStyle, VerticalAlign, TabStopType } = docxLib;
 
     const FONT   = 'Calibri';
-    const SZ_TTL = 26;
-    const SZ     = 22;
+    const SZ_TTL = 24;
+    const SZ     = 20;
     const PAGE_W = 12240;
     const MARGIN_LR = 1440; // 1.0 in
     const MARGIN_TB = 245;  // 0.17 in
@@ -695,6 +784,9 @@ async function generateChecklistDocxExtended(school, options = {}) {
             children,
         });
     };
+
+    // Tiny spacer paragraph (fixed height in twips, independent of font size)
+    const spacer = (h = 80) => new Paragraph({ spacing: { before: 0, after: 0, line: h, lineRule: 'exact' }, children: [] });
 
     const rulePara = () => new Paragraph({
         spacing: { before: 0, after: 0 },
@@ -756,131 +848,68 @@ async function generateChecklistDocxExtended(school, options = {}) {
         });
     };
 
-    // ── Checklist item paragraph ──────────────────────────────────────────────
-    const itemPara = (item, showCheckmarks) => {
+    // ── Checklist item (main / sub-item / sub-sub item / note) ───────────────
+    const itemPara = (item, showCheckmarks, lb) => {
+        lb = lb || {};
         const found = item.found;
-        let tick, label = '', rest = '';
-        // Detect (a)/(b)/(c) at start
-        const match = item.text && item.text.match(/^\((a|b|c)\)\s*(.*)$/i);
-        if (item.sub && match) {
-            label = match[1].toLowerCase();
-            rest = match[2];
-        }
-        if (found === 'na')                      tick = 'N/A       ';
-        else if (showCheckmarks && found === true)  tick = '   \u2714   ';
-        else if (showCheckmarks && found === false) tick = '\u2718  ';
-        else if (item.sub && match)  tick = '________(' + label + ')';
-        else                                        tick = '________  ';
+        const lvl = (item.level === 1 || item.level === 2) ? item.level : (item.sub ? 1 : 0);
 
-        const isBold = showCheckmarks && (found === true || found === false);
-        if (item.sub) {
-            let subTick;
-            let subTail = '';
-            if (match) {
-                subTail = '(' + label + ')';
-                if (found === 'na') subTick = 'N/A____';
-                else if (showCheckmarks && found === true) subTick = '   \u2714   ';
-                else if (showCheckmarks && found === false) subTick = '   \u2718   ';
-                else subTick = '________';
-            } else {
-                if (found === 'na') subTick = 'N/A____';
-                else if (showCheckmarks && found === true) subTick = '   \u2714   ';
-                else if (showCheckmarks && found === false) subTick = '   \u2718   ';
-                else subTick = '________';
-            }
-
-            const subText = match ? (rest || '') : (item.text || '');
-            const leftWidth = 2200;
-            const rightWidth = CW - leftWidth;
-            return new Table({
-                width: { size: CW, type: WidthType.DXA },
-                columnWidths: [leftWidth, rightWidth],
-                borders: noBorders,
-                rows: [new TableRow({ children: [
-                    new TableCell({
-                        borders: noBorders,
-                        width: { size: leftWidth, type: WidthType.DXA },
-                        verticalAlign: VerticalAlign.TOP,
-                        margins: { top: 0, bottom: 0, left: 0, right: 80 },
-                        children: [new Paragraph({
-                            spacing: { before:0, after:0 },
-                            alignment: match ? 'left' : 'center',
-                            children: [
-                                new TextRun({
-                                    text: subTick,
-                                    font: FONT,
-                                    size: SZ,
-                                    bold: isBold || found === 'na',
-                                    color: '000000',
-                                    underline: (showCheckmarks && (found === true || found === false)) ? {} : undefined,
-                                }),
-                                new TextRun({
-                                    text: subTail,
-                                    font: FONT,
-                                    size: SZ,
-                                    bold: false,
-                                    color: '000000',
-                                }),
-                            ],
-                        })],
-                    }),
-                    new TableCell({
-                        borders: noBorders,
-                        width: { size: rightWidth, type: WidthType.DXA },
-                        verticalAlign: VerticalAlign.TOP,
-                        margins: { top: 0, bottom: 0, left: 0, right: 0 },
-                        children: [new Paragraph({
-                            spacing: { before:0, after:0 },
-                            children: [
-                                new TextRun({ text: subText, font:FONT, size:SZ, color:'000000' }),
-                            ],
-                        })],
-                    }),
-                ]})],
-            });
-        }
-
-        const isMainNumber = !item.sub && /^\d+$/.test(String(item.id || ''));
-        const numLabel = isMainNumber ? `${item.id}. ` : '';
-        const leftWidth = 600;
-        const rightWidth = CW - 600;
-        return new Table({
+        const mkCell = (w, children) => new TableCell({
+            borders: noBorders,
+            width: { size: w, type: WidthType.DXA },
+            verticalAlign: VerticalAlign.TOP,
+            margins: { top: 0, bottom: 0, left: 0, right: w === 600 ? 80 : 0 },
+            children,
+        });
+        const mkRow = (lw, leftChildren, rightText) => new Table({
             width: { size: CW, type: WidthType.DXA },
-            columnWidths: [leftWidth, rightWidth],
+            columnWidths: [lw, CW - lw],
             borders: noBorders,
             rows: [new TableRow({ children: [
-                new TableCell({
-                    borders: noBorders,
-                    width: { size: leftWidth, type: WidthType.DXA },
-                    verticalAlign: VerticalAlign.TOP,
-                    margins: { top: 0, bottom: 0, left: 0, right: 80 },
-                    children: [new Paragraph({
-                        spacing: { before: 0, after: 0 },
-                        alignment: 'left',
-                        children: [
-                            new TextRun({
-                                text: tick,   // ← only the tick/underline stays here
-                                font: FONT,
-                                size: SZ,
-                                bold: isBold || found === 'na',
-                                color: '000000',
-                                underline: (showCheckmarks && found === true) ? {} : undefined,
-                            }),
-                        ],
-                    })],
-                }),
-                new TableCell({
-                    borders: noBorders,
-                    width: { size: rightWidth, type: WidthType.DXA },
-                    verticalAlign: VerticalAlign.TOP,
-                    margins: { top: 0, bottom: 0, left: 0, right: 0 },
-                    children: [new Paragraph({
-                        spacing: { before: 0, after: 0 },
-                        children: [new TextRun({ text: (numLabel + (item.text || '')), font: FONT, size: SZ, color: '000000' })],
-                    })],
-                }),
+                mkCell(lw, leftChildren),
+                mkCell(CW - lw, [new Paragraph({
+                    spacing: { before: 0, after: 0 },
+                    children: [new TextRun({ text: rightText, font: FONT, size: SZ, color: '000000' })],
+                })]),
             ]})],
         });
+
+        // Plain note line (no check line)
+        if (item.note) {
+            const lw = lvl === 0 ? 600 : 2200;
+            return mkRow(lw, [new Paragraph({ spacing: { before: 0, after: 0 }, children: [] })], item.text || '');
+        }
+
+        const marked = showCheckmarks && (found === true || found === false);
+        let tick;
+        if (found === 'na')                         tick = lvl === 0 ? 'N/A       ' : 'N/A____';
+        else if (showCheckmarks && found === true)  tick = '   \u2714   ';
+        else if (showCheckmarks && found === false) tick = lvl === 0 ? '\u2718  ' : '   \u2718   ';
+        else                                        tick = lvl === 0 ? '________  ' : '________';
+
+        const tickRun = new TextRun({
+            text: tick, font: FONT, size: SZ, color: '000000',
+            bold: marked || found === 'na',
+            underline: (showCheckmarks && (lvl === 0 ? found === true : marked)) ? {} : undefined,
+        });
+
+        if (lvl === 0) {
+            const num = lb.num ? lb.num + '. ' : '';
+            return mkRow(600, [new Paragraph({
+                spacing: { before: 0, after: 0 }, alignment: 'left', children: [tickRun],
+            })], num + (item.text || ''));
+        }
+
+        // Sub-item: ________(a)    Sub-sub item: indented ________
+        const leftChildren = [new Paragraph({
+            spacing: { before: 0, after: 0 },
+            alignment: 'left',
+            indent: lvl === 2 ? { left: 720 } : undefined,
+            children: lvl === 1 && lb.letter
+                ? [tickRun, new TextRun({ text: '(' + lb.letter + ')', font: FONT, size: SZ, color: '000000' })]
+                : [tickRun],
+        })];
+        return mkRow(2200, leftChildren, item.text || '');
     };
 
     // ── Signature block ───────────────────────────────────────────────────────
@@ -908,7 +937,7 @@ async function generateChecklistDocxExtended(school, options = {}) {
         //     ]}),
         //     new TableRow({ children: [
         //         new TableCell({ borders: noBorders, width:{ size: LW, type: WidthType.DXA }, children: [blankLine(), textLine('Name', { before: 40, align: 'center', bold: true })] }),
-        //         new TableCell({ borders: noBorders, width:{ size: RW, type: WidthType.DXA }, children: [textLine(evalName, { before: 220, align: 'center', bold: true, underline: true })] }),
+        //         new TableCell({ borders: noBorders, width:{ size: RW, type: WidthType.DXA }, children: [textLine(evalName, { before: 120, align: 'center', bold: true, underline: true })] }),
         //     ]}),
         //     new TableRow({ children: [
         //         new TableCell({ borders: noBorders, width:{ size: LW, type: WidthType.DXA }, children: [blankLine(), textLine('RO-QAD', { before: 40, align: 'center', bold: true })] }),
@@ -933,7 +962,7 @@ async function generateChecklistDocxExtended(school, options = {}) {
             new TableRow({ children: [
                 new TableCell({ borders: noBorders, width:{ size: LW, type: WidthType.DXA }, children: [new Paragraph({ spacing:{ before: 0, after: 0 }, children: [] })] }),
                 new TableCell({ borders: noBorders, width:{ size: LW, type: WidthType.DXA }, children: [new Paragraph({ spacing:{ before: 0, after: 0 }, children: [] })] }),
-                new TableCell({ borders: noBorders, width:{ size: RW, type: WidthType.DXA }, children: [textLine(evalName, { before: 220, align: 'center', bold: true, underline: true })] }),
+                new TableCell({ borders: noBorders, width:{ size: RW, type: WidthType.DXA }, children: [textLine(evalName, { before: 120, align: 'center', bold: true, underline: true })] }),
             ]}),
             new TableRow({ children: [
                 new TableCell({ borders: noBorders, width:{ size: LW, type: WidthType.DXA }, children: [new Paragraph({ spacing:{ before: 0, after: 0 }, children: [] })] }),
@@ -987,9 +1016,10 @@ async function generateChecklistDocxExtended(school, options = {}) {
     ];
 
     // Items
-    items.forEach(item => children.push(itemPara(item, showCheckmarks)));
+    const _docLabels = _clgenLabels(items);
+    items.forEach((item, i) => children.push(itemPara(item, showCheckmarks, _docLabels[i])));
 
-    children.push(para('', { spAfter:0 }));
+    children.push(spacer(80));
 
     const sectionTable = (label, value) => {
         const LW = Math.floor(CW * 0.31);
@@ -1042,9 +1072,9 @@ async function generateChecklistDocxExtended(school, options = {}) {
     };
 
     children.push(sectionTable('OTHER FINDINGS (specify)', school.findings || ''));
-    children.push(para('', { spAfter:0 }));
+    children.push(spacer(120));
     children.push(sectionTable('RECOMMENDATIONS', school.recommendations || ''));
-    children.push(para('', { spAfter:0 }));
+    children.push(spacer(120));
     children.push(sigBlock(school));
 
     // ── Assemble doc ──────────────────────────────────────────────────────────
@@ -1104,27 +1134,30 @@ if (typeof _escHtml === 'undefined') {
 ══════════════════════════════════════════════════════ */
 
 const _clgenBuiltInDefaults = {
+    // level: 0 = main item (auto "1."), 1 = sub-item (auto "(a)"), 2 = sub-sub item.  note: true = plain text line, no check line.
     tuition_increase: [
-        { id:1,    sub:false, text:'Date received by DepEd RO III, City of San Fernando, Pampanga (submission should be on or before May 15)' },
-        { id:2,    sub:false, text:"Letter of advice to the Regional Office signed by the School Head, indicating among others the school\u2019s intention to comply with the provision of R.A. 6728 for the forthcoming SY ___________________." },
-        { id:3,    sub:false, text:'Xerox copy of the approved tuition, miscellaneous and other schools fees SY _____________ (previous school year or latest noted fees).' },
-        { id:4,    sub:false, text:'Comparative Schedule of tuition, miscellaneous and other school fees for current school year with that of the previous year indicating in both peso and percentage the forms of increase.' },
-        { id:5,    sub:false, text:'Percentage of increase of tuition/miscellaneous & other fees.' },
-        { id:6,    sub:false, text:'Certification under Oath (notarized by a duly licensed notary public) signed by the School Head that the following requirements of R.A. 6728 have been complied with namely; (a), (b) and (c):' },
-        { id:'6a', sub:true,  text:'(a) Appropriate consultations have been conducted with duly organized PTA / PTCA and Faculty Association.' },
-        { id:'6a2',sub:true,  text:'Copy of excerpts of the minutes of the meeting of PTCA or Family Council Association should be submitted.' },
-        { id:'6a3',sub:true,  text:'Date of consultation should not be later than March 30.' },
-        { id:'6b', sub:true,  text:'(b) Seventy percent (70%) of the amount of tuition fee increase (incremental proceeds) of the previous school year went to the increase of payment in salaries, wages and other benefits of teaching and non-teaching personnel.' },
-        { id:'6b2',sub:true,  text:'Copy of the proof of such increases such as Xerox copies of payroll (before and after the increase) of the concerned teachers and support staff.' },
-        { id:'6c', sub:true,  text:'(c) At least twenty percent (20%) went to the improvement or modernization of building, equipment, libraries and similar facilities.' },
+        { level:0, text:'Date received by DepEd RO III, City of San Fernando, Pampanga (submission should be on or before May 15)' },
+        { level:0, text:"Letter of advice to the Regional Office signed by the School Head, indicating among others the school\u2019s intention to comply with the provision of R.A. 6728 for the forthcoming SY ___________________." },
+        { level:0, text:'Xerox copy of the approved tuition, miscellaneous and other schools fees SY _____________ (previous school year or latest noted fees).' },
+        { level:0, text:'Comparative Schedule of tuition, miscellaneous and other school fees for current school year with that of the previous year indicating in both peso and percentage the forms of increase. (Should be done by the school with increase or no increase)' },
+        { level:0, note:true, text:'note: The miscellaneous & other fees should be itemized.' },
+        { level:0, text:'Percentage of increase of tuition/miscellaneous & other fees.' },
+        { level:0, text:'Certification under Oath (notarized by a duly licensed notary public) signed by the School Head that the following requirements of R.A. 6728 have been complied with namely; (a), (b) and (c):' },
+        { level:1, text:'Appropriate consultations have been conducted with duly organized PTA / PTCA and Faculty Association.' },
+        { level:2, text:'Copy of excerpts of the minutes of the meeting of PTCA or Family Council Association should be submitted.' },
+        { level:2, text:'Date of consultation should not be later than March 30.' },
+        { level:1, text:'Seventy percent (70%) of the amount of tuition fee increase (incremental proceeds) of the previous school year went to the increase of payment in salaries, wages and other benefits of teaching and non-teaching personnel except the school administrators who are principal stockholders of the school.' },
+        { level:2, text:'Copy of the proof of such increases such as Xerox copies of payroll (before and after the increase) of the concerned teachers and support staff, other teacher benefits such as staff, non-teaching, etc.' },
+        { level:1, text:'At least twenty percent (20%) went to the improvement or modernization of building, equipment, libraries and similar facilities.' },
+        { level:1, note:true, text:'Itemized copy of improvement with the amount written opposite each item with supporting documents and photocopies of sample receipt of purchase and others.' },
     ],
     no_increase: [
-        { id:1, sub:false, text:'Date received by DepEd RO III, City of San Fernando, Pampanga (submission should be on or before May 15)' },
-        { id:2, sub:false, text:'Letter declaring No Increase in tuition and other fees for the school year signed by the School Head.' },
-        { id:3, sub:false, text:'Comparative Schedule of tuition, miscellaneous and other school fees showing no change from the previous school year.' },
-        { id:4, sub:false, text:'Signed certification by School Head that there is no increase in any fee for the forthcoming SY.' },
-        { id:5, sub:false, text:'Government Recognition / Permit Number on file.' },
-        { id:6, sub:false, text:'1st Indorsement from the Schools Division.' },
+        { level:0, text:'Date received by DepEd RO III, City of San Fernando, Pampanga (submission should be on or before May 15)' },
+        { level:0, text:'Letter declaring No Increase in tuition and other fees for the school year signed by the School Head.' },
+        { level:0, text:'Comparative Schedule of tuition, miscellaneous and other school fees showing no change from the previous school year.' },
+        { level:0, text:'Signed certification by School Head that there is no increase in any fee for the forthcoming SY.' },
+        { level:0, text:'Government Recognition / Permit Number on file.' },
+        { level:0, text:'1st Indorsement from the Schools Division.' },
     ],
 };
 

@@ -4200,8 +4200,23 @@ hr {
     line-height: 1.5;
 }
 
-.clgen-doc-item.sub {
+.clgen-doc-item.sub,
+.clgen-doc-item.lvl-1 {
     padding-left: 32px;
+}
+
+.clgen-doc-item.lvl-2 {
+    padding-left: 64px;
+}
+
+/* plain note lines: aligned with the text column of their level */
+.clgen-doc-item.note {
+    padding-left: 80px;
+}
+
+.clgen-doc-item.note.lvl-1,
+.clgen-doc-item.note.lvl-2 {
+    padding-left: 112px;
 }
 
 .clgen-doc-item-tick {
@@ -4265,3 +4280,87 @@ hr {
 .clgen-doc-sig-table td.sig-line {
     border-bottom: 1px solid #111;
 }
+
+/* ── Checklist items editor: list / sub-list ── */
+.clgen-item-row.clgen-lvl-1 { margin-left: 18px; border-left: 3px solid #c7d2fe; }
+.clgen-item-row.clgen-lvl-2 { margin-left: 36px; border-left: 3px solid #a5b4fc; }
+.clgen-item-row.is-note     { background: #fafafa; border-style: dashed; }
+
+.clgen-badge-0    { background: #e0e7ff; color: #4338ca; }
+.clgen-badge-1    { background: #ede9fe; color: #6d28d9; }
+.clgen-badge-2    { background: #fae8ff; color: #a21caf; }
+.clgen-badge-note { background: #f1f5f9; color: #64748b; }
+
+.clgen-item-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 5px;
+}
+
+.clgen-item-tools button {
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6366f1;
+    background: #f5f7ff;
+    border: 1px solid #e0e7ff;
+    border-radius: 5px;
+    padding: 2px 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.clgen-item-tools button:hover:not(:disabled) { background: #e0e7ff; }
+.clgen-item-tools button.on { background: #6366f1; color: #fff; border-color: #6366f1; }
+.clgen-item-tools button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.clgen-add-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.clgen-items-hint { font-size: 11px; color: #9ca3af; margin-top: 4px; line-height: 1.4; }
+
+/* ── OTHER FINDINGS / RECOMMENDATIONS: ruled lines ── */
+.clgen-doc-sec {
+    display: flex;
+    align-items: flex-start;
+    margin-top: 18px;
+    font-size: 12px;
+}
+.clgen-doc-sec-label {
+    flex: 0 0 33%;
+    line-height: 22px;
+    white-space: nowrap;
+}
+.clgen-doc-sec-lines {
+    flex: 1;
+    --lh: 22px;
+    line-height: var(--lh);
+    min-height: calc(var(--lh) * var(--lines, 4));
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 0 4px;
+    /* a line under every text row */
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent calc(var(--lh) - 1px),
+        #111 calc(var(--lh) - 1px),
+        #111 var(--lh)
+    );
+    background-size: 100% var(--lh);
+}
+
+/* ── Signatories ── */
+.clgen-doc-sign { margin-top: 24px; font-size: 12px; }
+.clgen-doc-sign-top { margin-left: 52%; margin-bottom: 18px; }
+.clgen-doc-sign-label { font-weight: 700; }
+.clgen-doc-sign-name {
+    font-weight: 700;
+    text-decoration: underline;
+    margin-top: 18px;
+}
+.clgen-doc-sign-title { font-weight: 700; padding-left: 14px; }
+.clgen-doc-sign-bottom { display: flex; align-items: flex-end; gap: 12%; }
+.clgen-doc-sign-left { flex: 0 0 34%; }
+.clgen-doc-sign-right { flex: 0 0 38%; margin-left: 18%; }
+.clgen-doc-sign-line { border-bottom: 1px solid #111; height: 22px; }
+.clgen-doc-sign-caption { font-weight: 700; text-align: center; line-height: 20px; }

@@ -1080,3 +1080,28 @@ body {
     .imod-toolbar-actions { flex-wrap: wrap; }
     .imod-year-sel { width: 140px; }
 }
+/* ── Indorsements table: stop long text from overlapping neighbouring columns ── */
+.imod-table {
+    width: 100%;
+    min-width: 1250px;
+}
+.imod-table th,
+.imod-table td {
+    vertical-align: middle;
+}
+/* Address, Level/Course and Signed By may wrap onto several lines
+   instead of spilling into the next column */
+.imod-table td:nth-child(3),
+.imod-table td:nth-child(7):not([style*="nowrap"]),
+.imod-table td:nth-child(9) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+}
+.imod-table td:nth-child(3) { min-width: 200px; max-width: 240px; }
+.imod-table td:nth-child(7):not([style*="nowrap"]) { min-width: 150px; max-width: 200px; }
+.imod-table td:nth-child(9) { min-width: 190px; max-width: 240px; }
+/* Keep School Year, Type, End No. and Letter Date on one line with room to breathe */
+.imod-table th:nth-child(4), .imod-table td:nth-child(4) { min-width: 100px; }
+.imod-table th:nth-child(5), .imod-table td:nth-child(5) { min-width: 170px; }
+.imod-table th:nth-child(8), .imod-table td:nth-child(8) { min-width: 110px; }

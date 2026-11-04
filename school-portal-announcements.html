@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
     <link rel="stylesheet" href="css/school-portal-dashboard.css?v4">
     <link rel="stylesheet" href="css/school-portal-notifications.css" />
-    <link rel="stylesheet" href="css/school-portal-announcements.css?v2" />
+    <link rel="stylesheet" href="css/school-portal-announcements.css?v3" />
 </head>
 <body>
 
@@ -101,15 +101,19 @@
                 <p>Updates and notices from the Schools Division Office</p>
             </div>
             <div class="page-header-right">
-                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open navigation">
                     <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
         </div>
 
         <div class="dashboard-content">
+            <div class="ann-content-heading">
+                <h2><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Latest Announcements</h2>
+                <p>Published updates and reminders for your school.</p>
+            </div>
             <div id="annStatsBar" class="ann-stats-bar" style="display:none;"></div>
-            <div id="announcementsList" class="ann-list">
+            <div id="announcementsList" class="ann-list" aria-live="polite">
                 <div class="ann-empty-state ann-empty-loading">
                     <div class="ann-empty-icon"><i class="fa-solid fa-spinner fa-spin"></i></div>
                     <h3>Loading announcements</h3>

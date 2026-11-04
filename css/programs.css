@@ -982,6 +982,22 @@ tbody td {
     resize: vertical;
 }
 
+/* Long dropdown options must not widen the compact record edit modal. */
+#editRecordModal .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#editRecordModal .form-group {
+    min-width: 0;
+}
+
+#editRecordModal .form-group input,
+#editRecordModal .form-group select,
+#editRecordModal .form-group textarea {
+    width: 100%;
+    min-width: 0;
+}
+
 /* Proponents hint */
 .field-hint {
     font-size: 11px;
@@ -1806,6 +1822,10 @@ tbody td {
     .form-grid,
     .speaker-form-grid {
         grid-template-columns: 1fr;
+    }
+
+    #editRecordModal .form-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 

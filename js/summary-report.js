@@ -106,6 +106,19 @@ function isExcludedFromQuarterly(catKey) {
     return EXCLUDE_FROM_QUARTERLY.has(catKey);
 }
 
+/**
+ * Quarter used for checked items that have neither a quarter override nor a
+ * timestamp. Previously these went into a hidden 'unknown' bucket and vanished
+ * from the table; now they land in the current quarter so they stay visible.
+ */
+function undatedFallbackQuarter() {
+    const m = new Date().getMonth() + 1;
+    for (const q of QUARTERS) {
+        if (q.months.includes(m)) return q.key;
+    }
+    return 'Q1';
+}
+
 /** Get the quarter key ('Q1'–'Q4') from a MySQL DATETIME string */
 function tsToQuarter(ts) {
     if (!ts) return null;
@@ -598,7 +611,7 @@ function schoolQuarterlyCounts(schoolId, catFilter) {
                 const cell = normaliseCell(sd[key]);
                 if (!cell.checked) continue;
 
-                const qKey  = cell.q || tsToQuarter(cell.ts) || 'unknown';
+                const qKey  = cell.q || tsToQuarter(cell.ts) || undatedFallbackQuarter();
                 const sType = getStepType(step);
                 const bucket = result[qKey] || result['unknown'];
                 bucket.total++;
@@ -646,7 +659,7 @@ function aggregateCategoryQuarterlyCounts(schools) {
                     const cell = normaliseCell(sd[key]);
                     if (!cell.checked) continue;
 
-                    const qKey  = cell.q || tsToQuarter(cell.ts) || 'unknown';
+                    const qKey  = cell.q || tsToQuarter(cell.ts) || undatedFallbackQuarter();
                     const sType = getStepType(step);
                     const bucket = result[cat.key][qKey] || result[cat.key]['unknown'];
                     bucket.total++;
@@ -3230,4 +3243,30 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     await loadYears();
     await loadData();
+});
+
+// Quietly re-pull tracker data when the tab regains focus, so changes made on
+// other pages (e.g. a submission set to "For Endorsement") show up without a
+// manual reload. No loader flash; throttled to once per 30s; skipped while the
+// indorsements modal is open.
+let _lastFocusRefresh = 0;
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible') return;
+    if (Date.now() - _lastFocusRefresh < 30000) return;
+    if (document.querySelector('#indorsementsModal.open')) return;
+    const yid = _yearIdMap[_currentYear];
+    if (!yid) return;
+    _lastFocusRefresh = Date.now();
+    try {
+        const json = await apiGet({ action: 'load', year_id: yid, school_type: _schoolType });
+        if (!json.success) return;
+        const fresh = {};
+        for (const [sid, cells] of Object.entries(json.data || {})) {
+            const norm = {};
+            for (const [k, v] of Object.entries(cells)) norm[k] = normaliseCell(v);
+            fresh[parseInt(sid, 10)] = norm;
+        }
+        _data = fresh;
+        renderAll();
+    } catch (e) { console.warn('summary-report: focus refresh failed', e); }
 });

@@ -3,17 +3,51 @@
  * Sidebar, hamburger, mobile responsiveness -> school-portal-dashboard.css
  */
 
+/* Match the Calendar, Tuition and Permit content workspace. */
+.main-content {
+    background: #f0f4f8;
+    min-width: 0;
+}
+
+.page-header {
+    flex-shrink: 0;
+    gap: 16px;
+}
+
+.dashboard-content {
+    padding: 22px 24px;
+    min-height: 0;
+}
+
+.ann-content-heading {
+    margin-bottom: 14px;
+}
+
+.ann-content-heading h2 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #0a1f3d;
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.ann-content-heading p {
+    margin-top: 5px;
+    color: #64748b;
+    font-size: 12.5px;
+}
+
 /* ── Stats bar ─────────────────────────────────────────────────────────── */
 .ann-stats-bar {
     display: flex;
     align-items: center;
     gap: 28px;
-    max-width: 800px;
-    margin: 0 auto 18px;
+    margin-bottom: 14px;
     padding: 14px 20px;
-    background: linear-gradient(90deg, #12294f, #1a3a6b);
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
     border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(26, 58, 107, 0.12);
 }
 
 .ann-stat {
@@ -25,27 +59,23 @@
 .ann-stat-num {
     font-size: 20px;
     font-weight: 800;
-    color: #f5d800;
-    font-family: 'DM Serif Display', serif;
+    color: #2456a4;
     line-height: 1;
 }
 
 .ann-stat-label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #cbd9f2;
+    color: #64748b;
 }
 
 .ann-stat-updated {
     margin-left: auto;
     font-size: 12px;
-    color: #9fb3d6;
-    white-space: nowrap;
+    color: #64748b;
 }
 
-/* ── Section labels (bulletin-board style dividers) ───────────────────── */
+/* ── Section labels ──────────────────────────────────────────────────── */
 .ann-section-label {
     display: flex;
     align-items: center;
@@ -54,11 +84,9 @@
 }
 
 .ann-section-label span {
-    font-family: 'DM Serif Display', serif;
-    font-size: 13px;
-    font-style: italic;
-    letter-spacing: 0.03em;
-    color: #1a3a6b;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0a1f3d;
     white-space: nowrap;
 }
 
@@ -81,16 +109,15 @@
     display: flex;
     flex-direction: column;
     gap: 14px;
-    max-width: 800px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 .ann-card {
     background: #ffffff;
-    border: 1px solid #e2e8f0;
+    border: 1.5px solid #e2e8f0;
     border-radius: 12px;
-    padding: 20px 22px;
-    box-shadow: 0 2px 10px rgba(26, 58, 107, 0.06);
+    padding: 18px 20px;
+    min-width: 0;
     position: relative;
 }
 
@@ -110,16 +137,17 @@
 .ann-card-title {
     font-size: 16px;
     font-weight: 700;
-    color: #1a1a2e;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    color: #0a1f3d;
+    flex: 1;
+    line-height: 1.45;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .ann-card-title i.fa-thumbtack {
     color: #d97706;
     font-size: 13px;
+    margin-right: 6px;
 }
 
 .ann-new-badge {
@@ -128,11 +156,14 @@
     font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.04em;
-    color: #ffffff;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #2456a4;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
     border-radius: 20px;
     padding: 2px 8px;
     line-height: 1.5;
+    margin-left: 6px;
+    vertical-align: middle;
 }
 
 .ann-card-date-block {
@@ -145,13 +176,13 @@
 
 .ann-card-date {
     font-size: 12px;
-    color: #9ca3af;
+    color: #64748b;
     white-space: nowrap;
 }
 
 .ann-card-relative {
     font-size: 11px;
-    color: #b6c2d6;
+    color: #64748b;
     white-space: nowrap;
 }
 
@@ -174,6 +205,8 @@
     color: #374151;
     line-height: 1.6;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-width: 85ch;
 }
 
 .ann-card-body.truncated {
@@ -184,85 +217,77 @@
 }
 
 .ann-read-more {
-    display: inline-block;
+    display: inline-flex;
     margin-top: 8px;
     font-size: 12.5px;
     font-weight: 700;
-    color: #1a3a6b;
-    background: none;
-    border: none;
-    padding: 0;
+    color: #2456a4;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-family: inherit;
     cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
 }
 
 .ann-read-more:hover {
-    color: #f59e0b;
+    background: #dbeafe;
 }
 
-/* ── Empty / loading / error states (bulletin-board style) ────────────── */
+.ann-read-more:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 3px;
+}
+
+/* ── Empty / loading / error states ──────────────────────────────────── */
 .ann-empty-state {
-    max-width: 800px;
+    min-height: 200px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     text-align: center;
-    gap: 6px;
-    padding: 56px 32px;
-    background: #ffffff;
-    border: 1.5px dashed #d6deeb;
-    border-radius: 14px;
+    gap: 10px;
+    padding: 24px 20px;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
 }
 
 .ann-empty-icon {
-    width: 56px;
-    height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    margin-bottom: 10px;
-    background: linear-gradient(135deg, #12294f, #1a3a6b);
-    box-shadow: 0 4px 14px rgba(26, 58, 107, 0.18);
 }
 
 .ann-empty-icon i {
-    font-size: 20px;
-    color: #f5d800;
+    font-size: 32px;
+    color: #94a3b8;
 }
 
 .ann-empty-state h3 {
-    font-family: 'DM Serif Display', serif;
-    font-style: italic;
-    font-size: 18px;
-    font-weight: 400;
-    color: #1a3a6b;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0a1f3d;
     margin: 0;
 }
 
 .ann-empty-state p {
-    font-size: 13.5px;
-    color: #8a97ad;
+    font-size: 13px;
+    color: #64748b;
     line-height: 1.6;
     max-width: 420px;
     margin: 0;
 }
 
-/* Loading — calmer, no dashed border, muted icon badge */
+/* Loading and error states share the same layout. */
 .ann-empty-loading {
     border-style: solid;
     border-color: #e2e8f0;
 }
 
-.ann-empty-loading .ann-empty-icon {
-    background: #eef2f9;
-    box-shadow: none;
-}
-
 .ann-empty-loading .ann-empty-icon i {
-    color: #1a3a6b;
-    font-size: 18px;
+    color: #2456a4;
 }
 
 .ann-empty-loading h3 {
@@ -276,13 +301,8 @@
     background: #fef2f2;
 }
 
-.ann-empty-error .ann-empty-icon {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.18);
-}
-
 .ann-empty-error .ann-empty-icon i {
-    color: #ffffff;
+    color: #dc2626;
 }
 
 .ann-empty-error h3 {
@@ -294,11 +314,6 @@
 }
 
 @media (max-width: 800px) {
-    .ann-empty-state {
-        padding: 44px 20px;
-    }
-
-
     .ann-card-header {
         flex-direction: column;
         gap: 4px;
@@ -315,5 +330,15 @@
 
     .ann-stat-updated {
         margin-left: 0;
+    }
+}
+
+@media (max-width: 500px) {
+    .dashboard-content {
+        padding: 16px;
+    }
+
+    .ann-card {
+        padding: 16px;
     }
 }

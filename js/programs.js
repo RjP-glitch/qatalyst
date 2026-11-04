@@ -21,6 +21,54 @@
 
 const API_URL = CONFIG.API_URL;
 
+// Keep date formatting inside this script so existing hosted pages need no extra file.
+// Calendar dates are parsed locally so time zones cannot move an event to another day.
+const ProgramDateUtils = (() => {
+    function parse(value) {
+        const match = String(value || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:$|[ T])/);
+        if (!match) return null;
+        const [, year, month, day] = match.map(Number);
+        const date = new Date(year, month - 1, day);
+        return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+            ? date : null;
+    }
+
+    function format(date, options = {}) {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', ...options });
+    }
+
+    function range(startValue, endValue) {
+        const start = parse(startValue);
+        const end = parse(endValue);
+        if (!start || !end) return start || end ? format(start || end) : '';
+        if (start.getTime() === end.getTime()) return format(start);
+        if (start.getFullYear() !== end.getFullYear()) return `${format(start)} – ${format(end)}`;
+        if (start.getMonth() !== end.getMonth()) {
+            return `${format(start, { year: undefined })} – ${format(end)}`;
+        }
+        return `${start.toLocaleDateString('en-US', { month: 'short' })} ${start.getDate()}–${end.getDate()}, ${end.getFullYear()}`;
+    }
+
+    function display(program) {
+        const start = parse(program?.start_date);
+        const end = parse(program?.end_date);
+        // A complete saved range takes precedence over stale manually entered text.
+        if (start && end) return range(program.start_date, program.end_date);
+        const legacy = String(program?.inclusive_dates || '').trim();
+        return legacy || range(program?.start_date, program?.end_date)
+            || String(program?.start_date || program?.end_date || '').trim() || '—';
+    }
+
+    function isReversed(startValue, endValue) {
+        const start = parse(startValue);
+        const end = parse(endValue);
+        return !!(start && end && end < start);
+    }
+
+    return { parse, range, display, isReversed };
+})();
+
+
 // Identifies which page/section this instance is running on.
 // Each HTML page sets window.PAGE_KEY before loading this script.
 const PAGE_KEY = window.PAGE_KEY || 'qatame';
@@ -968,7 +1016,7 @@ function displayPrograms(programs) {
   <td><strong>${escapeHtml(p.title)}</strong></td>
   <td>${escapeHtml(p.division_memo || '—')}</td>
   <td>${p.proponents ? escapeHtml(p.proponents) : '<span style="color:#9ca3af;font-size:12px;">—</span>'}</td>
-  <td>${p.start_date ? (isExcel ? escapeHtml(p.start_date) : formatDate(p.start_date) + (p.end_date ? ' – ' + formatDate(p.end_date) : '')) : '—'}</td>
+  <td>${escapeHtml(ProgramDateUtils.display(p))}</td>
   <td>${escapeHtml(p.venue || '—')}</td>
   <td>${p.days_count || 0}</td>
   <td>${p.responses_count || 0}</td>
@@ -1075,9 +1123,7 @@ function displayProgramCards(programs) {
 			? `<span class="card-avg-pill">${avg.toFixed(2)} <em>${escapeHtml(p.overall_result || '')}</em></span>`
 			: '';
 
-		const dateStr = p.start_date
-			? (isExcel ? escapeHtml(p.start_date) : formatDate(p.start_date) + (p.end_date ? ' – ' + formatDate(p.end_date) : ''))
-			: '—';
+		const dateStr = escapeHtml(ProgramDateUtils.display(p));
 
 		// Edit button — system vs excel source
 		// For Excel rows: container-linked imports have eval_program_id = the import's records_api ID,
@@ -1459,6 +1505,10 @@ async function loadProgramData(id) {
 
 async function saveProgramData(event) {
 	event.preventDefault();
+	if (ProgramDateUtils.isReversed(document.getElementById('startDate').value, document.getElementById('endDate').value)) {
+		showAlert('error', 'End Date must be on or after Start Date.');
+		return;
+	}
 	const btn = document.getElementById('submitBtn');
 	const originalHtml = btn.innerHTML;
 	let saveSucceeded = false;
@@ -8065,14 +8115,8 @@ async function openEditRecordModal(id, title) {
 		document.getElementById('erProponents').value = detailSource.proponents || '';
 		document.getElementById('erQameAssociates').value = p.qame_associates || detailSource.qame_associates || '';
 		document.getElementById('erVenue').value = detailSource.training_venue || detailSource.venue || '';
-		const derivedDates = detailSource.inclusive_dates
-			|| (detailSource.start_date
-				? formatDate(detailSource.start_date) +
-				(detailSource.end_date && detailSource.end_date !== detailSource.start_date
-					? ' – ' + formatDate(detailSource.end_date)
-					: '')
-				: '');
-		document.getElementById('erDates').value = derivedDates;
+		document.getElementById('erDates').dataset.automatic = 'false';
+		document.getElementById('erDates').value = detailSource.inclusive_dates || '';
 		document.getElementById('erStartDate').value = toDateInputValue(detailSource.start_date);
 		document.getElementById('erEndDate').value = toDateInputValue(detailSource.end_date);
 		// When linked to a container, load the container's expected count.
@@ -8093,6 +8137,9 @@ async function openEditRecordModal(id, title) {
 			document.getElementById('erRecordId').parentNode.appendChild(erContainerIdEl);
 		}
 		erContainerIdEl.value = containerWorkshopId || '';
+		syncRecordInclusiveDates();
+		document.getElementById('erStartDate').oninput = syncRecordInclusiveDates;
+		document.getElementById('erEndDate').oninput = syncRecordInclusiveDates;
 
 		// ── Populate speaker name inputs — ALL days across ALL linked imports ────
 		const speakersSection   = document.getElementById('erSpeakersSection');
@@ -8188,6 +8235,29 @@ function closeEditRecordModal() {
 	document.getElementById('editRecordModal').classList.remove('active');
 }
 
+function syncRecordInclusiveDates() {
+	const input = document.getElementById('erDates');
+	if (!input) return;
+	const start = document.getElementById('erStartDate')?.value || '';
+	const end = document.getElementById('erEndDate')?.value || '';
+	const isContainer = !!document.getElementById('erContainerWorkshopId')?.value;
+	// Keep legacy range text until both structured dates are supplied. Once a
+	// range is generated, keep it in sync even if one of the dates is cleared.
+	const automatic = isContainer || !!(start && end)
+		|| (!!(start || end) && (!input.value.trim() || input.dataset.automatic === 'true'));
+	if (automatic) {
+		input.value = ProgramDateUtils.range(start, end);
+	} else if (input.dataset.automatic === 'true') {
+		input.value = '';
+	}
+	input.dataset.automatic = String(automatic);
+	input.readOnly = automatic;
+	const hint = document.getElementById('erDatesHint');
+	if (hint) hint.textContent = automatic
+		? 'Filled automatically from Start Date and End Date. Set both dates for a multi-day activity.'
+		: 'Set both Start Date and End Date to fill this automatically, or keep date text for an older import.';
+}
+
 async function saveRecordEdit() {
 	const id = parseInt(document.getElementById('erRecordId').value);
 	const title = document.getElementById('erTitle')?.value.trim();
@@ -8202,6 +8272,11 @@ async function saveRecordEdit() {
 
 	// Detect if this import is linked to a container
 	const containerWorkshopId = parseInt(document.getElementById('erContainerWorkshopId')?.value) || null;
+	if (ProgramDateUtils.isReversed(document.getElementById('erStartDate')?.value, document.getElementById('erEndDate')?.value)) {
+		showAlert('error', 'End Date must be on or after Start Date.');
+		return;
+	}
+	syncRecordInclusiveDates();
 
 	const detailPayload = {
 		title,

@@ -87,6 +87,88 @@ function schoolsTable(string $schoolType): string {
     return $schoolType === 'public' ? 'public_schools' : 'private_schools';
 }
 
+/**
+ * Convert an online submission status into the tracker cells it owns.
+ * Submission status is authoritative for these workflow categories; other
+ * tracker categories continue to be maintained manually.
+ */
+function submissionTrackerMapping(array $submission): ?array {
+    $type = strtolower(trim((string)($submission['type'] ?? '')));
+    $docType = strtolower(trim((string)($submission['document_type'] ?? '')));
+    $status = strtolower(trim((string)($submission['status'] ?? '')));
+
+    $category = null;
+    $rows = [''];
+    if ($type === 'calendar') {
+        $category = 'school_calendar';
+        $rows = ['School Calendar'];
+    } elseif ($type === 'tuition' || $type === 'no_tuition') {
+        $isNoIncrease = $type === 'no_tuition' || str_contains($docType, 'no increase');
+        $category = $isNoIncrease ? 'no_increase' : 'tuition_increase';
+        $rows = ['Pre-School', 'Elementary', 'Junior HS', 'Senior HS'];
+    } elseif ($type === 'permit') {
+        $category = 'renewal_permit';
+    }
+    if ($category === null) return null;
+
+    $statusMap = [
+        'pending' => 'Pending Review',
+        'pending review' => 'Pending Review',
+        'review' => 'For Endorsement',
+        'endorsed' => 'For Endorsement',
+        'for endorsement' => 'For Endorsement',
+        'approved' => 'Approved',
+        'released' => 'Released to School',
+        'released to school' => 'Released to School',
+        'rejected' => 'Returned for Correction',
+        'returned for correction' => 'Returned for Correction',
+        'draft' => 'draft',
+    ];
+    $status = $statusMap[$status] ?? $status;
+    $rank = [
+        'Pending Review' => 0,
+        'Returned for Correction' => 0,
+        'draft' => 0,
+        'For Endorsement' => 1,
+        'Approved' => 2,
+        'Released to School' => 3,
+    ];
+    $currentRank = $rank[$status] ?? 0;
+    $steps = [];
+    if ($type === 'calendar') {
+        if (in_array($status, ['Pending Review', 'For Endorsement', 'Approved', 'Released to School'], true)) {
+            $steps[] = 'Received w/ Compliance';
+        }
+        if ($currentRank >= 1) $steps[] = 'Endorsed to RO';
+        if ($currentRank >= 2) $steps[] = 'Approved';
+        if ($currentRank >= 3) $steps[] = 'Released';
+    } else {
+        if ($currentRank >= 1) $steps[] = 'Endorsed to RO';
+        if ($currentRank >= 2) $steps[] = 'Approved';
+        if ($currentRank >= 3) $steps[] = 'Released';
+    }
+
+    return ['category' => $category, 'rows' => $rows, 'steps' => $steps];
+}
+
+function normalizeTrackerSchoolYear(string $value): string {
+    $value = preg_replace('/^SY\s*/i', '', trim($value));
+    return preg_replace('/\s*[\x{2010}-\x{2015}\x{2212}-]\s*/u', '-', $value);
+}
+
+function hasSubmissionsForTrackerYear(PDO $pdo, int $yearId): bool {
+    $yearStmt = $pdo->prepare('SELECT school_year FROM school_tracker_years WHERE id = :id');
+    $yearStmt->execute([':id' => $yearId]);
+    $targetYear = normalizeTrackerSchoolYear((string)($yearStmt->fetchColumn() ?: ''));
+    $latestActiveYearId = (int)$pdo->query('SELECT id FROM school_tracker_years WHERE is_active = 1 ORDER BY id DESC LIMIT 1')->fetchColumn();
+    $stmt = $pdo->query('SELECT school_year FROM school_submissions');
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $submissionYear) {
+        $normalized = normalizeTrackerSchoolYear((string)$submissionYear);
+        if ($normalized === $targetYear || ($normalized === '' && $yearId === $latestActiveYearId)) return true;
+    }
+    return false;
+}
+
 // ── router ───────────────────────────────────────────────────────────────────
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
@@ -162,7 +244,58 @@ try {
             ];
         }
 
-        jsonOut(['success' => true, 'year_id' => $yearId, 'data' => $data]);
+        // Overlay the online-submission workflow categories from their source
+        // records. The most recently updated submission owns each school/year/
+        // category; all of that category's tracker cells become read-only.
+        $yearStmt = $pdo->prepare('SELECT school_year FROM school_tracker_years WHERE id = :id');
+        $yearStmt->execute([':id' => $yearId]);
+        $trackerYear = normalizeTrackerSchoolYear((string)($yearStmt->fetchColumn() ?: ''));
+        $latestActiveYearId = (int)$pdo->query('SELECT id FROM school_tracker_years WHERE is_active = 1 ORDER BY id DESC LIMIT 1')->fetchColumn();
+        $schoolIdColumn = $schoolType === 'private' ? 'private_school_id' : 'school_id';
+        $subStmt = $pdo->prepare(
+            "SELECT id, {$schoolIdColumn} AS target_school_id, type, document_type,
+                    status, school_year, updated_at, reviewed_at
+             FROM school_submissions
+             WHERE {$schoolIdColumn} IS NOT NULL AND {$schoolIdColumn} > 0
+             ORDER BY COALESCE(updated_at, submitted_at) DESC, id DESC"
+        );
+        $subStmt->execute();
+        $managedCells = [];
+        $claimedCategories = [];
+        foreach ($subStmt->fetchAll(PDO::FETCH_ASSOC) as $submission) {
+            $submissionYear = normalizeTrackerSchoolYear((string)($submission['school_year'] ?? ''));
+            if ($submissionYear !== $trackerYear && !($submissionYear === '' && $yearId === $latestActiveYearId)) continue;
+            $mapping = submissionTrackerMapping($submission);
+            if ($mapping === null) continue;
+
+            $sid = (int)$submission['target_school_id'];
+            $category = $mapping['category'];
+            $claim = $sid . '|' . $category;
+            if (isset($claimedCategories[$claim])) continue;
+            $claimedCategories[$claim] = true;
+            if (!isset($data[$sid])) $data[$sid] = [];
+            if (!isset($managedCells[$sid])) $managedCells[$sid] = [];
+
+            $allSteps = $category === 'school_calendar'
+                ? ['Received w/ Compliance', 'Endorsed to RO', 'Approved', 'Released']
+                : ['Endorsed to RO', 'Approved', 'Released'];
+            foreach ($mapping['rows'] as $rowLabel) {
+                foreach ($allSteps as $stepLabel) {
+                    $key = $category . '|' . $rowLabel . '|' . $stepLabel;
+                    $isChecked = in_array($stepLabel, $mapping['steps'], true);
+                    $data[$sid][$key] = [
+                        'checked' => $isChecked,
+                        'ts' => $isChecked ? ($submission['reviewed_at'] ?: $submission['updated_at']) : null,
+                        'by' => null,
+                        'q' => null,
+                        'source' => 'submission',
+                    ];
+                    $managedCells[$sid][] = $key;
+                }
+            }
+        }
+
+        jsonOut(['success' => true, 'year_id' => $yearId, 'data' => $data, 'managed_cells' => $managedCells]);
     }
 
     // ── GET check_year_empty ───────────────────────────────────────────────
@@ -178,7 +311,8 @@ try {
         $stmt->execute([$yearId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        jsonOut(['success' => true, 'empty' => ((int)$row['cnt'] === 0)]);
+        $hasSubmissions = hasSubmissionsForTrackerYear($pdo, (int)$yearId);
+        jsonOut(['success' => true, 'empty' => ((int)$row['cnt'] === 0 && !$hasSubmissions)]);
     }
 
     // ── POST save ──────────────────────────────────────────────────────────
@@ -198,13 +332,45 @@ try {
 
         $tbl = schoolsTable($schoolType);
 
-        $chkStmt = $pdo->prepare("SELECT id FROM private_schools WHERE id = :id AND active = 1");
+        $chkStmt = $pdo->prepare("SELECT id FROM `{$tbl}` WHERE id = :id AND active = 1");
         $chkStmt->execute([':id' => $schoolId]);
         if (!$chkStmt->fetch()) jsonError('Invalid school_id', 404);
 
         $yrStmt = $pdo->prepare("SELECT id FROM school_tracker_years WHERE id = :id");
         $yrStmt->execute([':id' => $yearId]);
         if (!$yrStmt->fetch()) jsonError('Invalid year_id', 404);
+
+        // Enforce the read-only submission mapping server-side too, including
+        // saves from a tracker tab that was opened before a school submitted.
+        $yearNameStmt = $pdo->prepare('SELECT school_year FROM school_tracker_years WHERE id = :id');
+        $yearNameStmt->execute([':id' => $yearId]);
+        $targetYear = normalizeTrackerSchoolYear((string)($yearNameStmt->fetchColumn() ?: ''));
+        $latestActiveYearId = (int)$pdo->query('SELECT id FROM school_tracker_years WHERE is_active = 1 ORDER BY id DESC LIMIT 1')->fetchColumn();
+        $schoolIdColumn = $schoolType === 'private' ? 'private_school_id' : 'school_id';
+        $managedStmt = $pdo->prepare(
+            "SELECT type, document_type, status, school_year
+             FROM school_submissions
+             WHERE {$schoolIdColumn} = :school_id
+             ORDER BY COALESCE(updated_at, submitted_at) DESC, id DESC"
+        );
+        $managedStmt->execute([':school_id' => $schoolId]);
+        $managedCellKeys = [];
+        $managedCategories = [];
+        foreach ($managedStmt->fetchAll(PDO::FETCH_ASSOC) as $submission) {
+            $submissionYear = normalizeTrackerSchoolYear((string)($submission['school_year'] ?? ''));
+            if ($submissionYear !== $targetYear && !($submissionYear === '' && $yearId === $latestActiveYearId)) continue;
+            $mapping = submissionTrackerMapping($submission);
+            if ($mapping === null || isset($managedCategories[$mapping['category']])) continue;
+            $managedCategories[$mapping['category']] = true;
+            $steps = $mapping['category'] === 'school_calendar'
+                ? ['Received w/ Compliance', 'Endorsed to RO', 'Approved', 'Released']
+                : ['Endorsed to RO', 'Approved', 'Released'];
+            foreach ($mapping['rows'] as $rowLabel) {
+                foreach ($steps as $stepLabel) {
+                    $managedCellKeys[$mapping['category'] . '|' . $rowLabel . '|' . $stepLabel] = true;
+                }
+            }
+        }
 
         // Detect whether checked_at can be NULL (some deployments may have stricter schemas).
         $checkedAtNullable = true;
@@ -244,6 +410,7 @@ try {
         $pdo->beginTransaction();
         try {
             foreach ($cells as $compositeKey => $cellValue) {
+                if (isset($managedCellKeys[$compositeKey])) continue;
                 $parts = explode('|', $compositeKey, 3);
                 if (count($parts) !== 3) continue;
 
@@ -372,8 +539,8 @@ try {
         $chk->execute([$yearId]);
         $row = $chk->fetch(PDO::FETCH_ASSOC);
 
-        if ((int)$row['cnt'] > 0) {
-            jsonError('Cannot delete this year — it still has checked tracking records.', 409);
+        if ((int)$row['cnt'] > 0 || hasSubmissionsForTrackerYear($pdo, $yearId)) {
+            jsonError('Cannot delete this year — it still has tracking records or school submissions.', 409);
         }
 
         // Delete any unchecked rows for this year, then the year itself

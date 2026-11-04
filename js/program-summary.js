@@ -3,6 +3,54 @@
 // Extracted and adapted from programs.js
 
 const API_URL = CONFIG.API_URL;
+
+// Keep date formatting inside this script so existing hosted pages need no extra file.
+// Calendar dates are parsed locally so time zones cannot move an event to another day.
+const ProgramDateUtils = (() => {
+    function parse(value) {
+        const match = String(value || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:$|[ T])/);
+        if (!match) return null;
+        const [, year, month, day] = match.map(Number);
+        const date = new Date(year, month - 1, day);
+        return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+            ? date : null;
+    }
+
+    function format(date, options = {}) {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', ...options });
+    }
+
+    function range(startValue, endValue) {
+        const start = parse(startValue);
+        const end = parse(endValue);
+        if (!start || !end) return start || end ? format(start || end) : '';
+        if (start.getTime() === end.getTime()) return format(start);
+        if (start.getFullYear() !== end.getFullYear()) return `${format(start)} – ${format(end)}`;
+        if (start.getMonth() !== end.getMonth()) {
+            return `${format(start, { year: undefined })} – ${format(end)}`;
+        }
+        return `${start.toLocaleDateString('en-US', { month: 'short' })} ${start.getDate()}–${end.getDate()}, ${end.getFullYear()}`;
+    }
+
+    function display(program) {
+        const start = parse(program?.start_date);
+        const end = parse(program?.end_date);
+        // A complete saved range takes precedence over stale manually entered text.
+        if (start && end) return range(program.start_date, program.end_date);
+        const legacy = String(program?.inclusive_dates || '').trim();
+        return legacy || range(program?.start_date, program?.end_date)
+            || String(program?.start_date || program?.end_date || '').trim() || '—';
+    }
+
+    function isReversed(startValue, endValue) {
+        const start = parse(startValue);
+        const end = parse(endValue);
+        return !!(start && end && end < start);
+    }
+
+    return { parse, range, display, isReversed };
+})();
+
 let expandedMenus = {};
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
@@ -427,13 +475,7 @@ function sortProgramsByDateThenTitle(list) {
 }
 
 function formatDisplayDate(p) {
-    const incl = String(p?.inclusive_dates || '').trim();
-    if (incl) return incl;
-    const raw = p?.start_date || p?.end_date;
-    if (!raw) return '—';
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return String(raw).trim() || '—';
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return ProgramDateUtils.display(p);
 }
 
 function mapProgramRow(p) {

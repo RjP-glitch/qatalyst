@@ -294,11 +294,11 @@ const ADS = (() => {
         if (emailEl) emailEl.textContent = emailValue;
     }
 
-    async function fetchRecords() {
+    async function fetchRecords(silent = false) {
         const body   = document.getElementById('adsBody');
         const type   = document.getElementById('adsType')?.value   || 'all';
 
-        if (body) body.innerHTML = '<div class="all-docs-empty"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Loading submissions...</div>';
+        if (!silent && body) body.innerHTML = '<div class="all-docs-empty"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Loading submissions...</div>';
 
         const url = apiUrl(`/documents-submitted.php?action=list&scope=all&type=${encodeURIComponent(type)}`);
 
@@ -309,7 +309,8 @@ const ADS = (() => {
             allRecords = Array.isArray(json.records) ? json.records : [];
             renderCards();
         } catch (err) {
-            if (body) body.innerHTML = `<div class="all-docs-empty">${esc(err.message || 'Could not load submissions.')}</div>`;
+            if (silent) console.warn('documents-submitted: background refresh failed', err);
+            else if (body) body.innerHTML = `<div class="all-docs-empty">${esc(err.message || 'Could not load submissions.')}</div>`;
         }
     }
 
@@ -819,6 +820,8 @@ const ADS = (() => {
     }
 
     function bindCardEvents(body) {
+        if (!body || body.dataset.eventsBound === '1') return;
+        body.dataset.eventsBound = '1';
         body.addEventListener('click', (e) => {
             // History tab: clicking a record in the left list updates the trail panel only.
             // Do NOT call bindCardEvents again here — the listener on `body` persists across
@@ -3675,6 +3678,16 @@ const ADS = (() => {
             // their events are wired via inline handlers (ADS._onSearchInput / ADS._onTypeChange).
 
             await fetchRecords();
+
+            // Keep a previously opened SDO page current when a school submits
+            // from another tab or device. Background refreshes leave the current
+            // list visible and only run while this page is in the foreground.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') fetchRecords(true);
+            });
+            window.setInterval(() => {
+                if (document.visibilityState === 'visible') fetchRecords(true);
+            }, 30000);
         } finally {
             // Always hide the overlay — even if auth fails or an error is thrown.
             // Without this, the overlay stays on screen on mobile and blocks all taps,
