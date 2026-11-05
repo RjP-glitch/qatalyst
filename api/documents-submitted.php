@@ -1706,13 +1706,17 @@ function actionSupportingDocsCatalog(PDO $pdo): void
 {
     $docType = strtolower(trim((string)($_GET['doc_type'] ?? 'all')));
     if ($docType === '') { $docType = 'all'; }
+    $strictDocType = filter_var($_GET['strict_doc_type'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
     try {
+        $typeFilter = $strictDocType
+            ? 'doc_type = :doc_type'
+            : '(doc_type = :doc_type OR doc_type = \'all\')';
         $stmt = $pdo->prepare(
             "SELECT slug, label, hint, icon, display_order
                FROM school_supporting_documents
               WHERE is_active = 1
-                AND (doc_type = :doc_type OR doc_type = 'all')
+                AND {$typeFilter}
               ORDER BY display_order ASC, id ASC"
         );
         $stmt->execute([':doc_type' => $docType]);

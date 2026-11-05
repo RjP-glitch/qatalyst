@@ -1556,12 +1556,36 @@ const ADS = (() => {
                     <div id="adsCalendarPreviewInner"></div>`;
 
                 const inner = document.getElementById('adsCalendarPreviewInner');
-                if (inner) inner.innerHTML = _buildAdminCalendarPreview(payload);
+                if (inner) {
+                    let checklistItems = [];
+                    let checklistUploads = [];
+                    const supportingBase = apiUrl('/documents-submitted.php');
+                    const [catalogResult, uploadsResult] = await Promise.allSettled([
+                        fetch(`${supportingBase}?action=supporting_docs_catalog&doc_type=school_calendar&strict_doc_type=1`, { credentials: 'include' }).then(res => res.json()),
+                        fetch(`${supportingBase}?action=list_supporting_uploads&id=${encodeURIComponent(id)}`, { credentials: 'include' }).then(res => res.json()),
+                    ]);
+                    if (catalogResult.status === 'fulfilled' && catalogResult.value?.success && Array.isArray(catalogResult.value.items)) checklistItems = catalogResult.value.items;
+                    if (uploadsResult.status === 'fulfilled' && uploadsResult.value?.success && Array.isArray(uploadsResult.value.items)) checklistUploads = uploadsResult.value.items;
+                    inner.innerHTML = _buildAdminCalendarPreview(payload, checklistItems, checklistUploads);
+                }
                 host.dataset.loaded = '1';
                 return;
             }
 
-            host.innerHTML = _buildAdminCalendarPreview(payload);
+            let checklistItems = [];
+            let checklistUploads = [];
+            const supportingBase = apiUrl('/documents-submitted.php');
+            const [catalogResult, uploadsResult] = await Promise.allSettled([
+                fetch(`${supportingBase}?action=supporting_docs_catalog&doc_type=school_calendar&strict_doc_type=1`, { credentials: 'include' }).then(res => res.json()),
+                fetch(`${supportingBase}?action=list_supporting_uploads&id=${encodeURIComponent(id)}`, { credentials: 'include' }).then(res => res.json()),
+            ]);
+            if (catalogResult.status === 'fulfilled' && catalogResult.value?.success && Array.isArray(catalogResult.value.items)) {
+                checklistItems = catalogResult.value.items;
+            }
+            if (uploadsResult.status === 'fulfilled' && uploadsResult.value?.success && Array.isArray(uploadsResult.value.items)) {
+                checklistUploads = uploadsResult.value.items;
+            }
+            host.innerHTML = _buildAdminCalendarPreview(payload, checklistItems, checklistUploads);
             host.dataset.loaded = '1';
 
         } catch (err) {
@@ -2935,7 +2959,7 @@ const ADS = (() => {
     }
 
 
-    function _buildAdminCalendarPreview(payload) {
+    function _buildAdminCalendarPreview(payload, checklistItems = [], checklistUploads = []) {
         const e = (v) => String(v == null ? '' : v)
             .replace(/&/g,'&amp;').replace(/</g,'&lt;')
             .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -3146,13 +3170,36 @@ const ADS = (() => {
         }).join('') +
         `<tr class="total-row"><td>TOTAL</td><td style="font-weight:900;">${grandTotal}</td></tr>`;
 
-        const chkRows = [1,2,3,4,5].map(i => {
-            const req = (form[`f_chk_req${i}`]    || '').trim();
-            const rem = (form[`f_chk_remark${i}`] || '').trim();
+        const uploadedBySlug = new Map((Array.isArray(checklistUploads) ? checklistUploads : [])
+            .filter(item => item && item.slug)
+            .map(item => [String(item.slug), item]));
+        const defaultChecklistItems = [
+            { slug: 'sd_cal_loi', label: 'Letter of Intent', autoRemark: '✓ Included (Pages 4 of this document)' },
+            { slug: 'sd_cal_activities', label: 'Calendar of Activities (200–220 school days, per RA 11480)', autoRemark: '✓ Included (Monthly Calendar pages of this document)' },
+        ];
+        const configuredChecklistItems = Array.isArray(checklistItems) ? checklistItems : [];
+        const legacyChecklistItems = configuredChecklistItems.length ? [] : [1,2,3,4,5]
+            .map(i => ({
+                id: `legacy_${i}`,
+                label: (form[`f_chk_req${i}`] || '').trim(),
+                legacyRemark: (form[`f_chk_remark${i}`] || '').trim(),
+            }))
+            .filter(item => item.label);
+        const displayChecklistItems = [
+            ...defaultChecklistItems,
+            ...configuredChecklistItems.filter(item => item && item.id && !defaultChecklistItems.some(auto => auto.slug === item.id)),
+            ...legacyChecklistItems,
+        ];
+        const chkRows = displayChecklistItems.map((item, index) => {
+            const upload = uploadedBySlug.get(String(item.id || item.slug || ''));
+            const requirement = item.label || item.id || item.slug || '';
+            const remark = item.autoRemark || item.legacyRemark || (upload
+                ? `✓ Uploaded (${upload.original_filename || 'file attached'})`
+                : 'Not yet uploaded');
             return `<tr>
-                <td>${i}.</td>
-                <td><span>${e(req)}</span></td>
-                <td><span class="chk-remark">${e(rem)}</span></td>
+                <td>${index + 1}.</td>
+                <td><span>${e(requirement)}</span></td>
+                <td><span class="chk-remark">${e(remark)}</span></td>
             </tr>`;
         }).join('');
 

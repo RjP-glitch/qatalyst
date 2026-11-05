@@ -733,7 +733,7 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/school-portal-permissions.js"></script>
-<script src="js/school-portal-calendar.js?v9"></script>
+<script src="js/school-portal-calendar.js?v10"></script>
 
 <script>
 /* ══════════════════════════════════════════════════════════════════
@@ -812,23 +812,14 @@
 
             /* Hydrate all preview fields */
             if (typeof hydrateCalendarFromPayload === 'function') {
-                hydrateCalendarFromPayload(hpl);
+                hydrateCalendarFromPayload(hpl, doc.id || null);
             }
 
-            /* Ensure supporting uploads load for the submitted document so
-               the Checklist page shows uploaded files (View/Remove buttons). */
-            try {
-                if (typeof window !== 'undefined' && doc && doc.id) {
-                    // Expose the id the builder code expects
-                    window.currentCalendarDocumentId = doc.id;
-                    if (typeof loadSupportingUploads === 'function') {
-                        // force reload then render checklist fields
-                        loadSupportingUploads(true).then(function() {
-                            if (typeof renderChecklistFormFields === 'function') renderChecklistFormFields();
-                        }).catch(function() {});
-                    }
-                }
-            } catch (e) { /* ignore */ }
+            /* Keep the id available to this page's document modal buttons.
+               The calendar module receives it through hydrateCalendarFromPayload(). */
+            if (typeof window !== 'undefined' && doc && doc.id) {
+                window.currentCalendarDocumentId = doc.id;
+            }
 
             /* Apply edit request status badge */
             var editStatus = doc.edit_request_status || null;

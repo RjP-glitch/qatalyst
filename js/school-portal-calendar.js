@@ -3495,8 +3495,9 @@ function applyDeptSelection(value) {
     }
     deptSelect.value = target;
 }
-function hydrateCalendarFromPayload(payload) {
+function hydrateCalendarFromPayload(payload, documentId = null) {
     if (!payload || typeof payload !== 'object') return;
+    if (documentId != null && documentId !== '') currentCalendarDocumentId = documentId;
     const form = payload.form && typeof payload.form === 'object' ? payload.form : {};
     const officeOnlyFieldIds = new Set(
         Object.entries(SIG_CAL_FIELDS)
