@@ -805,6 +805,7 @@
             const context = document.getElementById('manualContext');
             const title = document.getElementById('manualTitle');
             const subtitle = document.getElementById('manualSubtitle');
+            const isFullManual = new URLSearchParams(window.location.search).get('view') === 'full';
             const focused = resolveSectionDefinition();
             const allowed = getAllowedSections();
 
@@ -813,6 +814,14 @@
                 if (!response.ok) throw new Error('Could not load USER_MANUAL.md');
 
                 const markdown = await response.text();
+                if (isFullManual) {
+                    context.textContent = 'Full manual.';
+                    title.innerHTML = '<i class="fa-solid fa-book-open"></i> User Manual';
+                    subtitle.textContent = 'Practical guide for daily system usage and workflows.';
+                    content.innerHTML = markdownToHtml(markdown);
+                    return;
+                }
+
                 if (focused) {
                     const sectionMarkdown = extractSection(markdown, focused.heading);
                     if (sectionMarkdown) {
