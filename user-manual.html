@@ -56,7 +56,8 @@
 
         .manual-content h1,
         .manual-content h2,
-        .manual-content h3 {
+        .manual-content h3,
+        .manual-content h4 {
             margin-top: 22px;
             margin-bottom: 8px;
             line-height: 1.3;
@@ -74,6 +75,10 @@
 
         .manual-content h3 {
             font-size: 1rem;
+        }
+
+        .manual-content h4 {
+            font-size: 0.94rem;
         }
 
         .manual-content p {
@@ -649,6 +654,12 @@
                     continue;
                 }
 
+                if (/^---+$/.test(line)) {
+                    closeLists();
+                    out.push('<hr>');
+                    continue;
+                }
+
                 if (line.startsWith('![')) {
                     const img = parseImageLine(line);
                     if (img) {
@@ -661,6 +672,12 @@
                         );
                         continue;
                     }
+                }
+
+                if (line.startsWith('#### ')) {
+                    closeLists();
+                    out.push('<h4>' + renderInline(line.slice(5)) + '</h4>');
+                    continue;
                 }
 
                 if (line.startsWith('### ')) {

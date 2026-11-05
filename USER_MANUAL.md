@@ -657,13 +657,9 @@ Completion percentage is calculated from three required categories: School Calen
 
 The main table lists each private school with columns for Q1 (Jan–Mar), Q2 (Apr–Jun), Q3 (Jul–Sep), and Q4 (Oct–Dec). Within each quarter, three sub-columns show the number of submissions that reached Endorsed, Approved, and Released status during that period. A dash (—) is shown when the count is zero.
 
-#### Level Submissions Table
+#### More Breakdowns
 
-Below the quarterly table, a separate Level Submissions table shows Authority to Operate, Application for Government Recognition, Off-Campus Activities, and Special Order Level, with a checkmark (✓) or quarter badge per school per level.
-
-#### Category Bars
-
-A category breakdown section shows bar charts with submission progress per category across all schools.
+Below the main progress table, expand **More breakdowns** to view the Level Submissions table and Category Completion Overview. The level table shows level-based applications such as Authority to Operate, Government Recognition, Off-Campus Activities, and Special Order. The category overview shows completion progress by document type.
 
 #### Export Options
 
