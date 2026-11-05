@@ -1,9 +1,9 @@
 # QATALYST User Manual
 
-Version: 1.3.0  
-Last updated: June 1, 2026
+Version: 1.4.0
+Last updated: November 6, 2026
 
-This manual is for day-to-day users of QATALYST (QRES), including staff who manage programs, imports, reports, and monitoring, plus participants who submit evaluations.
+This manual is for QATALYST (QRES) staff and school portal users. It covers common tasks for managing programs, school submissions, reports, and monitoring.
 
 ## 1. Accessing the System
 
@@ -11,6 +11,8 @@ This manual is for day-to-day users of QATALYST (QRES), including staff who mana
 2. If you see the landing page, click Sign In.
 3. Enter your registered email and password.
 4. If two-factor authentication is enabled on your account, enter the verification code sent to your email.
+
+![QATALYST sign-in page](images/manual-access-system.png)
 
 Related pages:
 - index.html
@@ -22,19 +24,11 @@ Related pages:
 
 What you can see in the sidebar and what actions are available depend on your role and assigned permissions.
 
-Common permissions include:
-- dashboard
-- programs
-- certificates
-- speakers
-- checklist
-- school_submissions
-- directory
-- users
-- settings
-- audit_logs
+Administrators manage SDO personnel and school portal accounts from **User Management**. When adding or editing an account, choose its role and status, then review the permission checkboxes available for that role. Role names and presets come from the system; an administrator account has full access.
 
 If a page is hidden or redirects you, request access from an administrator.
+
+![User Management add-user form with role and permission controls](images/manual-roles-permissions.png)
 
 ## 3. Main Navigation
 
@@ -42,40 +36,30 @@ After sign-in, use the sidebar to open modules.
 
 Primary modules:
 - Dashboard
-- Programs / Workshops
+- Programs (open the Programs submenu to choose a program area)
 - Speaker Roster
-- Certificates (Generator and Splitter)
+- Certificates
 - Checklist
 - School Submissions (All Documents Submitted)
 - Directory
+- Announcements
 - Settings
 - Audit Logs
 - User Management
 - User Manual
-Primary modules:
-- Dashboard
-- Programs / Workshops
-- Program Summary
-- Speaker Roster
-- Certificates (Generator and Splitter)
-- Checklist
-- School Submissions (All Documents Submitted)
-- QR Generator
-- Directory
-- Settings
-- Audit Logs
-- User Management
-- User Manual
+
+![QATALYST sidebar showing the available navigation modules](images/manual-navigation.png)
 
 ## 4. Dashboard Quick Use
 
 ![Dashboard overview](images/manual-dashboard.png)
 
 On the dashboard, you can:
-- See totals for workshops, active workshops, responses, imports, and records.
-- Open quick actions such as Add New Program and Import Excel.
+- See totals for workshops, active workshops, imported responses, and saved records. The Responses total card is currently hidden.
+- Open quick actions such as Create Workshop, Import Excel, and Certificates.
 - View recent workshops and jump to full program management.
-- Use the notification bell for new evaluation submissions, school calendar, tuition fee, and permit submissions, edit requests, and directory updates.
+- Review recent activity.
+- Use the notification bell for school account approvals, school calendar and tuition fee submissions or edit requests, permit submissions, and directory updates.
 
 Related page:
 - dashboard.html
@@ -84,15 +68,18 @@ Related page:
 
 The notification bell shows recent activity that may need your attention.
 
+![Notifications panel with recent directory update alerts](images/manual-notifications.png)
+
 How to use it:
 1. Click the bell icon in the page header.
 2. Click a notification item to open the related page.
-3. Use Mark all as read to clear unread indicators.
+3. Use the checkmark control in the panel header to mark all notifications as read.
 
 Types of notifications you may see:
-- Evaluation submission: opens Programs and highlights the participant in the Responses list.
-- School document submission or edit request: opens the school submissions workflow so SDO staff can review the record.
-- Directory update: opens Directory so you can review changes.
+- School account awaiting approval: opens User Management with the account selected.
+- School Calendar or Tuition Fee submission, including a request to edit: opens the matching submission for review.
+- School Permit submission: opens the permit record for review.
+- Directory or profile update: opens Directory so you can review the changes.
 
 Each item shows a short message and a relative time (for example, 2 mins ago).
 
@@ -252,31 +239,17 @@ For container programs, the monitoring view aggregates attendance across all lin
 
 For standalone Excel imports and container programs, the completion table shows per-day attendance and highlights which days a participant missed.
 
-## 8. Participant Evaluation Submission Guide
-
-Related page:
-- evaluation.html
-
-Participant steps:
-1. Open the evaluation link provided by the organizer.
-2. Fill in participant information.
-3. Select the workshop day being evaluated.
-4. Answer all required questions.
-5. Click Submit Evaluation.
-6. Confirm success message appears.
-
-Important notes:
-- The form can include rating, text, and speaker-evaluation questions.
-- If the same participant submits again for the same day, the latest submission replaces the previous answers.
-
-## 9. Other Modules
+## 8. Other Modules
 
 ### Certificates
+
+![Certificate upload modal in the Certificates and Files page](images/manual-certificates.png)
+
 - Select a program/workshop, then manage certificate files and participant distribution.
 - Upload certificate files (for example PDF/images) and link them to participants.
 - Send certificates by email (bulk send is available when participant name and email are present).
 - Track email delivery status (sent vs pending) and review sent timestamps when available.
-- Use the splitter tool when a single certificate file needs to be separated into multiple files.
+- To split a multi-page certificate PDF, open **Upload File** and use the built-in auto-split option. Each page is split and uploaded separately.
 
 Related pages:
 - certificate.html
@@ -372,6 +345,8 @@ Notes on completion percentage: only three categories count toward a school's co
 
 #### Updating a School's Checklist
 
+![School checklist detail panel with document steps and timestamp controls](images/manual-checklist-update.png)
+
 1. Click a school card to open its slide-out panel.
 2. The panel shows a completion ring, document categories, and workflow steps.
 3. Manually managed steps can be checked or unchecked. Submission and indorsement workflow steps are filled from their source records and are read-only in the tracker.
@@ -403,9 +378,11 @@ The tracker covers the following submission types per school:
 - Closure (steps: Endorsed to RO, Approved, Released)
 - Special Order (SHS) (steps: Endorsed to RO, Approved, Released)
 
-#### Generate Indorsement (from the header)
+#### Generate Indorsement (from the checklist toolbar)
 
-Click **Generate Indorsement** at the top of the tracker to open the indorsement letter generator.
+Click **Generate Indorsement** in the checklist workspace toolbar to open the indorsement letter generator.
+
+![Generate Indorsement action in the checklist workspace toolbar](images/manual-checklist-indorsement-toolbar.png)
 
 How to use it:
 1. Select the indorsement type: School Calendar, Tuition Fee Increase, No Increase, or School Permit.
@@ -431,6 +408,8 @@ Each school card has a **⋮** (actions) menu. Clicking it opens a small menu wh
 - Click **Open Form** to open the full indorsement generator pre-filled with the school's name, address, school year, and education levels.
 - Click **Download** to generate and immediately download the indorsement letter as a .docx without opening the form.
 
+![Education-level badges beside the three-dot school-card actions button](images/manual-checklist-school-card.png)
+
 #### Other Actions
 
 - **Manage Schools** — opens the Directory page where school records can be managed.
@@ -442,6 +421,8 @@ Each school card has a **⋮** (actions) menu. Clicking it opens a small menu wh
 - Use the status tabs, search field, and document-type filter to find records, then open a record to view details.
 - Update document status and add remarks.
 - Preview files, print calendar previews, and download documents (including calendar DOCX when supported).
+
+![School Submissions page showing the status tabs, search and type filters, and a released tuition fee record](images/manual-school-submissions.png)
 
 Common statuses include:
 - Pending Review
@@ -478,18 +459,27 @@ Related pages:
 ---
 
 ### Audit Logs
+
+![Audit Logs filters and activity table](images/manual-audit-logs.png)
+
 - Search by action, module, role, status, or date range.
-- Filter by school to review specific activity.
+- Filter by account side (SDO or school portal) and school to review specific activity.
+- Select **Apply** to run the filters or **Reset** to clear them. Quick date ranges include Today, Last 7 days, Last 30 days, and All time.
+- Expand a row to inspect its detailed changes.
 - Export audit logs to CSV for external review.
 
 Related page:
 - audit-logs.html
 
 ### Import Excel
-- Upload participant/response spreadsheets and use the Column Mapper to map fields.
-- Save and reuse column configurations for repeatable imports.
-- Auto-matching can apply a saved configuration if your new file has similar columns.
-- Watch for warnings about new/changed columns and adjust mappings as needed.
+
+![Excel Importer with the file upload area and workflow tabs](images/manual-import-excel.png)
+
+- On **Import & Map**, choose **Import New File** or drag an `.xlsx`, `.xls`, or `.csv` file into the upload area.
+- Review the detected columns in the **Column Configurator** and map them to the fields and evaluation categories. Review any warning about new or changed columns before continuing.
+- Use a saved column configuration for a repeat import. The importer can automatically apply the best matching configuration when the incoming columns are similar, and will flag columns that still need review.
+- Continue to **Compute & Results** to calculate the results, review the output, and save it to the database or export it.
+- Use **Settings** to adjust import rules and manage saved configurations. Select **Take a Tour** in the page header for the guided walkthrough.
 
 If you entered Import Excel through Add Day Import from a container program:
 - The import is linked to the selected program and saved under the provided day label (Day 1, Day 2, etc.).
@@ -639,7 +629,7 @@ The summary uses the same shared workspace style as the Checklist page. Use the 
 - **School Year** — select the school year to load. The current school year is selected by default; years found on submissions are added to the available list.
 - **School Type** — currently supports Private schools. Public school tracking is under development.
 - **Category** — filter the quarterly counts table to show data for a single submission category, or leave on All to show combined totals.
-- **Status** — filter schools by completion status: All, Done (100%), Partial (1–99%), or Pending (0%).
+- **Status** — filter schools by completion status: All statuses, Completed (100%), Ongoing (1–99%), or Pending (0%).
 - **Search** — type part of a school name to filter the table in real time.
 
 The Private Schools and Public Schools tabs share the workspace with the action buttons. The controls appear in one row when the screen has enough space and wrap on smaller screens.
@@ -648,7 +638,7 @@ The Private Schools and Public Schools tabs share the workspace with the action 
 
 Above the table, summary widgets show:
 - Total schools in the filtered view.
-- Number of schools Done, Partial, and Pending.
+- Number of fully completed, ongoing, and pending schools.
 - Average completion percentage across all filtered schools.
 
 Completion percentage is calculated from three required categories: School Calendar (all steps), Tuition Fee per level (whichever of Increase or No Increase was submitted for that level), and Renewal of Government Permit.
@@ -706,14 +696,14 @@ Related page:
 Related page:
 - user-manual.html
 
-## 10. Security and Account Tips
+## 9. Security and Account Tips
 
 - Use a strong password and keep it private.
 - Enable two-factor authentication when available.
 - Always sign out, especially on shared devices.
 - If you cannot sign in, use Forgot Password.
 
-## 11. Quick Troubleshooting
+## 10. Quick Troubleshooting
 
 1. I cannot access a page:
    - You may not have the required permission. Contact an admin.
@@ -727,7 +717,7 @@ Related page:
    - Verify credentials, check email for 2FA code, or use reset-password flow.
 
 
-## 12. Reference Documents
+## 11. Reference Documents
 
 For technical setup and API details, see:
 - README.md

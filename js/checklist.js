@@ -3296,9 +3296,12 @@ function showToast(msg, type = 'info') {
     if (!toast) {
         toast = document.createElement('div');
         toast.id = '_globalToast';
-        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.18);transition:opacity .3s;';
+        toast.style.cssText = 'position:fixed;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.18);transition:opacity .3s;pointer-events:none;';
         document.body.appendChild(toast);
     }
+    const trackerPanelOpen = document.getElementById('st-panel-overlay')?.classList.contains('open');
+    toast.style.bottom = trackerPanelOpen ? '82px' : '24px';
+    toast.style.pointerEvents = 'none';
     const bg = type === 'success' ? '#16a34a' : type === 'error' ? '#dc2626' : '#6366f1';
     toast.style.background = bg;
     toast.style.opacity = '1';

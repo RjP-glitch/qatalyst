@@ -983,7 +983,7 @@
     height: 100vh;
     background: var(--color-background-primary, #fff);
     border-left: 0.5px solid var(--color-border-tertiary, #e5e7eb);
-    overflow-y: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     transform: translateX(100%);
@@ -1001,8 +1001,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 10px;
-    position: sticky;
-    top: 0;
+    flex-shrink: 0;
     background: var(--color-background-primary, #fff);
     z-index: 2;
 }
@@ -1038,6 +1037,8 @@
 .st-panel-body {
     padding: 16px 18px;
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 /* ── Score row in panel ──────────────────────────────────────────── */
@@ -1154,8 +1155,8 @@
     display: flex;
     gap: 8px;
     justify-content: flex-end;
-    position: sticky;
-    bottom: 0;
+    position: relative;
+    flex-shrink: 0;
     background: var(--color-background-primary, #fff);
     z-index: 5;
     pointer-events: auto;

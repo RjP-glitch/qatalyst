@@ -284,7 +284,11 @@
             body: JSON.stringify(body),
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
+        const json = await res.json();
+        if (!json || json.success === false) {
+            throw new Error((json && (json.error || json.message)) || 'The server could not save the changes.');
+        }
+        return json;
     }
 
     async function _initData() {
@@ -779,6 +783,11 @@
         _updatePanelRing();
 
         document.getElementById('st-panel-overlay').classList.add('open');
+        const activeToast = document.getElementById('_globalToast');
+        if (activeToast) {
+            activeToast.style.bottom = '82px';
+            activeToast.style.pointerEvents = 'none';
+        }
         document.body.style.overflow = 'hidden';
     }
 
@@ -943,31 +952,44 @@
         if (_panelSid === null) return;
         const sid = _panelSid;
         const year = _currentYear;
-        const saveButton = document.querySelector('#st-panel-overlay .st-btn-save');
-        const originalButtonHtml = saveButton ? saveButton.innerHTML : '';
-        const previousData = _schoolData(year, sid);
-        const previousSnapshot = JSON.parse(JSON.stringify(previousData));
-
-        if (saveButton) {
-            saveButton.disabled = true;
-            saveButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:5px;"></i>Saving…';
-        }
-
-        _yrData(year)[sid] = JSON.parse(JSON.stringify(_panelTemp));
+        let saveButton = null;
+        let originalButtonHtml = '';
+        let previousSnapshot = null;
+        let localStateUpdated = false;
+        let saved = false;
         try {
+            // Keep preparation and persistence in this try/finally so the
+            // button is restored even if preparation or the request fails.
+            saveButton = document.querySelector('#st-panel-overlay .st-btn-save');
+            originalButtonHtml = saveButton ? saveButton.innerHTML : '';
+            previousSnapshot = JSON.parse(JSON.stringify(_schoolData(year, sid)));
+            if (saveButton) {
+                saveButton.disabled = true;
+                saveButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:5px;"></i>Saving…';
+            }
+
+            _yrData(year)[sid] = JSON.parse(JSON.stringify(_panelTemp));
+            localStateUpdated = true;
             await _saveToServer(year, sid);
-            _closePanel();
-            _renderAll();
-            if (typeof showToast === 'function') showToast('Changes saved successfully.', 'success');
+            saved = true;
         } catch (e) {
-            _yrData(year)[sid] = previousSnapshot;
-            _panelTemp = JSON.parse(JSON.stringify(previousSnapshot));
+            if (localStateUpdated && previousSnapshot) {
+                _yrData(year)[sid] = previousSnapshot;
+                _panelTemp = JSON.parse(JSON.stringify(previousSnapshot));
+            }
+            console.error('school-tracker: failed to save checklist changes', e);
+            if (typeof showToast === 'function') showToast('Failed to save changes. Please try again.', 'error');
+        } finally {
             if (saveButton) {
                 saveButton.disabled = false;
-                saveButton.innerHTML = originalButtonHtml;
+                saveButton.innerHTML = originalButtonHtml || '<i class="fa-solid fa-floppy-disk" style="margin-right:5px;"></i>Save changes';
             }
-            if (typeof showToast === 'function') showToast('Failed to save changes. Please try again.', 'error');
         }
+        if (!saved) return;
+
+        _closePanel();
+        _renderAll();
+        if (typeof showToast === 'function') showToast('Changes saved successfully.', 'success');
     }
 
     function _cancelPanel() {
@@ -977,6 +999,8 @@
 
     function _closePanel() {
         document.getElementById('st-panel-overlay').classList.remove('open');
+        const activeToast = document.getElementById('_globalToast');
+        if (activeToast) activeToast.style.bottom = '24px';
         document.body.style.overflow = '';
         _panelSid = null;
     }
