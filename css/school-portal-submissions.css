@@ -1265,20 +1265,22 @@ body {
 }
 
 .sub-search-wrap {
-    margin-left: auto;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     border: 1.5px solid #dbe4ef;
-    border-radius: 20px;
-    padding: 6px 12px;
+    border-radius: 10px;
+    padding: 8px 14px;
     background: #fff;
-    min-width: 220px;
+    flex: 1 1 340px;
+    min-width: 260px;
+    max-width: none;
+    height: 40px;
 }
 
 .sub-search-wrap i {
     color: #64748b;
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .sub-search-wrap input {
@@ -1286,7 +1288,7 @@ body {
     outline: none;
     background: transparent;
     width: 100%;
-    font-size: 12px;
+    font-size: 13px;
     font-family: var(--font);
     color: #1f2937;
 }
@@ -1294,7 +1296,8 @@ body {
 @media (max-width: 760px) {
     .sub-search-wrap {
         margin-left: 0;
-        width: 100%;
+        flex: 1 1 260px;
+        width: auto;
         min-width: 0;
     }
 }
@@ -2697,26 +2700,58 @@ body {
         font-size: 11px;
     }
 }
-/* ── Upload button group ─────────────────────────────────────────────────── */
+/* ── Submissions toolbar ─────────────────────────────────────────────────── */
+.submissions-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+.submission-type-select-wrap {
+    position: relative;
+    flex: 0 0 205px;
+    width: 205px;
+}
+.submission-type-select-wrap > i {
+    position: absolute;
+    z-index: 1;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #2563eb;
+    font-size: 12px;
+    pointer-events: none;
+}
+.submission-type-select-wrap select {
+    width: 100%;
+    height: 40px;
+    padding: 7px 30px 7px 34px;
+    border: 1.5px solid #dbe4ef;
+    border-radius: 10px;
+    background: #fff;
+    color: #1f2937;
+    font: 600 13px var(--font);
+    outline: none;
+}
+.submission-type-select-wrap select:focus,
+.sub-search-wrap:focus-within { border-color: var(--blue-mid); }
+
 .upload-btn-group {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-}
-
-.submissions-actions-row {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin-bottom: 12px;
+    flex: 0 1 auto;
+    margin-left: auto;
 }
 
 .upload-btn-group .btn {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: 9px 16px;
+    min-height: 40px;
+    padding: 8px 14px;
     font-size: 13px;
     font-weight: 700;
     border-radius: 10px;
@@ -2762,13 +2797,19 @@ body {
 }
 
 @media (max-width: 640px) {
-    .submissions-actions-row {
-        justify-content: stretch;
+    .submissions-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .submission-type-select-wrap {
+        flex: 1 1 auto;
+        width: 100%;
     }
     .upload-btn-group {
         flex-direction: column;
         align-items: stretch;
         width: 100%;
+        margin-left: 0;
     }
     .upload-btn-group .btn {
         justify-content: center;

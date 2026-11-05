@@ -1182,6 +1182,7 @@ const ADS = (() => {
            panel via loadTuitionPreviewHtml(); the sidebar just shows the
            address if we already have it from the join in actionList. */
         const tuitionRows = isTuition ? `
+            ${record.baseline_review_required ? `<div class="ads-tf-baseline-review"><i class="fa-solid fa-triangle-exclamation"></i><div><strong>Baseline verification required</strong><span>No accepted schedule was on record for current SY ${esc(record.baseline_current_sy || '—')}. Verify the current fees against the school’s prior approved records before approving.</span></div></div>` : ''}
             ${record.school_address ? `<div class="dsd-field-row"><div class="dsd-field-label">Address</div><div class="dsd-field-value">${esc(record.school_address)}</div></div>` : ''}
             <div id="adsTuitionExtraDetails"></div>
             <div class="dsd-section ads-tf-supporting-section">
@@ -1453,6 +1454,10 @@ const ADS = (() => {
             return;
         }
 
+        const selectedRecord = allRecords.find((x) => Number(x.id) === Number(detailRecordId));
+        const baselineVerified = !!(selectedRecord?.baseline_review_required && status === 'Approved');
+        if (baselineVerified && !confirm(`No accepted fee schedule was on record for current SY ${selectedRecord.baseline_current_sy || '—'}. Before approving, verify the submitted current fees against the school's prior approved records. Have you completed that verification?`)) return;
+
         if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...'; }
         if (msgEl)   { msgEl.textContent = ''; msgEl.className = 'dsf-msg'; }
 
@@ -1470,7 +1475,7 @@ const ADS = (() => {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'update', id, status, remarks }),
+                    body: JSON.stringify({ action: 'update', id, status, remarks, baseline_verified: baselineVerified }),
                 });
                 const json = await res.json();
                 if (!res.ok || !json.success) throw new Error(json.message || 'Failed to update status.');
@@ -1868,7 +1873,7 @@ const ADS = (() => {
         const reviewedByPosition = form.reviewed_by_position || 'SDO, EPS In Charge';
         const validatedBy        = form.validated_by || '';
         const validatedByPosition= form.validated_by_position || 'EPS,QAD DepEd RO 3';
-        const notedBy            = form.noted_by || 'MAY B. ECLAR, PhD, CESO III';
+        const notedBy            = form.noted_by || '';
         const notedByPosition    = form.noted_by_position || 'Regional Director';
 
         if (!principal && !reviewedBy && !validatedBy) return '';
@@ -2087,9 +2092,9 @@ const ADS = (() => {
         const principal         = form.principal || '';
         const principalPosition = form.principal_position || 'School Principal';
         const reviewedBy        = form.reviewed_by || '';
-        const sdsName           = form.shs_noted_by          || 'ROWENA T. QUIAMBAO, CESO VI';
-        const sdsPosition       = form.shs_noted_by_position || 'Schools Division Superintendent';
-        const sdsOffice         = form.shs_noted_by_office   || 'Office of the Schools Division Superintendent';
+        const sdsName           = shsSignatory.sds_name     || form.shs_noted_by          || '';
+        const sdsPosition       = shsSignatory.sds_position || form.shs_noted_by_position || 'Schools Division Superintendent';
+        const sdsOffice         = shsSignatory.sds_office   || form.shs_noted_by_office   || 'Office of the Schools Division Superintendent';
 
         return `
             <div class="paper cert-box">
@@ -2177,6 +2182,7 @@ const ADS = (() => {
        12, if SHS is present). */
     function _buildAdminTuitionPreview(payload, id) {
         const form   = (payload.form && typeof payload.form === 'object') ? payload.form : {};
+        const shsSignatory = (payload.shs && typeof payload.shs === 'object') ? payload.shs : {};
         const levels = (payload.computed_levels && typeof payload.computed_levels === 'object') ? payload.computed_levels : {};
         const record = allRecords.find(x => Number(x.id) === Number(id));
 
@@ -2200,7 +2206,10 @@ const ADS = (() => {
            of the identifying fields (Division, School ID, Gov. Recognition
            No., School Year, Principal, Contact No.) now live in the
            sidebar's Details panel — see _populateTuitionSidebarDetails(). */
-        const statusBanner = `<div class="ads-tf-status-banner">${modeBadge}</div>`;
+        const baselineReviewBanner = form.baseline_review_required
+            ? `<div class="dsd-preview-notice"><i class="fa-solid fa-triangle-exclamation"></i><strong>Baseline verification required.</strong> No accepted fee schedule was on record for current SY ${esc(form.baseline_current_sy || form.current_sy || '—')}. Verify the current fees against the school’s prior approved records before approving this submission.</div>`
+            : '';
+        const statusBanner = `${baselineReviewBanner}<div class="ads-tf-status-banner">${modeBadge}</div>`;
 
         const levelOrder = ['kinder', 'elem', 'jhs', 'shs'];
         const levelDisplayLabel = { kinder: 'KINDERGARTEN', elem: 'ELEMENTARY', jhs: 'JUNIOR HIGH SCHOOL', shs: 'SENIOR HIGH SCHOOL' };
@@ -2374,6 +2383,7 @@ const ADS = (() => {
         }
 
         const form   = (payload.form && typeof payload.form === 'object') ? payload.form : {};
+        const shsSignatory = (payload.shs && typeof payload.shs === 'object') ? payload.shs : {};
         const levels = (payload.computed_levels && typeof payload.computed_levels === 'object') ? payload.computed_levels : {};
         const record = allRecords.find(x => Number(x.id) === Number(id));
 
@@ -2447,13 +2457,13 @@ const ADS = (() => {
         const reviewedByPosition  = form.reviewed_by_position || 'SDO, EPS In Charge';
         const validatedBy         = form.validated_by || '';
         const validatedByPosition = form.validated_by_position || 'EPS,QAD DepEd RO 3';
-        const notedBy             = form.noted_by || 'MAY B. ECLAR, PhD, CESO III';
+        const notedBy             = form.noted_by || '';
         const notedByPosition     = form.noted_by_position || 'Regional Director';
         const shsTrack            = form.shs_track || '—';
         const shsStrand           = form.shs_strand || '—';
-        const sdsName             = form.shs_noted_by || 'ROWENA T. QUIAMBAO, CESO VI';
-        const sdsPosition         = form.shs_noted_by_position || 'Schools Division Superintendent';
-        const sdsOffice           = form.shs_noted_by_office || 'Office of the Schools Division Superintendent';
+        const sdsName             = shsSignatory.sds_name || form.shs_noted_by || '';
+        const sdsPosition         = shsSignatory.sds_position || form.shs_noted_by_position || 'Schools Division Superintendent';
+        const sdsOffice           = shsSignatory.sds_office || form.shs_noted_by_office || 'Office of the Schools Division Superintendent';
 
         const showK = !!levels.kinder;
         const showE = !!levels.elem;

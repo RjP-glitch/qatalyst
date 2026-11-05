@@ -54,6 +54,7 @@ try {
     $db = getDB();
     $user_id = $user['id'];
     $hasCalendarEditRequestStatus = false;
+    $hasTuitionEditRequestStatus = false;
     try {
         $statusColumn = $db->query("SHOW COLUMNS FROM school_calendar_documents LIKE 'edit_request_status'")->fetch(PDO::FETCH_ASSOC);
         if (!$statusColumn) {
@@ -63,6 +64,16 @@ try {
         $hasCalendarEditRequestStatus = (bool)$statusColumn;
     } catch (Throwable $e) {
         error_log('notifications edit request schema check failed: ' . $e->getMessage());
+    }
+    try {
+        $statusColumn = $db->query("SHOW COLUMNS FROM school_tuition_documents LIKE 'edit_request_status'")->fetch(PDO::FETCH_ASSOC);
+        if (!$statusColumn) {
+            $db->exec("ALTER TABLE school_tuition_documents ADD COLUMN edit_request_status VARCHAR(20) NOT NULL DEFAULT 'none'");
+            $statusColumn = $db->query("SHOW COLUMNS FROM school_tuition_documents LIKE 'edit_request_status'")->fetch(PDO::FETCH_ASSOC);
+        }
+        $hasTuitionEditRequestStatus = (bool)$statusColumn;
+    } catch (Throwable $e) {
+        error_log('notifications tuition edit request schema check failed: ' . $e->getMessage());
     }
 
     // ─── GET: Fetch notification counts ───────────────────────────────────
@@ -238,6 +249,34 @@ try {
                     CASE WHEN scd.updated_at > ? THEN 1 ELSE 0 END AS is_new
                 {$editRequestSource}
                 ORDER BY scd.updated_at DESC LIMIT 20");
+            $editRequestStmt->execute([$lastCheck]);
+            $recent = array_merge($recent, $editRequestStmt->fetchAll(PDO::FETCH_ASSOC));
+            usort($recent, static fn($a, $b) => strcmp((string)$b['submitted_at'], (string)$a['submitted_at']));
+            $recent = array_slice($recent, 0, 20);
+        }
+
+        if ($hasTuitionEditRequestStatus) {
+            $editRequestSource = "FROM school_tuition_documents std
+                INNER JOIN school_submissions ss ON ss.calendar_document_id = std.id AND ss.type = 'tuition'
+                LEFT JOIN private_schools pvs ON pvs.id = ss.private_school_id
+                WHERE std.edit_request_status = 'pending'";
+
+            $countEditRequests = $db->prepare("SELECT COUNT(*) {$editRequestSource} AND std.updated_at > ?");
+            $countEditRequests->execute([$lastCheck]);
+            $newCount += (int)$countEditRequests->fetchColumn();
+
+            $editRequestStmt = $db->prepare("SELECT
+                    ss.id, std.updated_at AS submitted_at,
+                    TIMESTAMPDIFF(SECOND, std.updated_at, NOW()) AS seconds_ago,
+                    NULL AS participant_name, NULL AS participant_id, NULL AS day_label,
+                    NULL AS workshop_id, NULL AS workshop_title,
+                    COALESCE(pvs.name, ss.created_by_name, 'A school') AS school_name,
+                    ss.calendar_document_id,
+                    CONCAT('Edit request: ', ss.title) AS submission_title,
+                    'tuition_edit_request' AS notification_type,
+                    CASE WHEN std.updated_at > ? THEN 1 ELSE 0 END AS is_new
+                {$editRequestSource}
+                ORDER BY std.updated_at DESC LIMIT 20");
             $editRequestStmt->execute([$lastCheck]);
             $recent = array_merge($recent, $editRequestStmt->fetchAll(PDO::FETCH_ASSOC));
             usort($recent, static fn($a, $b) => strcmp((string)$b['submitted_at'], (string)$a['submitted_at']));

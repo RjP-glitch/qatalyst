@@ -109,7 +109,22 @@
 
             <!-- ══ SUBMISSIONS ══════════════════════════════════════════════ -->
             <div class="tab-panel active" id="tab-submissions">
-                <div class="submissions-actions-row">
+                <div class="submissions-toolbar">
+                    <div class="submission-type-select-wrap">
+                        <i class="fa-solid fa-filter" aria-hidden="true"></i>
+                        <select id="subTypeFilter" aria-label="Filter submissions by document type" onchange="filterSubs(this.value)">
+                            <option value="all">All document types</option>
+                            <option value="tuition">Tuition Fee</option>
+                            <option value="no_tuition">No Tuition</option>
+                            <option value="calendar">School Calendar</option>
+                            <option value="permit">School Permit</option>
+                        </select>
+                    </div>
+                    <div class="sub-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input id="subSearchInput" type="search" placeholder="Search submissions"
+                            oninput="handleSubSearch(this.value)">
+                    </div>
                     <div class="upload-btn-group">
                         <button class="btn btn-upload-calendar" onclick="window.location.href='school-portal-calendar.html'" title="Upload School Calendar">
                             <i class="fa-solid fa-calendar-days"></i> Upload Calendar
@@ -120,19 +135,6 @@
                         <a class="btn btn-upload-permit" href="school-portal-permit.html" title="Upload School Permit" style="text-decoration:none;">
                             <i class="fa-solid fa-file-shield"></i> Upload Permit
                         </a>
-                    </div>
-                </div>
-
-                <div class="filter-row">
-                    <button class="filter-btn active" onclick="filterSubs('all')"        id="f-all"><i class="fa-solid fa-border-all"></i> All</button>
-                    <button class="filter-btn" onclick="filterSubs('tuition')"           id="f-tuition"><i class="fa-solid fa-money-bill-trend-up"></i> Tuition Fee</button>
-                    <button class="filter-btn" onclick="filterSubs('no_tuition')"        id="f-no_tuition"><i class="fa-solid fa-money-bill"></i> No Tuition</button>
-                    <button class="filter-btn" onclick="filterSubs('calendar')"          id="f-calendar"><i class="fa-solid fa-calendar-alt"></i> School Calendar</button>
-                    <button class="filter-btn" onclick="filterSubs('permit')"            id="f-permit"><i class="fa-solid fa-file-shield"></i> School Permit</button>
-                    <div class="sub-search-wrap">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input id="subSearchInput" type="search" placeholder="Search submissions"
-                            oninput="handleSubSearch(this.value)">
                     </div>
                 </div>
 

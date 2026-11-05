@@ -620,98 +620,54 @@
 
                     <div class="settings-card" style="margin-top:1.5rem;">
                         <h2>School Portal Signatories</h2>
-                        <p class="card-desc">Manage the signatories used by the School Calendar and Tuition Fee builders. Each role belongs to one builder (or both, if marked "Shared") — the group headings below show which. Use school-owned rows for private-school users, and office-managed rows for SDO/SMME-only signatories such as Regional Director and Schools Division Superintendent.</p>
+                        <p class="card-desc">Manage the signatories used by the School Calendar and Tuition Fee builders. The Regional Director is shared by both builders. Use school-owned rows for private-school signatories and office-managed rows for SDO/SMME roles.</p>
 
-                        <div class="form-row">
-                            <div class="form-group full">
-                                <label>Scope</label>
-                                <select id="schoolSigScope" class="form-select" onchange="toggleSchoolSigScope(true); loadSchoolSignatories()">
-                                    <option value="school">School-owned signatories</option>
-                                    <option value="office">Office-managed signatories</option>
-                                </select>
+                        <section class="sig-settings-section" aria-labelledby="sigScopeHeading">
+                            <div class="sig-settings-section-heading">
+                                <span class="sig-settings-step">1</span>
+                                <div>
+                                    <h3 id="sigScopeHeading">Choose where it applies</h3>
+                                    <p>Select a specific school, or manage defaults shared by SDO and regional offices.</p>
+                                </div>
                             </div>
-                        </div>
+                            <div class="sig-settings-scope-grid">
+                                <div class="form-group">
+                                    <label for="schoolSigScope">Signatory scope</label>
+                                    <select id="schoolSigScope" class="form-select" onchange="toggleSchoolSigScope(true); loadSchoolSignatories()">
+                                        <option value="school">School-owned signatories</option>
+                                        <option value="office">Office-managed signatories</option>
+                                    </select>
+                                </div>
 
-                        <div class="form-row" id="schoolSigSchoolRow">
-                            <div class="form-group full">
-                                <label>Private School</label>
-                                <select id="schoolSigSchool" class="form-select" onchange="cancelEditSchoolSignatory({skipReload:true}); loadSchoolSignatories()">
-                                    <option value="">Select a private school</option>
-                                </select>
+                                <div class="form-group" id="schoolSigSchoolRow">
+                                    <label for="schoolSigSchool">Private school</label>
+                                    <select id="schoolSigSchool" class="form-select" onchange="cancelEditSchoolSignatory({skipReload:true}); loadSchoolSignatories()">
+                                        <option value="">Select a private school</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
+                            <p class="sig-settings-hint" id="schoolSigScopeHint">School-owned signatories are available only to the selected private school. Office-managed defaults are used across schools.</p>
+                        </section>
 
-                        <div class="editing-banner" id="schoolSigEditingBanner" style="display:none;">
-                            <i class="fa-solid fa-pen"></i>
-                            <span>Editing <strong id="schoolSigEditingName">this signatory</strong> — update the fields below and save, or cancel to add a new one instead.</span>
-                        </div>
+                        <div class="scale-info-box" id="tuitionSignatoryWarning" role="status" style="display:none;margin-top:16px;"></div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Role</label>
-                                <select id="schoolSigRole" class="form-select">
-                                    <optgroup label="Shared — used by both builders">
-                                        <option value="principal">Principal</option>
-                                    </optgroup>
-                                    <optgroup label="School Calendar builder only">
-                                        <option value="rd">Regional Director</option>
-                                        <option value="sds">Schools Division Superintendent (Thru — transmittal/LOI letters)</option>
-                                        <option value="recommending">Recommending Approval</option>
-                                        <option value="final_approver">Final Approver</option>
-                                        <option value="chk_checked_by">Checklist – Checked By</option>
-                                    </optgroup>
-                                    <optgroup label="Tuition Fee builder only">
-                                        <option value="reviewed_by">Processed and Evaluated By</option>
-                                        <option value="validated_by">Validated By</option>
-                                        <option value="noted_by">Noted By</option>
-                                    </optgroup>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Full Name</label>
-                                <input type="text" id="schoolSigFullName" placeholder="Full name">
+                        <section class="sig-settings-list" aria-labelledby="sigListHeading">
+                        <div class="sig-settings-section-heading">
+                            <span class="sig-settings-step"><i class="fa-solid fa-address-book"></i></span>
+                            <div>
+                                <h3 id="sigListHeading">Saved signatories</h3>
+                                <p>Review the saved names for the selected scope. Use the actions to update or remove an entry.</p>
                             </div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Position / Title</label>
-                                <input type="text" id="schoolSigPosition" placeholder="Position or designation">
-                            </div>
-                            <div class="form-group">
-                                <label>Office / Unit</label>
-                                <input type="text" id="schoolSigOffice" placeholder="Optional office or unit">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>City</label>
-                                <input type="text" id="schoolSigCity" placeholder="Optional city">
-                            </div>
-                            <div class="form-group">
-                                <label>Contact</label>
-                                <input type="text" id="schoolSigContact" placeholder="Optional contact number">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
-                                <input type="checkbox" id="schoolSigDefault">
-                                Set as default for this role
-                            </label>
-                        </div>
-
-                        <div class="btn-row" style="margin-top:8px;">
-                            <button class="btn-primary" id="btnSaveSchoolSig" onclick="saveSchoolSignatory()">
-                                <i class="fa-solid fa-floppy-disk"></i> Save School Signatory
+                        <div class="sig-settings-list-actions">
+                            <button class="btn-primary" type="button" onclick="openNewSchoolSignatory()">
+                                <i class="fa-solid fa-plus"></i> Add Signatory
                             </button>
-                            <button class="btn-secondary" id="btnCancelSchoolSig" onclick="cancelEditSchoolSignatory()" style="display:none;">
-                                <i class="fa-solid fa-xmark"></i> Cancel
-                            </button>
-                            <button class="btn-refresh" onclick="loadSchoolSignatories()">
+                            <button class="btn-refresh" type="button" onclick="loadSchoolSignatories()">
                                 <i class="fa-solid fa-arrows-rotate"></i> Refresh
                             </button>
                         </div>
-
-                        <div class="sessions-table-wrapper" style="margin-top:18px;">
+                        <div class="sessions-table-wrapper">
                             <table class="settings-table">
                                 <thead>
                                     <tr>
@@ -729,11 +685,104 @@
                                 </tbody>
                             </table>
                         </div>
+                        </section>
 
                         <div class="scale-info-box" style="margin-top:20px;">
                             <div class="scale-info-icon"><i class="fa-solid fa-circle-info"></i></div>
-                            <div>School-owned rows are used by private schools. Office-managed rows are for SDO/SMME-only signatories such as Regional Director and Schools Division Superintendent (used for the "Thru" line on transmittal/LOI letters). "Processed and Evaluated By", "Validated By", and "Noted By" are Tuition Fee builder-only roles — they will not appear anywhere in the School Calendar builder. "Validated By" and "Noted By" are office-managed only (e.g., EPS/QAD and the Regional Director/CESO signatory on the tuition fee report) and won't show under the School-owned scope.</div>
+                            <div>School-owned rows are used by private schools. Office-managed rows are maintained by SDO/SMME personnel. This settings page warns when the Regional Director, Tuition Fee Validator, or SHS fee certificate default is missing. The Regional Director default is shared with the calendar builder.</div>
                         </div>
+                    </div>
+
+                    <div class="school-sig-modal" id="schoolSigModal" aria-hidden="true" onclick="if(event.target===this) cancelEditSchoolSignatory()">
+                        <section class="school-sig-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="schoolSigModalTitle" tabindex="-1">
+                            <div class="school-sig-modal-header">
+                                <div class="school-sig-modal-heading">
+                                    <span class="school-sig-modal-icon"><i class="fa-solid fa-signature" aria-hidden="true"></i></span>
+                                    <div>
+                                        <h3 id="schoolSigModalTitle">Add signatory</h3>
+                                        <p>Choose a role and enter the name exactly as it should appear on documents.</p>
+                                    </div>
+                                </div>
+                                <button class="school-sig-modal-close" type="button" aria-label="Close dialog" onclick="cancelEditSchoolSignatory()"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <div class="editing-banner" id="schoolSigEditingBanner" style="display:none;">
+                                <i class="fa-solid fa-pen"></i>
+                                <span>Editing <strong id="schoolSigEditingName">this signatory</strong></span>
+                            </div>
+                            <div class="school-sig-modal-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="schoolSigRole">Role</label>
+                                        <select id="schoolSigRole" class="form-select" onchange="updateSchoolSigRoleAvailability()">
+                                            <optgroup label="Shared — used by both builders">
+                                                <option value="principal">Principal</option>
+                                                <option value="rd">Regional Director (Calendar and Tuition Fee)</option>
+                                            </optgroup>
+                                            <optgroup label="School Calendar builder only">
+                                                <option value="sds">Schools Division Superintendent (Thru — transmittal/LOI letters)</option>
+                                                <option value="recommending">Recommending Approval</option>
+                                                <option value="final_approver">Final Approver</option>
+                                                <option value="chk_checked_by">Checklist – Checked By</option>
+                                            </optgroup>
+                                            <optgroup label="Tuition Fee builder only">
+                                                <option value="reviewed_by">Processed and Evaluated By</option>
+                                                <option value="validated_by">Validated By</option>
+                                                <option value="shs_noted_by">Schools Division Superintendent (SHS Fees)</option>
+                                                <option value="noted_by">Legacy Tuition Noted By</option>
+                                            </optgroup>
+                                        </select>
+                                        <div class="sig-role-hint" role="note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span id="schoolSigRoleHint">Roles already added for this scope are unavailable here. Edit an existing row to change its details.</span></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="schoolSigFullName">Full Name</label>
+                                        <input type="text" id="schoolSigFullName" placeholder="Full name" autocomplete="name">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="schoolSigPosition">Position / Title</label>
+                                        <input type="text" id="schoolSigPosition" placeholder="Position or designation">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="schoolSigOffice">Office / Unit</label>
+                                        <input type="text" id="schoolSigOffice" placeholder="Optional office or unit">
+                                    </div>
+                                </div>
+                                <p class="sig-settings-subheading">Additional details <span>Optional</span></p>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="schoolSigCity">City</label>
+                                        <input type="text" id="schoolSigCity" placeholder="Optional city">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="schoolSigContact">Contact</label>
+                                        <input type="text" id="schoolSigContact" placeholder="Optional contact number" autocomplete="tel">
+                                    </div>
+                                </div>
+                                <div class="sig-default-row">
+                                    <label for="schoolSigDefault">
+                                        <input type="checkbox" id="schoolSigDefault">
+                                        Set as default for this role
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="school-sig-modal-actions">
+                                <button class="btn-secondary" type="button" onclick="cancelEditSchoolSignatory()"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                                <button class="btn-primary" type="button" id="btnSaveSchoolSig" onclick="saveSchoolSignatory()"><i class="fa-solid fa-floppy-disk"></i> Save Signatory</button>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="school-sig-delete-modal" id="schoolSigDeleteModal" aria-hidden="true" onclick="if(event.target===this) closeDeleteSchoolSignatoryModal()">
+                        <section class="school-sig-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="schoolSigDeleteTitle" tabindex="-1">
+                            <div class="school-sig-delete-icon"><i class="fa-solid fa-trash"></i></div>
+                            <h3 id="schoolSigDeleteTitle">Delete signatory?</h3>
+                            <p id="schoolSigDeleteMessage">This signatory will be removed from the selected scope.</p>
+                            <div class="school-sig-modal-actions">
+                                <button class="btn-secondary" type="button" onclick="closeDeleteSchoolSignatoryModal()">Cancel</button>
+                                <button class="btn-danger" type="button" id="btnConfirmDeleteSchoolSig" onclick="confirmDeleteSchoolSignatory()"><i class="fa-solid fa-trash"></i> Delete signatory</button>
+                            </div>
+                        </section>
                     </div>
                 </div>
 

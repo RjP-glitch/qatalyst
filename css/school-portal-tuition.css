@@ -2396,6 +2396,18 @@ body {
     gap: 4px;
     flex: 0 0 auto;
 }
+.tf-step-item[role="button"] { cursor: pointer; }
+.tf-step-item[role="button"]:focus-visible {
+    outline: 2px solid #2456a4;
+    outline-offset: 4px;
+    border-radius: 6px;
+}
+.tf-year-help { margin-top: 7px; color: #64748b; font-size: 11px; line-height: 1.4; }
+.tf-baseline-notice { margin-top: 9px; padding: 9px 11px; border: 1px solid #cbd5e1; border-radius: 7px; font-size: 11px; line-height: 1.5; }
+.tf-baseline-notice.is-loading { background: #f8fafc; color: #475569; border-color: #cbd5e1; }
+.tf-baseline-notice.is-ready { background: #f0fdf4; color: #166534; border-color: #86efac; }
+.tf-baseline-notice.is-blocked { background: #fff7ed; color: #9a3412; border-color: #fdba74; }
+.tf-baseline-current { background: #f1f5f9 !important; color: #475569 !important; cursor: not-allowed !important; }
 .tf-step-dot {
     width: 26px;
     height: 26px;

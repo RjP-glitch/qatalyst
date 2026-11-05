@@ -3489,8 +3489,8 @@ hr {
 }
 
 .st-type-tab {
-    padding: 8px 18px;
-    font-size: 13px;
+    padding: 10px 16px 12px;
+    font-size: 14px;
     font-weight: 500;
     border: none;
     border-bottom: 2px solid transparent;
@@ -3499,6 +3499,9 @@ hr {
     cursor: pointer;
     font-family: inherit;
     transition: color .15s, border-color .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .st-type-tab.active {

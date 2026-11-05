@@ -655,6 +655,9 @@
                 <span class="banner-status-pill" id="bannerStatusPill" style="display:none;"></span>
             </div>
             <div class="banner-right">
+                <button class="banner-btn banner-btn-export" id="btnGeneratePDF" onclick="generatePDF()">
+                    <i class="fa-solid fa-file-pdf"></i> Generate PDF
+                </button>
                 <button class="banner-btn banner-btn-export" id="bannerExportWord" onclick="exportTuitionWord()">
                     <i class="fa-solid fa-file-word"></i> Export Word
                 </button>
@@ -715,7 +718,11 @@
                         <input id="tfGovRecogNo" />
                         <input id="tfCurrentSY" /><input id="tfProposedSY" />
                         <input id="tfPrincipal" /><input id="tfPrincipalContact" />
-                        <input id="tfReviewedBy" />
+                        <input id="tfPrincipalPosition" />
+                        <input id="tfReviewedBy" /><input id="tfReviewedByPosition" />
+                        <input id="tfValidatedBy" /><input id="tfValidatedByPosition" />
+                        <input id="tfNotedBy" /><input id="tfNotedByPosition" />
+                        <input id="tfSHSNotedBy" /><input id="tfSHSNotedByPosition" /><input id="tfSHSNotedByOffice" />
                         <img   id="tfLogoPreview" /><div id="tfLogoIcon"></div>
                         <div id="tfLogoUploadArea"></div><input id="tfLogoFile" type="file" />
                         <div id="tfNoIncNotice"></div>
@@ -740,6 +747,12 @@
                         <input id="k_dev_curr"/><input id="k_dev_prop"/><input id="k_dev_inc"/>
                         <input id="k_total_curr"/><input id="k_total_prop"/><input id="k_total_inc"/>
                         <input id="e_tuition_curr"/><input id="e_tuition_prop"/><input id="e_tuition_inc"/>
+                        <input id="e1_tuition_curr"/><input id="e1_tuition_prop"/><input id="e1_tuition_inc"/>
+                        <input id="e2_tuition_curr"/><input id="e2_tuition_prop"/><input id="e2_tuition_inc"/>
+                        <input id="e3_tuition_curr"/><input id="e3_tuition_prop"/><input id="e3_tuition_inc"/>
+                        <input id="e4_tuition_curr"/><input id="e4_tuition_prop"/><input id="e4_tuition_inc"/>
+                        <input id="e5_tuition_curr"/><input id="e5_tuition_prop"/><input id="e5_tuition_inc"/>
+                        <input id="e6_tuition_curr"/><input id="e6_tuition_prop"/><input id="e6_tuition_inc"/>
                         <input id="e_id_curr"/><input id="e_id_prop"/><input id="e_id_inc"/>
                         <input id="e_ins_curr"/><input id="e_ins_prop"/><input id="e_ins_inc"/>
                         <input id="e_handbook_curr"/><input id="e_handbook_prop"/><input id="e_handbook_inc"/>
@@ -753,6 +766,10 @@
                         <input id="e_paces2_curr"/><input id="e_paces2_prop"/><input id="e_paces2_inc"/>
                         <input id="e_total_curr"/><input id="e_total_prop"/><input id="e_total_inc"/>
                         <input id="j_tuition_curr"/><input id="j_tuition_prop"/><input id="j_tuition_inc"/>
+                        <input id="j7_tuition_curr"/><input id="j7_tuition_prop"/><input id="j7_tuition_inc"/>
+                        <input id="j8_tuition_curr"/><input id="j8_tuition_prop"/><input id="j8_tuition_inc"/>
+                        <input id="j9_tuition_curr"/><input id="j9_tuition_prop"/><input id="j9_tuition_inc"/>
+                        <input id="j10_tuition_curr"/><input id="j10_tuition_prop"/><input id="j10_tuition_inc"/>
                         <input id="j_id_curr"/><input id="j_id_prop"/><input id="j_id_inc"/>
                         <input id="j_ins_curr"/><input id="j_ins_prop"/><input id="j_ins_inc"/>
                         <input id="j_handbook_curr"/><input id="j_handbook_prop"/><input id="j_handbook_inc"/>
@@ -923,7 +940,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -996,7 +1013,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1069,7 +1086,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1143,7 +1160,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1256,7 +1273,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1321,7 +1338,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1384,7 +1401,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1625,7 +1642,7 @@ function closeTuitionTopBarMenu() {
     const reviewedByPosition = val('tfReviewedByPosition') || 'SDO, EPS In Charge';
     const validatedBy = val('tfValidatedBy');
     const validatedByPosition = val('tfValidatedByPosition') || 'EPS,QAD DepEd RO 3';
-    const notedBy = val('tfNotedBy') || 'MAY B. ECLAR, PhD, CESO III';
+    const notedBy = val('tfNotedBy');
     const notedByPosition = val('tfNotedByPosition') || 'Regional Director';
     const isIncrease = (typeof tfMode !== 'undefined') ? tfMode === 'increase' : false;
     const isPerGrade = chk('chkSHSPerGrade');
@@ -1925,7 +1942,7 @@ function closeTuitionTopBarMenu() {
     // ── "NOTED pursuant to..." block — rendered in the page FOOTER so it   ──
     // ── always sits at the bottom of the page, instead of immediately     ──
     // ── following "Validated by" in the body flow.                        ──
-    function notedFooterChildren(notedByName = 'MAY B. ECLAR, PhD, CESO III', notedByRole = 'Regional Director') {
+    function notedFooterChildren(notedByName = '', notedByRole = 'Regional Director') {
         return [
             centeredP([rb('NOTED pursuant to D.O. No. 12, s. 1997')], { spacing: { before: 0, after: 20 } }),
             centeredP([rb(notedByName)], { spacing: { after: 20 } }),
@@ -2232,7 +2249,7 @@ function closeTuitionTopBarMenu() {
             width: { size: infoHalfW, type: WidthType.DXA },
         });
 
-        const sdsName     = val('tfSHSNotedBy')         || 'ROWENA T. QUIAMBAO, CESO VI';
+        const sdsName     = val('tfSHSNotedBy');
         const sdsPosition = val('tfSHSNotedByPosition') || 'Schools Division Superintendent';
         const sdsOffice   = val('tfSHSNotedByOffice')   || 'Office of the Schools Division Superintendent';
         const track  = val('tfSHSTrack');
@@ -2787,6 +2804,10 @@ function closeTuitionTopBarMenu() {
    5. Force all .paper / .tf-*-page elements visible and dismiss loader.
 ══════════════════════════════════════════════════════════════════════ */
 (function () {
+
+    // This page is always read-only; the shared PDF action must use the
+    // already-saved submission rather than attempting to save it again.
+    window.__submittedTuitionView = true;
 
     /* ── 1. Re-apply no-op stubs ─────────────────────────────────────── */
     window.loadSavedTuitionDocs             = function () { return Promise.resolve(); };

@@ -291,6 +291,15 @@
     cursor:pointer; font-family:inherit; transition:background .15s;
 }
 .sig-save-btn:hover { background:#dcfce7; }
+.tf-signatory-intro { margin:0 0 16px; color:#475569; font-size:13px; line-height:1.5; }
+.tf-signatory-groups { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
+.tf-signatory-group { min-width:0; padding:14px; background:#f8fafc; border-radius:8px; }
+.tf-signatory-group h4 { margin:0 0 12px; color:#1e293b; font-size:13px; font-weight:700; }
+.tf-signatory-group-note { margin:-6px 0 14px; color:#475569; font-size:12px; line-height:1.45; }
+.tf-signatory-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 12px; }
+.tf-signatory-fields .fg { min-width:0; }
+.tf-signatory-fields .fg input[readonly] { background:#f1f5f9; color:#334155; cursor:default; }
+@media (max-width:640px) { .tf-signatory-fields { grid-template-columns:1fr; } }
 .sig-modal-overlay {
     position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9000;
     display:flex; align-items:center; justify-content:center;
@@ -471,7 +480,7 @@
                             <div class="tf-step-label">Fees</div>
                         </div>
                         <div class="tf-step-connector"></div>
-                        <div class="tf-step-item" id="tfStepDot4">
+                        <div class="tf-step-item" id="tfStepDot4" role="button" tabindex="0" aria-label="Open review page" onclick="tfSwitchPage('review')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();tfSwitchPage('review')}">
                             <div class="tf-step-dot"><span>4</span></div>
                             <div class="tf-step-label">Review</div>
                         </div>
@@ -482,6 +491,7 @@
                     <button class="dsn-btn"         id="tfNavBreakdown" onclick="tfSwitchPage('breakdown')"> <i class="fa-solid fa-table-list"></i>      Breakdown of Fees</button>
                     <button class="dsn-btn"         id="tfNavComparative" onclick="tfSwitchPage('comparative')"><i class="fa-solid fa-arrow-right-arrow-left"></i> Comparative Schedule</button>
                     <button class="dsn-btn"         id="tfNavSHS"       onclick="tfSwitchPage('shs')">       <i class="fa-solid fa-graduation-cap"></i>  SHS Certification</button>
+                    <button class="dsn-btn"         id="tfNavReview"    onclick="tfSwitchPage('review')">    <i class="fa-solid fa-magnifying-glass"></i> Review</button>
                     <div class="doc-side-nav-label" style="margin-top:8px;">Actions</div>
                     <button class="dsn-action-btn dsn-save-continue-btn" onclick="saveDraft(currentStep)">
                         <i class="fa-solid fa-floppy-disk"></i> Save Draft
@@ -554,9 +564,11 @@
                         <div class="form-section">
                             <div class="form-section-hdr"><i class="fa-solid fa-calendar"></i>School Year</div>
                             <div class="fg-pair">
-                                <div class="fg"><label>Current SY</label><input id="tfCurrentSY" placeholder="2024-2025" oninput="tfLiveUpdate()" /></div>
-                                <div class="fg"><label>Proposed SY</label><input id="tfProposedSY" placeholder="2025-2026" oninput="tfLiveUpdate();updateTuitionSubmissionGuard()" /></div>
+                                <div class="fg"><label for="tfCurrentSY">Current SY</label><select id="tfCurrentSY" aria-label="Current school year" onchange="onTuitionSchoolYearChange('current')"><option value="">Choose school year</option></select></div>
+                                <div class="fg"><label for="tfProposedSY">Proposed SY</label><select id="tfProposedSY" aria-label="Proposed school year" onchange="onTuitionSchoolYearChange('proposed')"><option value="">Choose school year</option></select></div>
                             </div>
+                            <div class="tf-year-help">Choose either year; the other will stay one school year apart.</div>
+                            <div id="tfFeeBaselineNotice" class="tf-baseline-notice" role="status" style="display:none;"></div>
                             <div class="fg" id="tfPctFieldGroup">
                                 <label>Increase Percentage (%)</label>
                                 <input id="tfIncreasePct" type="number" min="0" max="100" step="0.01" placeholder="e.g. 12" oninput="onPctChange();tfLiveUpdate()" />
@@ -569,21 +581,34 @@
                                     <i class="fa-solid fa-address-book"></i> Load
                                 </button>
                             </div>
-                            <div id="sig-picker-principal" class="sig-picker-bar" style="display:none;"></div>
-                            <div class="fg"><label>School Principal</label><input id="tfPrincipal" placeholder="Name of principal" oninput="tfLiveUpdate()" /></div>
-                            <div class="fg"><label>Principal Position / Office</label><input id="tfPrincipalPosition" placeholder="e.g. School Principal" oninput="tfLiveUpdate()" /></div>
-                            <div class="fg"><label>Contact Number</label><input id="tfPrincipalContact" placeholder="09xx xxx xxxx" oninput="tfLiveUpdate()" /></div>
-                            <div class="fg"><label>Processed and Evaluated by</label><input id="tfReviewedBy" placeholder="Name of processing/evaluating officer" oninput="tfLiveUpdate()" /></div>
-                            <div class="fg"><label>Processed and Evaluated by Position / Office</label><input id="tfReviewedByPosition" placeholder="e.g. SDO, EPS In Charge" oninput="tfLiveUpdate()" /></div>
-                            <div class="fg"><label>Validated by</label><input id="tfValidatedBy" placeholder="Name of validating officer" oninput="tfLiveUpdate()" /></div>
-                            <div class="fg"><label>Validated by Position / Office</label><input id="tfValidatedByPosition" placeholder="e.g. EPS,QAD DepEd RO 3" oninput="tfLiveUpdate()" /></div>
-                            <div class="fg"><label>Noted by</label><input id="tfNotedBy" placeholder="e.g. MAY B. ECLAR, PhD, CESO III" oninput="tfLiveUpdate()" /></div>
-                            <div class="fg"><label>Noted by Position / Office</label><input id="tfNotedByPosition" placeholder="e.g. Regional Director" oninput="tfLiveUpdate()" /></div>
-                            <p style="font-size:11px;color:#94a3b8;margin:-4px 0 10px;">Validated by / Noted by are set by the SDO/SMME office in Settings. These fields auto-fill from the current office default and are here for reference — talk to your Division office to change them.</p>
-                            <div class="sig-save-row">
-                                <button type="button" class="sig-save-btn" onclick="tfSaveCurrentSignatory('principal','Principal')">
-                                    <i class="fa-solid fa-floppy-disk"></i> Save as Signatory
-                                </button>
+                            <p class="tf-signatory-intro">School details identify the preparer. The validator and Regional Director are set by the SDO and are read-only here; processing details can be adjusted for this submission.</p>
+                            <div class="tf-signatory-groups">
+                                <div class="tf-signatory-group">
+                                    <h4>School signatory</h4>
+                                    <div id="sig-picker-principal" class="sig-picker-bar" style="display:none;"></div>
+                                    <div class="tf-signatory-fields">
+                                        <div class="fg"><label for="tfPrincipal">School Principal</label><input id="tfPrincipal" placeholder="Name of principal" oninput="tfLiveUpdate()" /></div>
+                                        <div class="fg"><label for="tfPrincipalPosition">Position / Office</label><input id="tfPrincipalPosition" placeholder="e.g. School Principal" oninput="tfLiveUpdate()" /></div>
+                                        <div class="fg"><label for="tfPrincipalContact">Contact Number</label><input id="tfPrincipalContact" placeholder="09xx xxx xxxx" oninput="tfLiveUpdate()" /></div>
+                                    </div>
+                                    <div class="sig-save-row">
+                                        <button type="button" class="sig-save-btn" onclick="tfSaveCurrentSignatory('principal','Principal')">
+                                            <i class="fa-solid fa-floppy-disk"></i> Save Principal
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="tf-signatory-group">
+                                    <h4>SDO / Regional Office signatories</h4>
+                                    <p class="tf-signatory-group-note">These office-managed names are maintained by SDO/SMME personnel in Settings → Signatories.</p>
+                                    <div class="tf-signatory-fields">
+                                        <div class="fg"><label for="tfReviewedBy">Processed and Evaluated by</label><input id="tfReviewedBy" placeholder="Name of processing/evaluating officer" oninput="tfLiveUpdate()" /></div>
+                                        <div class="fg"><label for="tfReviewedByPosition">Position / Office</label><input id="tfReviewedByPosition" placeholder="e.g. SDO, EPS In Charge" oninput="tfLiveUpdate()" /></div>
+                                        <div class="fg"><label for="tfValidatedBy">Validated by</label><input id="tfValidatedBy" readonly aria-readonly="true" placeholder="Set by the SDO/SMME office" oninput="tfLiveUpdate()" /></div>
+                                        <div class="fg"><label for="tfValidatedByPosition">Position / Office</label><input id="tfValidatedByPosition" readonly aria-readonly="true" placeholder="Set by the SDO/SMME office" oninput="tfLiveUpdate()" /></div>
+                                        <div class="fg"><label for="tfNotedBy">Noted by · Regional Director</label><input id="tfNotedBy" readonly aria-readonly="true" placeholder="Set by the SDO/SMME office" oninput="tfLiveUpdate()" /></div>
+                                        <div class="fg"><label for="tfNotedByPosition">Position / Office</label><input id="tfNotedByPosition" readonly aria-readonly="true" placeholder="Regional Director" oninput="tfLiveUpdate()" /></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -655,16 +680,6 @@
                             </div>
                         </div>
 
-                        <div class="form-section-last">
-                            <!-- Fix #4: Add id="btnGeneratePDF" -->
-                            <button class="tba-btn" id="btnGeneratePDF" onclick="generatePDF()" style="width:100%;justify-content:center;background:#dc2626;color:#fff;margin-bottom:8px;">
-                                <i class="fa-solid fa-file-pdf"></i> Generate PDF
-                            </button>
-                            <!-- Fix #1: Renamed from id="btnSubmit" (duplicate) to id="btnSubmitReview" -->
-                            <button class="tba-btn" id="btnSubmitReview" onclick="showTuitionSubmitDialog()" style="width:100%;justify-content:center;background:#15803d;color:#fff;">
-                                <i class="fa-solid fa-paper-plane"></i> Submit to SDO
-                            </button>
-                        </div>
                     </div>
 
                     <!-- Tip -->
@@ -777,7 +792,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -870,7 +885,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -961,7 +976,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1053,7 +1068,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1190,7 +1205,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1271,7 +1286,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1340,7 +1355,7 @@
                                 </div>
                                 <div class="tf-comp-noted-block">
                                     <div class="tf-comp-noted" style="text-align:center; font-weight: 800;">NOTED pursuant to D.O. No. 12, s. 1997</div>
-                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;">MAY B. ECLAR, PhD, CESO III</div>
+                                    <div class="tf-comp-noted-name pv-noted-by" style="text-align:center;"></div>
                                     <div class="tf-comp-noted-role pv-noted-by-position" style="text-align:center;">Regional Director</div>
                                 </div>
                             </div>
@@ -1585,7 +1600,7 @@
     const reviewedByPosition = val('tfReviewedByPosition') || 'SDO, EPS In Charge';
     const validatedBy = val('tfValidatedBy');
     const validatedByPosition = val('tfValidatedByPosition') || 'EPS,QAD DepEd RO 3';
-    const notedBy = val('tfNotedBy') || 'MAY B. ECLAR, PhD, CESO III';
+    const notedBy = val('tfNotedBy');
     const notedByPosition = val('tfNotedByPosition') || 'Regional Director';
     const isIncrease = (typeof tfMode !== 'undefined') ? tfMode === 'increase' : false;
     const isPerGrade = chk('chkSHSPerGrade');
@@ -1885,7 +1900,7 @@
     // ── "NOTED pursuant to..." block — rendered in the page FOOTER so it   ──
     // ── always sits at the bottom of the page, instead of immediately     ──
     // ── following "Validated by" in the body flow.                        ──
-    function notedFooterChildren(notedByName = 'MAY B. ECLAR, PhD, CESO III', notedByRole = 'Regional Director') {
+    function notedFooterChildren(notedByName = '', notedByRole = 'Regional Director') {
         return [
             centeredP([rb('NOTED pursuant to D.O. No. 12, s. 1997')], { spacing: { before: 0, after: 20 } }),
             centeredP([rb(notedByName)], { spacing: { after: 20 } }),
@@ -2192,7 +2207,7 @@
             width: { size: infoHalfW, type: WidthType.DXA },
         });
 
-        const sdsName     = val('tfSHSNotedBy')         || 'ROWENA T. QUIAMBAO, CESO VI';
+        const sdsName     = val('tfSHSNotedBy');
         const sdsPosition = val('tfSHSNotedByPosition') || 'Schools Division Superintendent';
         const sdsOffice   = val('tfSHSNotedByOffice')   || 'Office of the Schools Division Superintendent';
         const track  = val('tfSHSTrack');
@@ -2729,8 +2744,8 @@
         { icon: 'fa-circle-question',     title: 'Step 1 — Fee Submission Type',      body: 'Choose whether you are applying for a fee increase or retaining existing fees. Then select which school levels are covered.' },
         { icon: 'fa-school',              title: 'Step 2 — School Information',        body: 'Fill in your school\'s name, address, IDs, and signatory information. This will appear on all document pages automatically.' },
         { icon: 'fa-table-list',          title: 'Step 3 — Fee Schedule',              body: 'Enter tuition and miscellaneous fees per grade level. The Breakdown and Comparative Schedule pages update live as you type.' },
-        { icon: 'fa-magnifying-glass',    title: 'Step 4 — Review & Submit',           body: 'Review your summary, generate a PDF for reference, then click "Submit to SDO" to officially file your document.' },
-        { icon: 'fa-floppy-disk',         title: 'Auto-Save & Export',                 body: 'Your work is auto-saved as a draft. Use the <strong>⋮</strong> menu in the top bar to export as PDF or Word at any time.' },
+        { icon: 'fa-magnifying-glass',    title: 'Step 4 — Review & Submit',           body: 'Review your summary, then use Final Submit to file your document.' },
+        { icon: 'fa-floppy-disk',         title: 'Auto-Save & Export',                 body: 'Your work is auto-saved as a draft. Use the <strong>⋮</strong> menu in the top bar to export to Word.' },
     ];
     let tfTourStep = 0;
     function openTuitionHelp() { tfTourStep = 0; renderTuitionTourOverlay(); }

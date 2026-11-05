@@ -313,7 +313,7 @@ function handleDeleteLegend(PDO $pdo, array $user, array $body): void
 function signatoryBuilderType(string $role): string
 {
     static $map = [
-        'rd'             => 'calendar',
+        'rd'             => 'shared',
         'sds'            => 'calendar',
         'recommending'   => 'calendar',
         'final_approver' => 'calendar',
@@ -367,7 +367,8 @@ function ensureSignatoriesTable(PDO $pdo): void
         // One-time backfill so existing rows get tagged correctly instead of
         // sitting on the 'shared' default. Roles not listed here (e.g. 'principal')
         // are correctly 'shared' already and need no update.
-        $pdo->exec("UPDATE school_signatories SET builder_type='calendar' WHERE role IN ('rd','sds','recommending','final_approver','chk_checked_by')");
+        $pdo->exec("UPDATE school_signatories SET builder_type='calendar' WHERE role IN ('sds','recommending','final_approver','chk_checked_by')");
+        $pdo->exec("UPDATE school_signatories SET builder_type='shared' WHERE role = 'rd'");
         $pdo->exec("UPDATE school_signatories SET builder_type='tuition'  WHERE role = 'reviewed_by'");
     }
 }

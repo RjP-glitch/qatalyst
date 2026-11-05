@@ -3,8 +3,12 @@ let profilePicBase64 = null;
 let expandedMenus = {};
 let ocrHealthLoaded = false;
 let schoolSignatories = [];
+let officeSignatoriesForWarning = [];
 let privateSchoolsList = [];
 let editingSchoolSignatoryId = null;
+let pendingDeleteSchoolSignatoryId = null;
+let schoolSigModalReturnFocus = null;
+let deleteSigModalReturnFocus = null;
 
 // ==================== AUTH ====================
 // ─── Bootstrap ───────────────────────────────────────────────────────
@@ -2852,7 +2856,7 @@ async function loadSignatories() {
 
 // Roles that only make sense as office-managed (shared across every school),
 // mirrored from the calendar/tuition builders' OFFICE_ONLY_ROLES lists.
-const OFFICE_ONLY_SIG_ROLES = ['rd', 'sds', 'recommending', 'final_approver', 'chk_checked_by', 'validated_by', 'noted_by'];
+const OFFICE_ONLY_SIG_ROLES = ['rd', 'sds', 'recommending', 'final_approver', 'chk_checked_by', 'validated_by', 'noted_by', 'shs_noted_by'];
 
 function toggleSchoolSigScope(userInitiated) {
     // If the user manually switches scope while mid-edit, that edit no longer
@@ -2864,8 +2868,12 @@ function toggleSchoolSigScope(userInitiated) {
     const scope = document.getElementById('schoolSigScope')?.value || 'school';
     const schoolRow = document.getElementById('schoolSigSchoolRow');
     const schoolSelect = document.getElementById('schoolSigSchool');
+    const scopeHint = document.getElementById('schoolSigScopeHint');
     if (schoolRow) schoolRow.style.display = scope === 'school' ? '' : 'none';
     if (schoolSelect) schoolSelect.disabled = scope !== 'school';
+    if (scopeHint) scopeHint.textContent = scope === 'office'
+        ? 'Office-managed defaults are maintained by SDO/SMME personnel and can be used across schools.'
+        : 'School-owned signatories are available only to the selected private school.';
     if (scope === 'office') {
         const schoolField = document.getElementById('schoolSigSchool');
         if (schoolField) schoolField.value = '';
@@ -2889,6 +2897,46 @@ function toggleSchoolSigScope(userInitiated) {
             const firstAvailable = Array.from(roleSelect.options).find(o => !o.disabled);
             if (firstAvailable) roleSelect.value = firstAvailable.value;
         }
+    }
+    updateSchoolSigRoleAvailability();
+    const saveBtn = document.getElementById('btnSaveSchoolSig');
+    if (saveBtn && editingSchoolSignatoryId === null) {
+        saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save ${scope === 'office' ? 'Office' : 'School'} Signatory`;
+    }
+}
+
+function updateSchoolSigRoleAvailability(selectAvailableRole = false) {
+    const roleSelect = document.getElementById('schoolSigRole');
+    if (!roleSelect) return;
+    const scope = document.getElementById('schoolSigScope')?.value || 'school';
+    const schoolId = document.getElementById('schoolSigSchool')?.value || '';
+    const occupiedRoles = new Set(schoolSignatories
+        .filter(row => Number(row.id) !== Number(editingSchoolSignatoryId || 0))
+        .filter(row => scope === 'office'
+            ? row.private_school_id === null || row.private_school_id === undefined || row.private_school_id === ''
+            : String(row.private_school_id || '') === String(schoolId))
+        .map(row => String(row.role || '')));
+
+    Array.from(roleSelect.options).forEach(option => {
+        if (!option.dataset.baseLabel) option.dataset.baseLabel = option.textContent.replace(/ \(already added\)$/, '');
+        const reservedForOffice = scope === 'school' && OFFICE_ONLY_SIG_ROLES.includes(option.value);
+        const alreadyAdded = occupiedRoles.has(option.value);
+        option.hidden = reservedForOffice;
+        option.disabled = reservedForOffice || alreadyAdded;
+        option.textContent = `${option.dataset.baseLabel}${alreadyAdded ? ' (already added)' : ''}`;
+    });
+
+    if (selectAvailableRole && roleSelect.selectedOptions[0]?.disabled) {
+        const available = Array.from(roleSelect.options).find(option => !option.disabled);
+        if (available) roleSelect.value = available.value;
+    }
+    const hint = document.getElementById('schoolSigRoleHint');
+    if (hint) hint.textContent = occupiedRoles.size
+        ? 'Roles already added for this scope are disabled. Edit an existing row to change its details.'
+        : 'Choose one signatory for each role in this scope. You can edit that entry later.';
+    const saveButton = document.getElementById('btnSaveSchoolSig');
+    if (saveButton && editingSchoolSignatoryId === null && document.getElementById('schoolSigModal')?.classList.contains('is-open')) {
+        saveButton.disabled = !Array.from(roleSelect.options).some(option => !option.disabled);
     }
 }
 
@@ -2915,13 +2963,47 @@ function _schoolSigRoleLabel(role) {
         principal: 'Principal',
         reviewed_by: 'Processed and Evaluated By',
         validated_by: 'Validated By',
-        noted_by: 'Noted By',
+        noted_by: 'Legacy Tuition Noted By',
+        shs_noted_by: 'Schools Division Superintendent (SHS Fees)',
         rd: 'Regional Director',
         sds: 'Schools Division Superintendent (Thru)',
         recommending: 'Recommending Approval',
         final_approver: 'Final Approver',
         chk_checked_by: 'Checklist – Checked By'
     })[role] || role;
+}
+
+function updateTuitionSignatoryWarning(rows = officeSignatoriesForWarning) {
+    const warning = document.getElementById('tuitionSignatoryWarning');
+    if (!warning) return;
+    const hasOfficeDefault = roles => rows.some(row =>
+        roles.includes(row.role) && (row.private_school_id === null || row.private_school_id === undefined || row.private_school_id === '') &&
+        String(row.is_default) === '1' && String(row.full_name || '').trim()
+    );
+    const missing = [];
+    if (!hasOfficeDefault(['rd', 'noted_by'])) missing.push('Regional Director for tuition fee reports');
+    if (!hasOfficeDefault(['validated_by'])) missing.push('Tuition fee validator');
+    if (!hasOfficeDefault(['shs_noted_by'])) missing.push('Schools Division Superintendent for SHS fee certificates');
+    warning.style.display = missing.length ? 'flex' : 'none';
+    warning.innerHTML = missing.length
+        ? `<div class="scale-info-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><div><strong>Required tuition signatories are missing.</strong><br>Add and set a default for: ${missing.map(escapeHtml).join('; ')}. Choose the matching role while Office-managed scope is selected.</div>`
+        : '';
+}
+
+async function loadOfficeTuitionSignatoryWarning() {
+    const warning = document.getElementById('tuitionSignatoryWarning');
+    if (!warning) return;
+    try {
+        const params = new URLSearchParams({ action: 'school-signatories', scope_type: 'office' });
+        const res = await fetch(`${API_URL}/main-settings.php?${params.toString()}`, { credentials: 'include' });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message || 'Could not load office signatories');
+        officeSignatoriesForWarning = json.data?.signatories || [];
+        updateTuitionSignatoryWarning();
+    } catch (e) {
+        warning.style.display = 'flex';
+        warning.innerHTML = '<div class="scale-info-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><div><strong>Could not verify tuition signatories.</strong><br>Refresh the signatory list or check the connection before submitting tuition documents.</div>';
+    }
 }
 
 function _schoolSigBuilderLabel(builderType) {
@@ -2932,15 +3014,21 @@ function _schoolSigBuilderLabel(builderType) {
     })[builderType] || (builderType || '—');
 }
 
+function _schoolSigBuilderForRow(row) {
+    return row.role === 'rd' ? 'Both (Shared)' : _schoolSigBuilderLabel(row.builder_type);
+}
+
 async function loadSchoolSignatories() {
     if (typeof Permissions !== 'undefined' && !Permissions.has('settings')) return;
     const scope = document.getElementById('schoolSigScope')?.value || 'school';
     const schoolId = document.getElementById('schoolSigSchool')?.value || '';
     const tbody = document.getElementById('schoolSignatoriesBody');
     if (!tbody) return;
+    const warningLoad = loadOfficeTuitionSignatoryWarning();
 
     if (scope === 'school' && !schoolId) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;">Select a private school to load signatories.</td></tr>';
+        await warningLoad;
         return;
     }
 
@@ -2954,6 +3042,13 @@ async function loadSchoolSignatories() {
         const json = await res.json();
         if (!json.success) throw new Error(json.message || 'Failed to load');
         schoolSignatories = json.data?.signatories || [];
+        if (scope === 'office') {
+            officeSignatoriesForWarning = schoolSignatories;
+            updateTuitionSignatoryWarning();
+        } else {
+            await warningLoad;
+        }
+        updateSchoolSigRoleAvailability();
 
         if (!schoolSignatories.length) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;">No signatories found.</td></tr>';
@@ -2963,7 +3058,7 @@ async function loadSchoolSignatories() {
         tbody.innerHTML = schoolSignatories.map(row => `
             <tr id="schoolSigRow_${Number(row.id)}" class="${Number(row.id) === Number(editingSchoolSignatoryId) ? 'is-editing-row' : ''}">
                 <td><span class="nav-badge" style="display:inline-flex;">${row.private_school_id ? 'School' : 'Office'}</span></td>
-                <td><span class="nav-badge" style="display:inline-flex;">${escapeHtml(_schoolSigBuilderLabel(row.builder_type))}</span></td>
+                <td><span class="nav-badge" style="display:inline-flex;">${escapeHtml(_schoolSigBuilderForRow(row))}</span></td>
                 <td>${escapeHtml(_schoolSigRoleLabel(row.role))}${String(row.is_default) === '1' ? ' <span class="nav-badge" style="display:inline-flex;background:#eff6ff;color:#1d4ed8;">Default</span>' : ''}</td>
                 <td>${escapeHtml(row.full_name || '')}</td>
                 <td>${escapeHtml(row.position_title || '')}</td>
@@ -2978,6 +3073,7 @@ async function loadSchoolSignatories() {
         `).join('');
     } catch (e) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#ef4444;">Failed to load school signatories.</td></tr>';
+        await warningLoad;
     }
 }
 
@@ -2997,16 +3093,15 @@ function editSchoolSignatory(id) {
     document.getElementById('schoolSigDefault').checked = String(row.is_default) === '1';
 
     const saveBtn = document.getElementById('btnSaveSchoolSig');
-    saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update School Signatory';
-    const cancelBtn = document.getElementById('btnCancelSchoolSig');
-    if (cancelBtn) cancelBtn.style.display = '';
+    saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Update ${row.private_school_id ? 'School' : 'Office'} Signatory`;
+    const modalTitle = document.getElementById('schoolSigModalTitle');
+    if (modalTitle) modalTitle.textContent = 'Edit signatory';
     const banner = document.getElementById('schoolSigEditingBanner');
     const bannerName = document.getElementById('schoolSigEditingName');
     if (banner) banner.style.display = 'flex';
     if (bannerName) bannerName.textContent = row.full_name ? `"${row.full_name}"` : 'this signatory';
 
-    // Reflect the active row in the table and scroll the form into view so
-    // it's obvious what's being edited (and that it can be cancelled).
+    // Reflect the active row in the table and open the editor dialog.
     document.querySelectorAll('#schoolSignatoriesBody tr').forEach(tr => tr.classList.remove('is-editing-row'));
     document.querySelectorAll('#schoolSignatoriesBody .btn-action.btn-edit').forEach(btn => btn.classList.remove('is-active'));
     const activeRow = document.getElementById(`schoolSigRow_${Number(id)}`);
@@ -3014,7 +3109,50 @@ function editSchoolSignatory(id) {
         activeRow.classList.add('is-editing-row');
         activeRow.querySelector('.btn-action.btn-edit')?.classList.add('is-active');
     }
-    banner?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    openSchoolSigModal();
+}
+
+function openNewSchoolSignatory() {
+    const scope = document.getElementById('schoolSigScope')?.value || 'school';
+    const schoolId = document.getElementById('schoolSigSchool')?.value || '';
+    if (scope === 'school' && !schoolId) {
+        showToast('Select a private school first.', 'error');
+        return;
+    }
+
+    resetSchoolSigForm();
+    toggleSchoolSigScope();
+    updateSchoolSigRoleAvailability(true);
+    if (!Array.from(document.getElementById('schoolSigRole')?.options || []).some(option => !option.disabled)) {
+        showToast('Every role already has a signatory in this scope. Edit an existing entry instead.', 'info');
+        return;
+    }
+    const modalTitle = document.getElementById('schoolSigModalTitle');
+    if (modalTitle) modalTitle.textContent = 'Add signatory';
+    const saveBtn = document.getElementById('btnSaveSchoolSig');
+    if (saveBtn) saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save ${scope === 'office' ? 'Office' : 'School'} Signatory`;
+    openSchoolSigModal();
+}
+
+function openSchoolSigModal() {
+    const modal = document.getElementById('schoolSigModal');
+    if (!modal) return;
+    schoolSigModalReturnFocus = document.activeElement;
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('school-sig-modal-open');
+    modal.querySelector('.school-sig-modal-dialog')?.focus();
+    if (!editingSchoolSignatoryId) document.getElementById('schoolSigRole')?.focus();
+}
+
+function closeSchoolSigModal() {
+    const modal = document.getElementById('schoolSigModal');
+    if (!modal) return;
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('school-sig-modal-open');
+    schoolSigModalReturnFocus?.focus?.();
+    schoolSigModalReturnFocus = null;
 }
 
 function resetSchoolSigForm() {
@@ -3029,9 +3167,10 @@ function resetSchoolSigForm() {
     if (defaultEl) defaultEl.checked = false;
 
     const saveBtn = document.getElementById('btnSaveSchoolSig');
-    if (saveBtn) saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save School Signatory';
-    const cancelBtn = document.getElementById('btnCancelSchoolSig');
-    if (cancelBtn) cancelBtn.style.display = 'none';
+    const scope = document.getElementById('schoolSigScope')?.value || 'school';
+    if (saveBtn) saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save ${scope === 'office' ? 'Office' : 'School'} Signatory`;
+    const modalTitle = document.getElementById('schoolSigModalTitle');
+    if (modalTitle) modalTitle.textContent = 'Add signatory';
     const banner = document.getElementById('schoolSigEditingBanner');
     if (banner) banner.style.display = 'none';
 
@@ -3042,6 +3181,7 @@ function resetSchoolSigForm() {
 function cancelEditSchoolSignatory(opts) {
     const wasEditing = editingSchoolSignatoryId !== null;
     resetSchoolSigForm();
+    closeSchoolSigModal();
     if (wasEditing && !(opts && opts.skipReload)) {
         showToast('Edit cancelled', 'info');
     }
@@ -3085,25 +3225,61 @@ async function saveSchoolSignatory() {
         });
         const json = await res.json();
         if (!json.success) throw new Error(json.message || 'Failed to save');
-        showToast(editingSchoolSignatoryId ? 'School signatory updated' : 'School signatory saved', 'success');
+        showToast(editingSchoolSignatoryId ? 'Signatory updated' : 'Signatory saved', 'success');
         resetSchoolSigForm();
+        closeSchoolSigModal();
         loadSchoolSignatories();
     } catch (e) {
         showToast(e.message || 'Error saving school signatory', 'error');
     } finally {
         btn.disabled = false;
+        updateSchoolSigRoleAvailability();
     }
 }
 
 async function deleteSchoolSignatory(id) {
     const row = schoolSignatories.find(s => Number(s.id) === Number(id));
     if (!row) return;
-    if (!confirm(`Delete ${row.full_name}?`)) return;
+    pendingDeleteSchoolSignatoryId = Number(id);
+    const message = document.getElementById('schoolSigDeleteMessage');
+    if (message) message.textContent = `Delete “${row.full_name}”? This action cannot be undone.`;
+    const modal = document.getElementById('schoolSigDeleteModal');
+    if (!modal) return;
+    deleteSigModalReturnFocus = document.activeElement;
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('school-sig-modal-open');
+    modal.querySelector('.btn-secondary')?.focus();
+}
+
+function closeDeleteSchoolSignatoryModal() {
+    const modal = document.getElementById('schoolSigDeleteModal');
+    if (!modal) return;
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    pendingDeleteSchoolSignatoryId = null;
+    document.body.classList.remove('school-sig-modal-open');
+    deleteSigModalReturnFocus?.focus?.();
+    deleteSigModalReturnFocus = null;
+}
+
+async function confirmDeleteSchoolSignatory() {
+    const id = pendingDeleteSchoolSignatoryId;
+    const row = schoolSignatories.find(s => Number(s.id) === Number(id));
+    if (!row) {
+        closeDeleteSchoolSignatoryModal();
+        return;
+    }
     const scope = row.private_school_id ? 'school' : 'office';
     const params = new URLSearchParams({ action: 'school-signatories', id: String(id) });
     params.set('scope_type', scope);
     if (scope === 'school') params.set('private_school_id', String(row.private_school_id));
 
+    const confirmBtn = document.getElementById('btnConfirmDeleteSchoolSig');
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+    }
     try {
         const res = await fetch(`${API_URL}/main-settings.php?${params.toString()}`, {
             method: 'DELETE',
@@ -3111,13 +3287,48 @@ async function deleteSchoolSignatory(id) {
         });
         const json = await res.json();
         if (!json.success) throw new Error(json.message || 'Failed to delete');
-        showToast('School signatory deleted', 'success');
-        if (Number(editingSchoolSignatoryId) === Number(id)) resetSchoolSigForm();
+        showToast('Signatory deleted', 'success');
+        if (Number(editingSchoolSignatoryId) === Number(id)) {
+            resetSchoolSigForm();
+            closeSchoolSigModal();
+        }
+        closeDeleteSchoolSignatoryModal();
         loadSchoolSignatories();
     } catch (e) {
         showToast(e.message || 'Error deleting school signatory', 'error');
+    } finally {
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fa-solid fa-trash"></i> Delete signatory';
+        }
     }
 }
+
+document.addEventListener('keydown', event => {
+    const deleteModal = document.getElementById('schoolSigDeleteModal');
+    const editModal = document.getElementById('schoolSigModal');
+    const activeModal = deleteModal?.classList.contains('is-open') ? deleteModal
+        : editModal?.classList.contains('is-open') ? editModal : null;
+    if (!activeModal) return;
+    if (event.key === 'Escape') {
+        if (activeModal === deleteModal) closeDeleteSchoolSignatoryModal();
+        else cancelEditSchoolSignatory();
+        return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(activeModal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]'))
+        .filter(element => element.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+    }
+});
 
 async function saveSignatories() {
     const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };

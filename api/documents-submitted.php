@@ -10,6 +10,7 @@ require_once dirname(__DIR__) . '/config/security.php';
 require_once dirname(__DIR__) . '/config/database.php';
 require_once dirname(__DIR__) . '/config/auth_middleware.php';
 require_once dirname(__DIR__) . '/config/audit_log.php';
+require_once __DIR__ . '/tuition_fee_baseline_lib.php';
 
 
 setCorsHeaders();
@@ -253,6 +254,8 @@ function actionList(PDO $pdo): void
         $r['cal_level']    = null;
         $r['school_address'] = null;
         $r['tuition_levels'] = [];
+        $r['baseline_review_required'] = false;
+        $r['baseline_current_sy'] = null;
  
         if (!empty($r['cal_payload_json'])) {
             $calPayload = json_decode((string)$r['cal_payload_json'], true);
@@ -273,6 +276,8 @@ function actionList(PDO $pdo): void
             if ($tuitionDoc) {
                 $tuitionPayload = json_decode((string)($tuitionDoc['payload_json'] ?? ''), true);
                 $tuitionForm = is_array($tuitionPayload['form'] ?? null) ? $tuitionPayload['form'] : [];
+                $r['baseline_review_required'] = !empty($tuitionForm['baseline_review_required']);
+                $r['baseline_current_sy'] = $tuitionForm['baseline_current_sy'] ?? $tuitionForm['current_sy'] ?? null;
                 $levelFlags = [
                     'kinder' => (bool)($tuitionDoc['has_kinder'] ?? $tuitionPayload['has_kinder'] ?? $tuitionForm['has_kinder'] ?? false),
                     'elem'   => (bool)($tuitionDoc['has_elem']   ?? $tuitionPayload['has_elem']   ?? $tuitionForm['has_elem']   ?? false),
@@ -990,6 +995,16 @@ function actionUpdate(PDO $pdo, array $body, array $authUser): void
     }
     $newStatus = $newWorkflowStatus;
 
+    if ($statusChanged && $newStatus === 'Approved'
+        && in_array(strtolower(trim((string)($rec['type'] ?? ''))), ['tuition', 'no_tuition'], true)) {
+        $tuitionDoc = dsFindTuitionDocument($pdo, $rec);
+        $tuitionPayload = $tuitionDoc ? json_decode((string)($tuitionDoc['payload_json'] ?? ''), true) : null;
+        $tuitionForm = is_array($tuitionPayload['form'] ?? null) ? $tuitionPayload['form'] : [];
+        if (!empty($tuitionForm['baseline_review_required']) && empty($body['baseline_verified'])) {
+            respond(false, 'Confirm that you verified the submitted current fees against the school’s prior approved records before approving this first schedule.');
+        }
+    }
+
     $now = date('Y-m-d H:i:s');
 
     $userName = trim((string)($authUser['full_name'] ?? $authUser['email'] ?? 'Admin'));
@@ -1056,6 +1071,47 @@ function actionUpdate(PDO $pdo, array $body, array $authUser): void
         'document_type' => (string)($rec['document_type'] ?? $rec['type'] ?? ''),
         'file_name'     => (string)($rec['file_name'] ?? ''),
     ]);
+
+    // Freeze the accepted fee schedule so later school edits cannot rewrite
+    // the historical baseline used for the next school year.
+    if (in_array(strtolower(trim((string)($rec['type'] ?? ''))), ['tuition', 'no_tuition'], true)
+        && in_array($newStatus, ['Approved', 'Released to School'], true)) {
+        try {
+            $sourceDocumentId = 0;
+            if (preg_match('/^school_tuition_documents:(\d+)$/', (string)($rec['file_path'] ?? ''), $m)) {
+                $sourceDocumentId = (int)$m[1];
+            } elseif (!empty($rec['calendar_document_id'])) {
+                $sourceDocumentId = (int)$rec['calendar_document_id'];
+            }
+            $sourceSchoolId = (int)($rec['private_school_id'] ?? 0);
+            if ($sourceDocumentId > 0 && $sourceSchoolId > 0) {
+                $docStmt = $pdo->prepare("SELECT id, private_school_id, proposed_sy, payload_json
+                    FROM school_tuition_documents WHERE id = :id LIMIT 1");
+                $docStmt->execute([':id' => $sourceDocumentId]);
+                $feeDoc = $docStmt->fetch(PDO::FETCH_ASSOC);
+                $payload = $feeDoc ? json_decode((string)$feeDoc['payload_json'], true) : null;
+                if ($feeDoc && (int)$feeDoc['private_school_id'] === $sourceSchoolId && is_array($payload)) {
+                    if (isset($payload['form']) && is_array($payload['form'])) {
+                        unset($payload['form']['baseline_review_required'], $payload['form']['baseline_current_sy']);
+                        $cleanPayload = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                        if ($cleanPayload !== false) {
+                            $pdo->prepare('UPDATE school_tuition_documents SET payload_json = :payload WHERE id = :id')
+                                ->execute([':payload' => $cleanPayload, ':id' => $sourceDocumentId]);
+                        }
+                    }
+                    saveTuitionFeeBaseline(
+                        $pdo,
+                        $sourceSchoolId,
+                        $sourceDocumentId,
+                        (string)($feeDoc['proposed_sy'] ?? $rec['school_year'] ?? ''),
+                        $payload
+                    );
+                }
+            }
+        } catch (Throwable $baselineError) {
+            error_log('[documents-submitted] Could not snapshot accepted tuition baseline: ' . $baselineError->getMessage());
+        }
+    }
 
     // ── Resolve school ID and type ─────────────────────────────────────────────
     // private_school_id takes priority; fall back to public school_id.
@@ -1869,6 +1925,33 @@ function dsBuildTuitionLevelSummary(string $levelKey, array $payload, string $mo
     $totalProp = 0.0;
 
     foreach ($fields as $field) {
+        $gradeTuition = $levelKey === 'elem' && $field['key'] === 'e_tuition'
+            ? range(1, 6)
+            : ($levelKey === 'jhs' && $field['key'] === 'j_tuition' ? range(7, 10) : []);
+        if ($gradeTuition) {
+            $hasPerGradeValues = false;
+            foreach ($gradeTuition as $grade) {
+                $gradeKey = ($levelKey === 'elem' ? 'e' : 'j') . $grade . '_tuition_curr';
+                if (array_key_exists($gradeKey, $levelData)) { $hasPerGradeValues = true; break; }
+            }
+            if ($hasPerGradeValues) {
+                foreach ($gradeTuition as $grade) {
+                    $prefix = ($levelKey === 'elem' ? 'e' : 'j') . $grade . '_tuition';
+                    $curr = (float)($levelData[$prefix . '_curr'] ?? 0);
+                    if ($curr == 0.0) continue;
+                    $prop = $isIncrease ? $curr * (1 + $pctFraction) : $curr;
+                    $rows[] = [
+                        'label' => 'Grade ' . $grade . ' Tuition Fee',
+                        'current' => round($curr, 2),
+                        'proposed' => round($prop, 2),
+                        'increase' => round($prop - $curr, 2),
+                    ];
+                    $totalCurr += $curr;
+                    $totalProp += $prop;
+                }
+                continue;
+            }
+        }
         $curr = (float)($levelData[$field['key'] . '_curr'] ?? 0);
         if ($curr == 0.0) {
             // Skip fee rows the school never filled in, same as the live

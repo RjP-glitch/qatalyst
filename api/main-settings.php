@@ -57,7 +57,7 @@ function jsonError($msg, $code = 400) {
 function signatoryBuilderType(string $role): string
 {
     static $map = [
-        'rd'             => 'calendar',
+        'rd'             => 'shared',
         'sds'            => 'calendar',
         'recommending'   => 'calendar',
         'final_approver' => 'calendar',
@@ -65,6 +65,7 @@ function signatoryBuilderType(string $role): string
         'reviewed_by'    => 'tuition',
         'validated_by'   => 'tuition',
         'noted_by'       => 'tuition',
+        'shs_noted_by'   => 'tuition',
         'principal'      => 'shared',
     ];
     return $map[$role] ?? 'shared';
@@ -95,7 +96,8 @@ function ensureSchoolSignatoriesTable(PDO $pdo): void {
         $pdo->exec("ALTER TABLE school_signatories
             ADD COLUMN builder_type VARCHAR(20) NOT NULL DEFAULT 'shared' AFTER role,
             ADD KEY idx_sig_builder (builder_type)");
-        $pdo->exec("UPDATE school_signatories SET builder_type='calendar' WHERE role IN ('rd','sds','recommending','final_approver','chk_checked_by')");
+        $pdo->exec("UPDATE school_signatories SET builder_type='calendar' WHERE role IN ('sds','recommending','final_approver','chk_checked_by')");
+        $pdo->exec("UPDATE school_signatories SET builder_type='shared' WHERE role = 'rd'");
         $pdo->exec("UPDATE school_signatories SET builder_type='tuition'  WHERE role = 'reviewed_by'");
     }
 }
@@ -207,9 +209,29 @@ function handleSchoolSignatories(PDO $pdo, string $method, array $input, array $
         // which are always SDO/regional-office signatories (e.g. EPS/QAD,
         // Regional Director) — and must only ever exist as office-managed
         // rows, never a per-school copy.
-        $officeOnlyRoles = ['rd', 'sds', 'recommending', 'final_approver', 'chk_checked_by', 'validated_by', 'noted_by'];
+        $officeOnlyRoles = ['rd', 'sds', 'recommending', 'final_approver', 'chk_checked_by', 'validated_by', 'noted_by', 'shs_noted_by'];
         if ($scopeType === 'school' && in_array($role, $officeOnlyRoles, true)) {
             jsonError('This role is managed by the SDO/SMME office only. Use "Office-managed signatories" scope instead.', 422);
+        }
+
+        // Keep one entry per role in each scope. Existing entries can be edited,
+        // but adding a second name for the same role is usually accidental.
+        if ($id === null) {
+            $duplicateSql = $scopeType === 'office'
+                ? "SELECT id, full_name FROM school_signatories WHERE private_school_id IS NULL AND role = :role LIMIT 1"
+                : "SELECT id, full_name FROM school_signatories WHERE private_school_id = :psid AND role = :role LIMIT 1";
+            $duplicateStmt = $pdo->prepare($duplicateSql);
+            $duplicateParams = [':role' => $role];
+            if ($scopeType === 'school') $duplicateParams[':psid'] = $privateSchoolId;
+            $duplicateStmt->execute($duplicateParams);
+            $duplicate = $duplicateStmt->fetch(PDO::FETCH_ASSOC);
+            if ($duplicate) {
+                jsonError(
+                    'A signatory already exists for this role in the selected scope. Edit the existing entry instead.',
+                    409,
+                    ['existing_id' => (int)$duplicate['id'], 'existing_name' => $duplicate['full_name']]
+                );
+            }
         }
 
         if ($scopeType === 'school' && $isDefault) {

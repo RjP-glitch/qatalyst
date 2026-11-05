@@ -128,15 +128,6 @@
                     <p>Tuition Fee Increase / No Increase / School Calendar · D.O. No. 12, s. 1997</p>
                 </div>
                 <div class="page-header-right">
-                    <button class="btn" onclick="window.location.href='schools-submissions-summary.html'"
-                        style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-weight:600;">
-                        <i class="fa-solid fa-chart-bar"></i> Summary Report
-                    </button>
-                    <!-- TODO: Remove `disabled` when Processing Workflow feature is ready for production -->
-                    <button class="btn" onclick="openChecklistWorkflowModal()" disabled
-                        style="background:#f3f4f6;border:1px solid #e5e7eb;color:#9ca3af;font-weight:600;cursor:not-allowed;opacity:0.6;">
-                        <i class="fa-solid fa-table-list"></i> Open Processing Workflow
-                    </button>
                     <button class="manual-help-btn" type="button"
                         onclick="window.location.href='user-manual.html?page=checklist.html'">
                         <i class="fa-solid fa-circle-question"></i><span>Help</span>
@@ -153,45 +144,49 @@
                      SCHOOL DOCUMENT TRACKING SYSTEM
                 ════════════════════════════════════════════════════ -->
                 <div class="st-tracker-card">
-                    <div class="st-tracker-head">
-                        <div>
-                            <div class="st-tracker-subtitle">
-                                Track document statuses per school per school year &middot; Click any school card to update its checklist
-                            </div>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                            <button onclick="openIndorsementModal()" class="st-add-school-btn"
-                                style="background:#f0f9ff;border-color:#bae6fd;color:#0369a1;">
+                    <!-- School type tabs and public-school notice are rendered here. -->
+                    <div class="st-tracker-topline">
+                        <div id="st-yr-bar"></div>
+                        <div class="st-toolbar-actions st-topline-actions">
+                            <button class="st-control-btn st-control-summary" onclick="window.location.href='schools-submissions-summary.html'">
+                                <i class="fa-solid fa-chart-bar"></i> Summary Report
+                            </button>
+                            <button class="st-control-btn st-control-endorsement" onclick="openIndorsementModal()">
                                 <i class="fa-solid fa-file-signature"></i> Generate Indorsement
                             </button>
-                            <button onclick="openChecklistGeneratorModal()" class="st-add-school-btn"
-                                style="background:#f0fdf4;border-color:#bbf7d0;color:#166534;">
-                                <i class="fa-solid fa-file-signature"></i> Generate Checklist
+                            <button class="st-control-btn st-control-checklist" onclick="openChecklistGeneratorModal()">
+                                <i class="fa-solid fa-list-check"></i> Generate Checklist
                             </button>
-                            <button onclick="window.location.href='directory.html'" class="st-add-school-btn">
+                            <button class="st-control-btn" onclick="window.location.href='directory.html'">
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i> Manage Schools
                             </button>
                         </div>
                     </div>
-                
-                    <!-- ALL tabs, school selector, year bar, and Under Development banner
-                         are rendered here dynamically by school-tracker.js _renderYrBar() -->
-                    <div id="st-yr-bar"></div>
-                
-                    <!-- Toolbar: search + filter + view toggle -->
+
+                    <!-- Filter and action order matches the submissions summary page. -->
                     <div class="st-toolbar" id="st-toolbar">
+                        <div class="st-filter-select-wrap st-year-filter-wrap">
+                            <i class="fa-solid fa-calendar-alt st-filter-icon" aria-hidden="true"></i>
+                            <select id="stYearSelect" aria-label="Filter by school year" onchange="ST.switchYear(this.value)"></select>
+                        </div>
                         <div class="st-search-box">
-                            <svg class="st-search-icon" viewBox="0 0 16 16" fill="none">
-                                <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5" />
-                                <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                            </svg>
+                            <i class="fa-solid fa-magnifying-glass st-search-icon" aria-hidden="true"></i>
                             <input type="text" placeholder="Search school…" oninput="ST.onSearch(this.value)">
                         </div>
-                        <div class="st-filter-pills">
-                            <button class="st-fpill f-all active" onclick="ST.setFilter('all',this)">All</button>
-                            <button class="st-fpill f-done" onclick="ST.setFilter('done',this)">Completed</button>
-                            <button class="st-fpill f-partial" onclick="ST.setFilter('partial',this)">Ongoing</button>
-                            <button class="st-fpill f-none" onclick="ST.setFilter('none',this)">Pending</button>
+                        <div class="st-toolbar-filters">
+                            <div class="st-filter-select-wrap st-school-filter-wrap">
+                                <i class="fa-solid fa-school st-filter-icon" aria-hidden="true"></i>
+                                <select id="stSchoolSelect" aria-label="Filter by school" onchange="ST.selectSchoolFilter(this.value)"></select>
+                            </div>
+                            <div class="st-filter-select-wrap st-status-filter-wrap">
+                                <i class="fa-solid fa-filter st-filter-icon" aria-hidden="true"></i>
+                                <select id="stStatusSelect" aria-label="Filter by completion status" onchange="ST.setFilter(this.value)">
+                                    <option value="all">All statuses</option>
+                                    <option value="done">Completed</option>
+                                    <option value="partial">Ongoing</option>
+                                    <option value="none">Pending</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="st-view-btns">
                             <button class="st-vbtn active" onclick="ST.setView('grid',this)" title="Grid view">&#9646;&#9646;</button>
@@ -220,7 +215,7 @@
                         <div class="st-panel-body" id="st-panel-body"></div>
                         <div class="st-panel-footer">
                             <button class="st-btn-cancel" onclick="ST._cancelPanel()">Cancel</button>
-                            <button class="st-btn-save" onclick="ST._savePanel()">
+                            <button type="button" class="st-btn-save" onclick="ST._savePanel()">
                                 <i class="fa-solid fa-floppy-disk" style="margin-right:5px;"></i>Save changes
                             </button>
                         </div>

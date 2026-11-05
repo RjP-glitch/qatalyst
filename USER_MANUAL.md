@@ -75,7 +75,7 @@ On the dashboard, you can:
 - See totals for workshops, active workshops, responses, imports, and records.
 - Open quick actions such as Add New Program and Import Excel.
 - View recent workshops and jump to full program management.
-- Use the notification bell for new evaluation submissions, school calendar submissions, and directory updates.
+- Use the notification bell for new evaluation submissions, school calendar, tuition fee, and permit submissions, edit requests, and directory updates.
 
 Related page:
 - dashboard.html
@@ -91,7 +91,7 @@ How to use it:
 
 Types of notifications you may see:
 - Evaluation submission: opens Programs and highlights the participant in the Responses list.
-- School calendar submission: opens School Submissions (All Documents Submitted) to the selected record.
+- School document submission or edit request: opens the school submissions workflow so SDO staff can review the record.
 - Directory update: opens Directory so you can review changes.
 
 Each item shows a short message and a relative time (for example, 2 mins ago).
@@ -351,22 +351,20 @@ Related page:
 
 At the top of the tracker, use the tabs to switch between **Private Schools** and **Public Schools**. Public school tracking is currently under development and not yet available.
 
-#### School Year Bar
+#### School Year Filter
 
-Year pills appear below the tabs showing all available school years. Click a year pill to switch the view to that year's data. Each pill also has a delete (×) button to remove the year — deletion is only allowed if the year has no existing tracking records. To add the next school year, click the **+ [next year]** button that appears after the last year pill.
-
-#### School Selector
-
-Use the school selector button (top right of the tracker) to filter the view to a single school or show all schools. A search box inside the dropdown lets you type to find a school quickly.
+Choose a school year from the year dropdown. The current school year is selected by default when you open the page. Available submission years are added to the tracker year list automatically.
 
 #### School Cards and Toolbar
 
-The main view shows a grid of school cards. Each card displays the school name, education level badges, completion percentage, steps completed out of total, and a Completed / Ongoing / Pending status badge.
+The tracker uses one shared workspace for the school type tabs, filters, statistics, and school list. Private Schools is available; Public Schools is marked as under development. Each school card or row displays the school name, education levels, completion percentage, completed steps, and status.
 
 Use the toolbar to manage the view:
-- **Search** — type part of a school name to filter the cards in real time.
-- **Filter pills** — show All schools, or filter to Completed, Ongoing, or Pending only.
+- **Search** — type part of a school name to filter the list.
+- **School filter** — show all schools or choose one school.
+- **Status filter** — choose All statuses, Completed, Ongoing, or Pending.
 - **View toggle** — switch between grid, list, and compact layouts.
+- **Header actions** — open the summary report, generate an indorsement or checklist, or manage schools. These actions sit beside the school type tabs when space allows.
 
 The stats row above the cards shows total schools and counts for Completed, Ongoing, and Pending.
 
@@ -375,18 +373,18 @@ Notes on completion percentage: only three categories count toward a school's co
 #### Updating a School's Checklist
 
 1. Click a school card to open its slide-out panel.
-2. The panel shows a completion ring, all document categories, and their workflow steps as checkboxes.
-3. Check or uncheck steps as documents are processed. When a step is checked, a timestamp badge appears showing when it was marked.
-4. Click **Save changes** to save. Click **Cancel** to discard without saving.
+2. The panel shows a completion ring, document categories, and workflow steps.
+3. Manually managed steps can be checked or unchecked. Submission and indorsement workflow steps are filled from their source records and are read-only in the tracker.
+4. Click **Save changes** to save manual edits. The button shows a saving state; if saving fails, the panel stays open so you can retry. Click **Cancel** to discard unsaved edits.
 
 #### Editing Timestamps
 
-Each category section in the panel has an **Edit Timestamps** button. Clicking it opens a timestamp editor for that category where you can:
+Each category section in the panel has an **Edit Timestamps** button. It opens a timestamp editor for editable, checked steps where you can:
 - Set an **exact date and time** for each checked step using a date/time picker.
 - Set a **quarter** (Q1–Q4) instead of an exact date when the precise date is unknown.
 - Clear a timestamp using the × button.
 
-Click **Apply** to write the timestamps back to the panel. Timestamps are saved to the server when you click **Save changes**.
+Click **Apply** to write the timestamps back to the panel. Timestamps are saved to the server when you click **Save changes**. Steps managed by a school submission or indorsement cannot be edited here.
 
 #### Document Categories Tracked
 
@@ -441,7 +439,7 @@ Each school card has a **⋮** (actions) menu. Clicking it opens a small menu wh
 
 ### School Submissions (All Documents Submitted)
 - Review all school-submitted documents across types.
-- Filter by type and status, then open a record to view details.
+- Use the status tabs, search field, and document-type filter to find records, then open a record to view details.
 - Update document status and add remarks.
 - Preview files, print calendar previews, and download documents (including calendar DOCX when supported).
 
@@ -458,6 +456,8 @@ Related page:
 ### School Portal Pages
 
 The school portal includes separate pages for registration, verification, announcements, dashboard activity, calendar and tuition submissions, profile management, and portal-facing documentation.
+
+For school-side instructions, open **School Portal User Manual**. It covers tuition fee baseline checks, school-year selection, saving and resubmitting documents, and calendar submissions.
 
 Related pages:
 - school-portal.html
@@ -634,13 +634,15 @@ Each category tracks workflow steps (Endorsed, Approved, Released) where applica
 
 #### Filters and Search
 
-At the top of the page, use the controls to narrow the view:
+The summary uses the same shared workspace style as the Checklist page. Use the controls to narrow the view:
 
-- **School Year** — select the school year to load. Available years are loaded from the database; if none are found, the current school year is shown by default.
+- **School Year** — select the school year to load. The current school year is selected by default; years found on submissions are added to the available list.
 - **School Type** — currently supports Private schools. Public school tracking is under development.
 - **Category** — filter the quarterly counts table to show data for a single submission category, or leave on All to show combined totals.
 - **Status** — filter schools by completion status: All, Done (100%), Partial (1–99%), or Pending (0%).
 - **Search** — type part of a school name to filter the table in real time.
+
+The Private Schools and Public Schools tabs share the workspace with the action buttons. The controls appear in one row when the screen has enough space and wrap on smaller screens.
 
 #### Summary Statistics
 
@@ -693,6 +695,10 @@ Related page:
 ### Settings
 - Update profile/security preferences (for example, profile picture and password).
 - Manage account-related settings such as two-factor authentication (if enabled).
+
+#### Signatories
+
+SDO personnel and administrators can open **Settings → Signatories** to add, edit, or remove the names used by the school calendar and tuition fee builders. Choose the appropriate scope and document role, enter the name and position as they should appear, and mark the default for that role when appropriate. Roles already filled for the selected scope are unavailable in the add form; edit the existing entry to change it. The settings page flags required signatories that are missing so the office can add them. School users can load office-managed names in their builder but cannot edit those entries.
 
 Related page:
 - main-settings.html

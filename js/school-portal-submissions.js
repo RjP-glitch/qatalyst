@@ -374,9 +374,8 @@ function renderAllSubmissions() {
 // ── Filter & search ────────────────────────────────────────────────────────────
 function filterSubs(type) {
     currentFilter = type;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    const btn = document.getElementById(`f-${type}`);
-    if (btn) btn.classList.add('active');
+    const select = document.getElementById('subTypeFilter');
+    if (select && select.value !== type) select.value = type;
     renderAllSubmissions();
 }
 

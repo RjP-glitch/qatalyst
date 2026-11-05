@@ -114,15 +114,6 @@
                     <p>Overview of document tracking progress per school and school year</p>
                 </div>
                 <div class="page-header-right">
-                    <button class="btn" onclick="window.location.href='checklist.html'">
-                        <i class="fa-solid fa-arrow-left"></i> Back to Checklist
-                    </button>
-                    <button class="btn btn-indorsements" id="indorsementsBtn" onclick="openIndorsementsModal()">
-                        <i class="fa-solid fa-stamp"></i> View Indorsements
-                    </button>
-                    <button class="btn btn-primary" id="exportBtn" onclick="exportReport()">
-                        <i class="fa-solid fa-file-export"></i> Export Report
-                    </button>
                     <button class="manual-help-btn" type="button"
                         onclick="window.location.href='user-manual.html?page=checklist.html'">
                         <i class="fa-solid fa-circle-question"></i><span>Help</span>
@@ -135,25 +126,41 @@
 
             <div class="content-area">
 
+                <div class="summary-workspace">
+                    <!-- School type tabs sit at the top of the shared workspace. -->
+                    <div class="summary-topline">
+                        <div class="type-tabs" role="tablist" aria-label="School type">
+                            <button class="type-tab active" id="tabPrivate" role="tab" aria-selected="true" onclick="switchType('private', this)">
+                                <i class="fa-solid fa-school"></i> Private Schools
+                            </button>
+                            <button class="type-tab" id="tabPublic" role="tab" aria-selected="false" onclick="switchType('public', this)">
+                                <i class="fa-solid fa-landmark"></i> Public Schools
+                            </button>
+                        </div>
+                        <div class="summary-top-actions">
+                            <button class="btn summary-toolbar-btn" onclick="window.location.href='checklist.html'">
+                                <i class="fa-solid fa-arrow-left"></i> Back to Checklist
+                            </button>
+                            <button class="btn btn-indorsements summary-toolbar-btn" id="indorsementsBtn" onclick="openIndorsementsModal()">
+                                <i class="fa-solid fa-stamp"></i> View Indorsements
+                            </button>
+                            <button class="btn btn-primary summary-toolbar-btn" id="exportBtn" onclick="exportReport()">
+                                <i class="fa-solid fa-file-export"></i> Export Report
+                            </button>
+                        </div>
+                    </div>
+
                 <!-- ── Controls bar ── -->
                 <div class="summary-controls">
                     <div class="summary-controls-left">
                         <!-- Year selector -->
-                        <div class="ctrl-group">
-                            <label class="ctrl-label"><i class="fa-solid fa-calendar-alt"></i> School Year</label>
-                            <select id="yearSelect" class="ctrl-select" onchange="onYearChange()">
-                                <option value="">Loading…</option>
-                            </select>
-                        </div>
-
-                        <!-- School type tabs -->
-                        <div class="type-tabs">
-                            <button class="type-tab active" id="tabPrivate" onclick="switchType('private', this)">
-                                <i class="fa-solid fa-school"></i> Private
-                            </button>
-                            <button class="type-tab" id="tabPublic" onclick="switchType('public', this)">
-                                <i class="fa-solid fa-landmark"></i> Public
-                            </button>
+                        <div class="ctrl-group year-filter-group">
+                            <div class="ctrl-select-wrap">
+                                <i class="fa-solid fa-calendar-alt ctrl-select-icon" aria-hidden="true"></i>
+                                <select id="yearSelect" class="ctrl-select" aria-label="Filter by school year" onchange="onYearChange()">
+                                    <option value="">Loading…</option>
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Search -->
@@ -164,9 +171,10 @@
                     </div>
                     <div class="summary-controls-right">
                         <!-- Category filter -->
-                        <div class="ctrl-group">
-                            <label class="ctrl-label"><i class="fa-solid fa-filter"></i> Category</label>
-                            <select id="categoryFilter" class="ctrl-select" onchange="onCategoryChange()">
+                        <div class="ctrl-group category-filter-group">
+                            <div class="ctrl-select-wrap">
+                            <i class="fa-solid fa-filter ctrl-select-icon" aria-hidden="true"></i>
+                            <select id="categoryFilter" class="ctrl-select" aria-label="Filter by category" onchange="onCategoryChange()">
                                 <option value="all">All Categories</option>
                                 <optgroup label="Tracked by Endorsed / Approved / Released">
                                     <option value="school_calendar">School Calendar</option>
@@ -186,13 +194,19 @@
                                     <option value="special_order_level">Level</option>
                                 </optgroup>
                             </select>
+                            </div>
                         </div>
                         <!-- Status filter -->
-                        <div class="filter-pills">
-                            <button class="filter-pill active" onclick="setStatusFilter('all', this)">All</button>
-                            <button class="filter-pill pill-done" onclick="setStatusFilter('done', this)">Completed</button>
-                            <button class="filter-pill pill-partial" onclick="setStatusFilter('partial', this)">Ongoing</button>
-                            <button class="filter-pill pill-none" onclick="setStatusFilter('none', this)">Pending</button>
+                        <div class="ctrl-group status-filter-group">
+                            <div class="ctrl-select-wrap">
+                            <i class="fa-solid fa-filter ctrl-select-icon" aria-hidden="true"></i>
+                            <select id="statusFilter" class="ctrl-select" aria-label="Filter by completion status" onchange="setStatusFilter(this.value)">
+                                <option value="all">All statuses</option>
+                                <option value="done">Completed</option>
+                                <option value="partial">Ongoing</option>
+                                <option value="none">Pending</option>
+                            </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -291,16 +305,13 @@
                     <div id="levelSubmissionsWrap"></div>
 
                     <!-- ── Category breakdown chart ── -->
-                    <div class="summary-card" style="margin-top:20px;">
-                        <div class="summary-card-header">
-                            <div class="summary-card-title">
-                                <i class="fa-solid fa-chart-bar"></i>
-                                Category Completion Overview
-                            </div>
-                        </div>
+                    <div class="breakdown-inline">
+                        <div class="summary-card-title"><i class="fa-solid fa-chart-bar"></i> Category Completion Overview</div>
                         <div id="categoryBars" class="category-bars"></div>
                     </div>
                 </div>
+
+                </div><!-- /summary-workspace -->
 
             </div><!-- /content-area -->
         </div><!-- /main-content -->

@@ -22,6 +22,7 @@ ob_start();
 require_once dirname(__DIR__) . '/config/security.php';
 require_once dirname(__DIR__) . '/config/database.php';
 require_once dirname(__DIR__) . '/config/auth_middleware.php';
+require_once __DIR__ . '/tuition_fee_baseline_lib.php';
 require_once dirname(__DIR__) . '/config/audit_log.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -1202,6 +1203,10 @@ try {
     } elseif ($method === 'GET' && $action === 'get_signatories') {
         handleGetSignatoriesTuition($pdo, $user);
 
+    } elseif ($method === 'GET' && $action === 'fee_baseline') {
+        $schoolYear = trim((string)($_GET['current_sy'] ?? ''));
+        handleGetTuitionFeeBaseline($pdo, $privateSchoolId, $schoolYear);
+
     } elseif ($method === 'POST' && $action === 'save') {
         handleSave($pdo, $user, $privateSchoolId, $body);
 
@@ -1253,6 +1258,23 @@ try {
     jsonError('Server error: ' . $e->getMessage(), 500);
 }
 
+function handleGetTuitionFeeBaseline(PDO $pdo, ?int $privateSchoolId, string $currentSchoolYear): void
+{
+    if (!$privateSchoolId || $currentSchoolYear === '') {
+        jsonSuccess(['found' => false, 'school_year' => $currentSchoolYear], 'No accepted fee baseline is available.');
+    }
+    $baseline = getTuitionFeeBaseline($pdo, $privateSchoolId, $currentSchoolYear);
+    if (!$baseline) {
+        jsonSuccess(['found' => false, 'school_year' => normalizeTuitionBaselineYear($currentSchoolYear)], 'No accepted fee baseline is available.');
+    }
+    jsonSuccess([
+        'found' => true,
+        'school_year' => $baseline['school_year'],
+        'source_document_id' => $baseline['source_document_id'],
+        'payload' => $baseline['payload'],
+    ], 'Accepted fee baseline loaded.');
+}
+
 // ── Signatories (shared table: school_signatories) ───────────────────────────
 
 /**
@@ -1264,7 +1286,7 @@ try {
 function signatoryBuilderType(string $role): string
 {
     static $map = [
-        'rd'             => 'calendar',
+        'rd'             => 'shared',
         'sds'            => 'calendar',
         'recommending'   => 'calendar',
         'final_approver' => 'calendar',
@@ -1284,15 +1306,13 @@ function signatoryBuilderType(string $role): string
 }
 
 /**
- * "Validated by" and "Noted by" are always SDO/regional-office signatories
- * (e.g. EPS/QAD, Regional Director) — same rule as main-settings.php's
- * $officeOnlyRoles. They must only ever exist as office-managed rows
- * (private_school_id IS NULL), never a per-school copy, so block schools
- * from saving over them here. Kept in sync by hand with main-settings.php.
+ * Regional Director, "Validated by", tuition "Noted by", and the SHS SDS
+ * signatories are office-managed. They must only exist as office rows
+ * (private_school_id IS NULL), never as school-owned copies.
  */
 function isOfficeOnlyRoleTuition(string $role): bool
 {
-    return in_array($role, ['validated_by', 'noted_by', 'shs_noted_by'], true);
+    return in_array($role, ['rd', 'validated_by', 'noted_by', 'shs_noted_by'], true);
 }
 
 function ensureSignatoriesTableTuition(PDO $pdo): void
@@ -1323,7 +1343,8 @@ function ensureSignatoriesTableTuition(PDO $pdo): void
         $pdo->exec("ALTER TABLE school_signatories
             ADD COLUMN builder_type VARCHAR(20) NOT NULL DEFAULT 'shared' AFTER role,
             ADD KEY idx_sig_builder (builder_type)");
-        $pdo->exec("UPDATE school_signatories SET builder_type='calendar' WHERE role IN ('rd','sds','recommending','final_approver','chk_checked_by')");
+        $pdo->exec("UPDATE school_signatories SET builder_type='calendar' WHERE role IN ('sds','recommending','final_approver','chk_checked_by')");
+        $pdo->exec("UPDATE school_signatories SET builder_type='shared' WHERE role = 'rd'");
         $pdo->exec("UPDATE school_signatories SET builder_type='tuition'  WHERE role = 'reviewed_by'");
     }
 }
@@ -1354,9 +1375,9 @@ function handleGetSignatoriesTuition(PDO $pdo, array $user): void
     $sql = "SELECT id, private_school_id, role, builder_type, full_name, position_title, office, city, contact, is_default, updated_at,
                    CASE WHEN private_school_id IS NULL THEN 'office' ELSE 'school' END AS scope
               FROM school_signatories
-             WHERE builder_type IN ('tuition','shared')
+             WHERE (builder_type IN ('tuition','shared') OR role = 'rd')
                AND (private_school_id IS NULL" . ($psid !== null ? " OR private_school_id = :psid" : "") . ")
-             ORDER BY role ASC, is_default DESC, scope ASC, id ASC";
+             ORDER BY role ASC, is_default DESC, CASE WHEN private_school_id IS NULL THEN 1 ELSE 0 END ASC, updated_at DESC, id DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($psid !== null ? [':psid' => $psid] : []);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1371,6 +1392,46 @@ function handleGetSignatoriesTuition(PDO $pdo, array $user): void
         'grouped'     => $grouped ?: (object)[],
         'school_id'   => $psid,
     ], 'Signatories retrieved successfully.');
+}
+
+/** Apply current office-managed signatories to a tuition payload. */
+function applyOfficeTuitionSignatories(PDO $pdo, array &$payload): array
+{
+    ensureSignatoriesTableTuition($pdo);
+    $stmt = $pdo->query("SELECT role, full_name, position_title, office
+        FROM school_signatories
+        WHERE private_school_id IS NULL AND is_default = 1
+          AND role IN ('rd', 'noted_by', 'validated_by', 'shs_noted_by')
+        ORDER BY updated_at DESC, id DESC");
+    $defaults = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        if (!isset($defaults[$row['role']]) && trim((string)$row['full_name']) !== '') {
+            $defaults[$row['role']] = $row;
+        }
+    }
+
+    $rd = $defaults['rd'] ?? $defaults['noted_by'] ?? null;
+    $validated = $defaults['validated_by'] ?? null;
+    $sds = $defaults['shs_noted_by'] ?? null;
+    if (!isset($payload['form']) || !is_array($payload['form'])) $payload['form'] = [];
+    if (!isset($payload['shs']) || !is_array($payload['shs'])) $payload['shs'] = [];
+
+    $payload['form']['noted_by'] = $rd['full_name'] ?? '';
+    $payload['form']['noted_by_position'] = trim((string)($rd['position_title'] ?? '')) ?: 'Regional Director';
+    $payload['form']['validated_by'] = $validated['full_name'] ?? '';
+    $payload['form']['validated_by_position'] = trim((string)($validated['position_title'] ?? '')) ?: 'EPS, QAD DepEd RO 3';
+    $payload['shs']['sds_name'] = $sds['full_name'] ?? '';
+    $payload['shs']['sds_position'] = trim((string)($sds['position_title'] ?? '')) ?: 'Schools Division Superintendent';
+    $payload['shs']['sds_office'] = trim((string)($sds['office'] ?? '')) ?: 'Office of the Schools Division Superintendent';
+    $payload['form']['shs_noted_by'] = $payload['shs']['sds_name'];
+    $payload['form']['shs_noted_by_position'] = $payload['shs']['sds_position'];
+    $payload['form']['shs_noted_by_office'] = $payload['shs']['sds_office'];
+
+    $missing = [];
+    if (!$rd) $missing[] = 'rd';
+    if (!$validated) $missing[] = 'validated_by';
+    if (!$sds) $missing[] = 'shs_noted_by';
+    return $missing;
 }
 
 function handleSaveSignatoryTuition(PDO $pdo, array $user, array $body): void
@@ -1408,7 +1469,7 @@ function handleSaveSignatoryTuition(PDO $pdo, array $user, array $body): void
                 SET role=:role,builder_type=:btype,full_name=:fn,position_title=:pos,office=:ofc,city=:city,contact=:con,is_default=:isd,updated_at=NOW()
               WHERE id=:id AND private_school_id=:psid"
         )->execute([':role'=>$role,':btype'=>signatoryBuilderType($role),':fn'=>$fn,':pos'=>$pos,':ofc'=>$ofc,':city'=>$city,':con'=>$con,':isd'=>$isd,':id'=>$id,':psid'=>$psid]);
-        jsonSuccess(['id' => $id, 'is_default' => $isd], 'Signatory updated successfully.');
+        jsonSuccess(['id' => $id, 'is_default' => $isd, 'school_id' => $psid], 'Signatory updated successfully.');
     }
 
     $ins = $pdo->prepare(
@@ -1416,7 +1477,7 @@ function handleSaveSignatoryTuition(PDO $pdo, array $user, array $body): void
          VALUES (:psid,:role,:btype,:fn,:pos,:ofc,:city,:con,:isd)"
     );
     $ins->execute([':psid'=>$psid,':role'=>$role,':btype'=>signatoryBuilderType($role),':fn'=>$fn,':pos'=>$pos,':ofc'=>$ofc,':city'=>$city,':con'=>$con,':isd'=>$isd]);
-    jsonSuccess(['id' => (int)$pdo->lastInsertId(), 'is_default' => $isd], 'Signatory saved successfully.');
+    jsonSuccess(['id' => (int)$pdo->lastInsertId(), 'is_default' => $isd, 'school_id' => $psid], 'Signatory saved successfully.');
 }
 
 function handleDeleteSignatoryTuition(PDO $pdo, array $user, array $body): void
@@ -1556,6 +1617,7 @@ function handleSave(PDO $pdo, array $user, ?int $privateSchoolId, array $body): 
     $activeStep  = max(1, min(4, (int) ($body['active_step'] ?? 1)));
 
     // Recompute all proposed/increase values server-side — client values are discarded.
+    applyOfficeTuitionSignatories($pdo, $payload);
     $payload = recomputePayload($payload, $mode, $increasePct);
 
     // Re-read totals from the recomputed payload
@@ -1795,6 +1857,7 @@ function handleSubmit(PDO $pdo, array $user, ?int $privateSchoolId, int $id): vo
         ? max(0.0, min(100.0, (float) ($doc['increase_pct'] ?? 0)))
         : 0.0;
     $recomputed = recomputePayload($storedPayload, $mode, $increasePct);
+    applyOfficeTuitionSignatories($pdo, $recomputed);
 
     // BUG FIX: same JSON object/array ambiguity as in handleSave() — force
     // an empty supporting_docs back to a JSON object so it never round-trips
@@ -1803,6 +1866,31 @@ function handleSubmit(PDO $pdo, array $user, ?int $privateSchoolId, int $id): vo
         $recomputed['supporting_docs'] = (object) [];
     }
 
+    // The current-year side of a new schedule must be copied from an accepted
+    // prior filing for the exact current school year. Check again on the server
+    // so a crafted request cannot alter the read-only form values. If no prior
+    // baseline exists yet, let the school submit it for SDO verification; the
+    // first accepted schedule becomes the baseline for the next school year.
+    $baselineSchoolId = (int)($doc['private_school_id'] ?? $privateSchoolId ?? 0);
+    $baselineYear = (string)($doc['current_sy'] ?? $recomputed['form']['current_sy'] ?? '');
+    $baseline = getTuitionFeeBaseline($pdo, $baselineSchoolId, $baselineYear);
+    if (!$baseline) {
+        if (!isset($recomputed['form']) || !is_array($recomputed['form'])) $recomputed['form'] = [];
+        $recomputed['form']['baseline_review_required'] = true;
+        $recomputed['form']['baseline_current_sy'] = normalizeTuitionBaselineYear($baselineYear);
+    } else {
+        $baselineMismatches = compareTuitionCurrentToBaseline($recomputed, $baseline['payload']);
+        if ($baselineMismatches) {
+            jsonError(
+                'Submission blocked: the current fee amounts do not match the SDO-approved schedule for SY ' . $baseline['school_year'] . '. Contact your SDO if a baseline correction or new fee is needed.',
+                422,
+                ['baseline_mismatch' => true, 'school_year' => $baseline['school_year'], 'mismatch_count' => count($baselineMismatches)]
+            );
+        }
+        if (isset($recomputed['form']) && is_array($recomputed['form'])) {
+            unset($recomputed['form']['baseline_review_required'], $recomputed['form']['baseline_current_sy']);
+        }
+    }
     $doc['payload_json'] = json_encode($recomputed, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
     // ── DepEd compliance gate ─────────────────────────────────────────────────
@@ -1846,8 +1934,10 @@ function handleSubmit(PDO $pdo, array $user, ?int $privateSchoolId, int $id): vo
         }
 
         $pdo->prepare(
-            "UPDATE school_tuition_documents SET status = 'Pending Review', updated_at = NOW() WHERE id = :id"
-        )->execute([':id' => $id]);
+            "UPDATE school_tuition_documents
+             SET status = 'Pending Review', payload_json = :payload_json, updated_at = NOW()
+             WHERE id = :id"
+        )->execute([':payload_json' => $doc['payload_json'], ':id' => $id]);
 
         $bridgeAction = upsertTuitionSubmission($pdo, $user, $id, $doc);
 

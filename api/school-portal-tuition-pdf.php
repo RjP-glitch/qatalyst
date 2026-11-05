@@ -89,6 +89,31 @@ $hasElem    = (bool)$doc['has_elem'];
 $hasJHS     = (bool)$doc['has_jhs'];
 $hasSHS     = (bool)$doc['has_shs'];
 
+// New submissions store Elementary and JHS tuition per grade. Older payloads
+// used one shared tuition key, so keep that as a fallback for archived files.
+$tuitionValue = static function (array $level, string $gradeKey, string $legacyKey, string $measure) use ($pct, $isIncrease): float {
+    $suffix = $measure === 'current' ? '_curr' : '_prop';
+    $key = $gradeKey . $suffix;
+    $gradePrefix = preg_replace('/_tuition$/', '', $gradeKey);
+    $hasGradeTuition = false;
+    foreach ($level as $field => $value) {
+        if (preg_match('/^' . preg_quote($gradePrefix[0], '/') . '(?:[1-6]|[7-9]|10)_tuition_curr$/', (string)$field) && (float)$value > 0) {
+            $hasGradeTuition = true;
+            break;
+        }
+    }
+    if ($hasGradeTuition && array_key_exists($key, $level)) return (float)$level[$key];
+    if ($hasGradeTuition && $measure === 'proposed') {
+        $gradeCurr = (float)($level[$gradeKey . '_curr'] ?? 0);
+        return $isIncrease ? applyIncrease($gradeCurr, $pct) : $gradeCurr;
+    }
+    $legacy = (float)($level[$legacyKey . $suffix] ?? 0);
+    if ($measure === 'proposed' && !array_key_exists($legacyKey . $suffix, $level) && $isIncrease) {
+        $legacy = applyIncrease((float)($level[$legacyKey . '_curr'] ?? 0), $pct);
+    }
+    return $legacy;
+};
+
 // Signatories — sourced from the actual submitted form fields (the same
 // fields the builder's signatory picker / preview use), NOT from whichever
 // account happens to be logged in when the PDF is generated, and NOT
@@ -101,8 +126,25 @@ $reviewedBy          = strtoupper(trim((string)($form['reviewed_by']          ??
 $reviewedByPosition  = trim((string)($form['reviewed_by_position']  ?? '')) ?: 'SDO, EPS In Charge';
 $validatedBy         = strtoupper(trim((string)($form['validated_by']         ?? '')));
 $validatedByPosition = trim((string)($form['validated_by_position'] ?? '')) ?: 'EPS, QAD DepEd RO 3';
-$notedBy             = strtoupper(trim((string)($form['noted_by']             ?? ''))) ?: 'MAY B. ECLAR, PhD, CESO III';
-$notedByPosition     = trim((string)($form['noted_by_position']     ?? '')) ?: 'Regional Director';
+$notedBy             = strtoupper(trim((string)($form['noted_by']             ?? '')));
+$notedByPosition     = trim((string)($form['noted_by_position']     ?? ''));
+if ($notedBy === '') {
+    try {
+        $rdStmt = $pdo->query("SELECT full_name, position_title FROM school_signatories
+            WHERE private_school_id IS NULL AND is_default = 1 AND role IN ('rd', 'noted_by')
+            ORDER BY CASE WHEN role = 'rd' THEN 0 ELSE 1 END, is_default DESC, id DESC");
+        $rdRows = $rdStmt ? $rdStmt->fetchAll(PDO::FETCH_ASSOC) : [];
+        foreach ($rdRows as $rdRow) {
+            if (trim((string)($rdRow['full_name'] ?? '')) === '') continue;
+            $notedBy = strtoupper(trim((string)$rdRow['full_name']));
+            if ($notedByPosition === '') $notedByPosition = trim((string)($rdRow['position_title'] ?? ''));
+            break;
+        }
+    } catch (Throwable $e) {
+        error_log('Tuition PDF Regional Director lookup failed: ' . $e->getMessage());
+    }
+}
+$notedByPosition = $notedByPosition ?: 'Regional Director';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtPeso(float $n): string {
@@ -495,19 +537,18 @@ if ($hasKinder) {
 if ($hasElem) {
     if ($pdf->GetY() > 180) { $pdf->AddPage('P'); }
 
-    $eTuitionCurr = (float)($elem['e_tuition_curr'] ?? 0);
-    $eTuitionProp = (float)($elem['e_tuition_prop'] ?? 0);
-
     $elemMiscFields = ['e_id', 'e_ins', 'e_handbook', 'e_lab', 'e_water', 'e_itm', 'e_med', 'e_reg', 'e_books', 'e_paces1', 'e_paces2'];
     $eMiscCurr = array_sum(array_map(fn($f) => (float)($elem[$f . '_curr'] ?? 0), $elemMiscFields));
     $eMiscProp = array_sum(array_map(fn($f) => (float)($elem[$f . '_prop'] ?? 0), $elemMiscFields));
 
     $elemRows = [];
     foreach ([1, 2, 3, 4, 5, 6] as $g) {
+        $tuitionCurr = $tuitionValue($elem, 'e' . $g . '_tuition', 'e_tuition', 'current');
+        $tuitionProp = $tuitionValue($elem, 'e' . $g . '_tuition', 'e_tuition', 'proposed');
         $elemRows[] = [
             'level'        => 'Grade ' . $g,
-            'tuition_curr' => $eTuitionCurr,
-            'tuition_prop' => $eTuitionProp,
+            'tuition_curr' => $tuitionCurr,
+            'tuition_prop' => $tuitionProp,
             'misc_curr'    => $eMiscCurr,
             'misc_prop'    => $eMiscProp,
         ];
@@ -515,8 +556,8 @@ if ($hasElem) {
     $elemRows[] = [
         'level'        => 'TOTAL',
         'type'         => 'total',
-        'tuition_curr' => $eTuitionCurr * 6,
-        'tuition_prop' => $eTuitionProp * 6,
+        'tuition_curr' => array_sum(array_map(fn($g) => $tuitionValue($elem, 'e' . $g . '_tuition', 'e_tuition', 'current'), range(1, 6))),
+        'tuition_prop' => array_sum(array_map(fn($g) => $tuitionValue($elem, 'e' . $g . '_tuition', 'e_tuition', 'proposed'), range(1, 6))),
         'misc_curr'    => $eMiscCurr * 6,
         'misc_prop'    => $eMiscProp * 6,
     ];
@@ -530,9 +571,6 @@ if ($hasElem) {
 if ($hasJHS) {
     if ($pdf->GetY() > 180) { $pdf->AddPage('P'); }
 
-    $jTuitionCurr = (float)($jhs['j_tuition_curr'] ?? 0);
-    $jTuitionProp = (float)($jhs['j_tuition_prop'] ?? 0);
-
     // Fix #5: corrected field names to match JS JHS_FIELDS (old names j_lms/j_sci/j_tle/j_lib/j_guid don't exist in payload)
     $jhsMiscFields = ['j_id', 'j_ins', 'j_handbook', 'j_comp', 'j_water', 'j_itm', 'j_med', 'j_reg', 'j_books', 'j_paces1', 'j_paces2'];
     $jMiscCurr = array_sum(array_map(fn($f) => (float)($jhs[$f . '_curr'] ?? 0), $jhsMiscFields));
@@ -540,10 +578,12 @@ if ($hasJHS) {
 
     $jhsRows = [];
     foreach ([7, 8, 9, 10] as $g) {
+        $tuitionCurr = $tuitionValue($jhs, 'j' . $g . '_tuition', 'j_tuition', 'current');
+        $tuitionProp = $tuitionValue($jhs, 'j' . $g . '_tuition', 'j_tuition', 'proposed');
         $jhsRows[] = [
             'level'        => 'Grade ' . $g,
-            'tuition_curr' => $jTuitionCurr,
-            'tuition_prop' => $jTuitionProp,
+            'tuition_curr' => $tuitionCurr,
+            'tuition_prop' => $tuitionProp,
             'misc_curr'    => $jMiscCurr,
             'misc_prop'    => $jMiscProp,
         ];
@@ -551,8 +591,8 @@ if ($hasJHS) {
     $jhsRows[] = [
         'level'        => 'TOTAL',
         'type'         => 'total',
-        'tuition_curr' => $jTuitionCurr * 4,
-        'tuition_prop' => $jTuitionProp * 4,
+        'tuition_curr' => array_sum(array_map(fn($g) => $tuitionValue($jhs, 'j' . $g . '_tuition', 'j_tuition', 'current'), range(7, 10))),
+        'tuition_prop' => array_sum(array_map(fn($g) => $tuitionValue($jhs, 'j' . $g . '_tuition', 'j_tuition', 'proposed'), range(7, 10))),
         'misc_curr'    => $jMiscCurr * 4,
         'misc_prop'    => $jMiscProp * 4,
     ];
@@ -827,7 +867,7 @@ if ($hasElem) {
 
     $elemItems = [
         ['type' => 'section', 'roman' => 'I.',   'label' => 'TUITION FEE'],
-        ['label' => 'Tuition Fee',               'amounts' => $rep6($eVal('e_tuition'))],
+        ['label' => 'Tuition Fee',               'amounts' => array_map(fn($g) => $tuitionValue($elem, 'e' . $g . '_tuition', 'e_tuition', 'proposed'), range(1, 6))],
         ['type' => 'section', 'roman' => 'II.',  'label' => 'MISCELLANEOUS FEES'],
         ['label' => 'Identification Card',        'amounts' => $rep6($eVal('e_id'))],
         ['label' => 'Insurance',                  'amounts' => $rep6($eVal('e_ins'))],
@@ -858,7 +898,7 @@ if ($hasJHS) {
 
     $jhsItems = [
         ['type' => 'section', 'roman' => 'I.',   'label' => 'TUITION FEE'],
-        ['label' => 'Tuition Fee',               'amounts' => $rep4($jVal('j_tuition'))],
+        ['label' => 'Tuition Fee',               'amounts' => array_map(fn($g) => $tuitionValue($jhs, 'j' . $g . '_tuition', 'j_tuition', 'proposed'), range(7, 10))],
         ['type' => 'section', 'roman' => 'II.',  'label' => 'MISCELLANEOUS FEES'],
         ['label' => 'Identification Card',        'amounts' => $rep4($jVal('j_id'))],
         ['label' => 'Insurance',                  'amounts' => $rep4($jVal('j_ins'))],

@@ -1385,6 +1385,24 @@ body {
     text-decoration: underline;
 }
 
+.ads-tf-baseline-review {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 10px 0;
+    padding: 11px 12px;
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.45;
+}
+.ads-tf-baseline-review > i { margin-top: 2px; color: #d97706; }
+.ads-tf-baseline-review strong,
+.ads-tf-baseline-review span { display: block; }
+.ads-tf-baseline-review span { margin-top: 3px; }
+
 /* ══════════════════════════════════════════════════════════════════════
    PRINT — Calendar preview from detail modal
 ══════════════════════════════════════════════════════════════════════ */

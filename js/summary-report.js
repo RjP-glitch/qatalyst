@@ -414,6 +414,17 @@ async function apiGet(params) {
     return res.json();
 }
 
+async function apiPost(action, body) {
+    const res = await fetch(TRACKER_API + '?action=' + encodeURIComponent(action), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+}
+
 // ─── Data loading ─────────────────────────────────────────────────────────────
 async function loadSchools() {
     try {
@@ -433,17 +444,28 @@ async function loadSchools() {
 async function loadYears() {
     try {
         const json = await apiGet({ action: 'years' });
-        if (json.success && json.years.length) {
+        if (json.success && Array.isArray(json.years) && json.years.length) {
             _years = json.years.map(y => y.school_year);
             json.years.forEach(y => { _yearIdMap[y.school_year] = y.id; });
         }
     } catch (e) { console.warn('summary: failed to load years', e); }
 
-    if (!_years.length) {
-        const cur = new Date().getFullYear();
-        _years = [(cur - 1) + '-' + cur];
+    const currentYear = currentSchoolYearValue();
+    if (!_years.includes(currentYear)) {
+        try {
+            const json = await apiPost('add_year', { school_year: currentYear, label: 'SY ' + currentYear });
+            if (json.success && json.year) {
+                _yearIdMap[currentYear] = Number(json.year.id);
+                _years.push(currentYear);
+                _years.sort((a, b) => Number(a.slice(0, 4)) - Number(b.slice(0, 4)));
+            }
+        } catch (e) { console.warn('summary: could not register the current school year', e); }
     }
-    _currentYear = _years[_years.length - 1];
+
+    if (!_years.length) {
+        _years = [currentYear];
+    }
+    _currentYear = _years.includes(currentYear) ? currentYear : _years[_years.length - 1];
 
     const sel = document.getElementById('yearSelect');
     if (sel) {
@@ -451,6 +473,11 @@ async function loadYears() {
             `<option value="${y}"${y === _currentYear ? ' selected' : ''}>${y}</option>`
         ).join('');
     }
+}
+
+function currentSchoolYearValue(date = new Date()) {
+    const startYear = date.getMonth() >= 5 ? date.getFullYear() : date.getFullYear() - 1;
+    return `${startYear}-${startYear + 1}`;
 }
 
 async function loadTrackingData() {
@@ -803,7 +830,7 @@ function renderTable() {
 
     // ── Header: Quarterly counts only ─────────────────────────────────────
     let thHtml = `<tr>
-        <th style="min-width:220px;" rowspan="3">School</th>
+        <th style="min-width:280px;" rowspan="3">School</th>
         <th class="th-center" colspan="12">Quarterly</th>
     </tr>`;
 
@@ -901,7 +928,7 @@ function showCategoryModeBanner(show, label) {
  *  category filter is narrowed to a single such category, replacing the
  *  quarterly Endorsed/Approved/Released table which wouldn't apply). */
 function buildSingleCategoryLevelTable(cat, schools) {
-    let thead = `<tr><th style="min-width:220px;">School</th>`;
+    let thead = `<tr><th style="min-width:280px;">School</th>`;
     for (const step of cat.steps) {
         thead += `<th class="th-center sub-th" style="background:#6366f1;color:#fff;">${esc(step)}</th>`;
     }
@@ -981,7 +1008,7 @@ function renderLevelSubmissionsTable() {
         <table class="summary-table" style="min-width:0;">
             <thead>
                 <tr>
-                    <th style="min-width:200px;">School</th>`;
+                    <th style="min-width:260px;">School</th>`;
 
     // Build header columns: one per (cat, step/level)
     for (const cat of levelCats) {
@@ -1127,15 +1154,19 @@ function onYearChange() {
 function switchType(type, btn) {
     if (_schoolType === type) return;
     _schoolType = type;
-    document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+    document.querySelectorAll('.type-tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+    });
+    if (btn) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+    }
     loadData();
 }
 
-function setStatusFilter(f, btn) {
+function setStatusFilter(f) {
     _statusFilter = f;
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-    if (btn) btn.classList.add('active');
     renderAll();
 }
 

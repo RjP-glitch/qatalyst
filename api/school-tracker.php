@@ -96,6 +96,7 @@ function submissionTrackerMapping(array $submission): ?array {
     $type = strtolower(trim((string)($submission['type'] ?? '')));
     $docType = strtolower(trim((string)($submission['document_type'] ?? '')));
     $status = strtolower(trim((string)($submission['status'] ?? '')));
+    $status = preg_replace('/\s+/', ' ', str_replace(['_', '-'], ' ', $status));
 
     // Drafts are not submissions and must not hide an SDO-created
     // endorsement from the tracker when no submitted record exists.
@@ -215,6 +216,33 @@ try {
 
     // ── GET years ──────────────────────────────────────────────────────────
     if ($method === 'GET' && $action === 'years') {
+        // Keep report/checklist years in sync with actual submitted records.
+        // The checklist may already contain newer planning years while a
+        // school submits a valid historical year that is not configured yet.
+        // Register those submission years so the summary report can select
+        // and display them; the normal add_year endpoint uses the same table.
+        $submissionYears = $pdo->query(
+            "SELECT DISTINCT school_year FROM school_submissions
+             WHERE school_year IS NOT NULL AND TRIM(school_year) <> ''"
+        )->fetchAll(PDO::FETCH_COLUMN);
+        $registerYear = $pdo->prepare(
+            "INSERT INTO school_tracker_years (school_year, label, created_by, is_active)
+             VALUES (:school_year, :label, :created_by, 1)
+             ON DUPLICATE KEY UPDATE label = VALUES(label), is_active = 1"
+        );
+        foreach ($submissionYears as $submittedYear) {
+            $normalizedYear = normalizeTrackerSchoolYear((string)$submittedYear);
+            if (!preg_match('/^(\d{4})-(\d{4})$/', $normalizedYear, $yearParts)
+                || (int)$yearParts[2] !== (int)$yearParts[1] + 1) {
+                continue;
+            }
+            $registerYear->execute([
+                ':school_year' => $normalizedYear,
+                ':label' => 'SY ' . $normalizedYear,
+                ':created_by' => isset($authUser['id']) ? (int)$authUser['id'] : null,
+            ]);
+        }
+
         $stmt = $pdo->query(
             "SELECT id, school_year, label, is_active
              FROM school_tracker_years

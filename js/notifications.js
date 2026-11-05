@@ -219,11 +219,12 @@ const NotificationSystem = {
                     </div>`;
             }
 
-            if (type === 'tuition') {
+            if (type === 'tuition' || type === 'tuition_edit_request') {
                 // ── Tuition fee submission notification ───────────────────
                 const schoolName   = this.escapeHtml(n.school_name     || 'A school');
                 const docTitle     = this.escapeHtml(n.submission_title || 'Tuition Fee Schedule');
                 const submissionId = parseInt(n.id, 10) || 0;
+                const isEditRequest = type === 'tuition_edit_request';
 
                 return `
                     <div class="notification-item ${n.is_new ? 'unread' : ''}"
@@ -235,7 +236,7 @@ const NotificationSystem = {
                         </div>
                         <div class="notification-content">
                             <p class="notification-text">
-                                <strong>${schoolName}</strong> submitted a tuition fee schedule for review
+                                <strong>${schoolName}</strong> ${isEditRequest ? 'requested permission to edit a tuition fee document' : 'submitted a tuition fee schedule for review'}
                             </p>
                             <span class="notification-meta">
                                 ${docTitle} · ${n.time_ago}

@@ -220,6 +220,7 @@ function handleList(array $user, int $userId): void {
     $stmt = $db->prepare("
         SELECT
             ss.id, ss.type, ss.title, ss.file_name, ss.status, ss.file_path,
+            ss.calendar_document_id,
             ss.indorsement_count, ss.remarks, ss.submitted_at, ss.updated_at,
             ss.school_year, ss.document_type, ss.history_json
         FROM school_submissions ss

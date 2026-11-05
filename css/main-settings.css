@@ -526,6 +526,52 @@ body {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+/* School Portal signatory setup */
+.sig-settings-section { margin: 24px 0 18px; }
+.sig-settings-section-heading { display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; }
+.sig-settings-step { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; flex:0 0 28px; border-radius:50%; background:#eff6ff; color:#1d4ed8; font-size:13px; font-weight:700; }
+.sig-settings-section-heading h3 { margin:2px 0 4px; color:#0f172a; font-size:15px; font-weight:700; }
+.sig-settings-section-heading p { margin:0; color:#64748b; font-size:12.5px; line-height:1.5; }
+.sig-settings-scope-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.sig-settings-scope-grid .form-group { min-width:0; }
+.sig-settings-hint { margin:0; padding:10px 12px; border-left:3px solid #93c5fd; border-radius:0 6px 6px 0; background:#f8fafc; color:#475569; font-size:12px; line-height:1.5; }
+.sig-settings-subheading { display:flex; align-items:center; gap:8px; margin:4px 0 14px; color:#334155; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.sig-settings-subheading span { padding:2px 7px; border-radius:10px; background:#e2e8f0; color:#64748b; font-size:10px; font-weight:600; text-transform:none; letter-spacing:0; }
+.sig-settings-list { margin-top:28px; }
+.sig-settings-list .sessions-table-wrapper { margin-top:0 !important; }
+.sig-settings-list-actions { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 14px; }
+.school-sig-modal,
+.school-sig-delete-modal { position:fixed; inset:0; z-index:10050; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.56); backdrop-filter:blur(3px); }
+.school-sig-modal.is-open,
+.school-sig-delete-modal.is-open { display:flex; }
+.school-sig-modal-dialog { width:min(680px,100%); max-height:min(90vh,860px); overflow:auto; padding:24px; border:1px solid #e2e8f0; border-radius:18px; background:#fff; box-shadow:0 24px 70px rgba(15,23,42,.28); animation:sigModalIn .16s ease-out; }
+.school-sig-modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid #e8edf5; }
+.school-sig-modal-heading { display:flex; align-items:center; gap:14px; min-width:0; }
+.school-sig-modal-icon { display:flex; align-items:center; justify-content:center; width:44px; height:44px; flex:0 0 44px; border-radius:13px; background:linear-gradient(145deg,#eff6ff,#e0e7ff); color:#1e40af; font-size:18px; }
+.school-sig-modal-header h3,
+.school-sig-delete-dialog h3 { margin:0 0 5px; color:#0f172a; font-size:19px; font-weight:700; }
+.school-sig-modal-header p,
+.school-sig-delete-dialog p { margin:0; color:#64748b; font-size:13px; line-height:1.5; }
+.school-sig-modal-close { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; flex:0 0 36px; border:1px solid #e2e8f0; border-radius:9px; background:#fff; color:#475569; font-size:16px; cursor:pointer; }
+.school-sig-modal-close:hover { background:#f8fafc; color:#0f172a; }
+.school-sig-modal-body .form-row { gap:16px; margin-bottom:18px; }
+.school-sig-modal-body .form-group { min-width:0; }
+.school-sig-modal-body .form-group input,
+.school-sig-modal-body .form-group select { width:100%; min-width:0; }
+.school-sig-modal-body .form-group input:focus,
+.school-sig-modal-body .form-group select:focus { border-color:#3156c8; box-shadow:0 0 0 3px rgba(49,86,200,.13); }
+.sig-role-hint { display:flex; align-items:flex-start; gap:8px; margin:2px 0 0; padding:9px 10px; border:1px solid #dbeafe; border-radius:8px; background:#f5f9ff; color:#52627a; font-size:11.5px; font-weight:400; line-height:1.45; }
+.sig-role-hint i { flex:0 0 auto; margin-top:2px; color:#4771cf; }
+.school-sig-modal-body .sig-default-row { margin:4px 0 0; }
+.school-sig-modal-body .sig-default-row label { display:inline-flex; align-items:center; gap:9px; padding:10px 12px; border:1px solid #dbeafe; border-radius:8px; background:#eff6ff; color:#1e3a8a; font-size:13px; cursor:pointer; }
+.school-sig-modal-body #schoolSigDefault { width:16px; height:16px; accent-color:#2563eb; }
+.school-sig-modal-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; margin-top:22px; padding-top:18px; border-top:1px solid #e2e8f0; }
+.school-sig-delete-dialog { width:min(430px,100%); padding:28px; border-radius:16px; background:#fff; box-shadow:0 24px 70px rgba(15,23,42,.28); text-align:center; animation:sigModalIn .16s ease-out; }
+.school-sig-delete-icon { display:flex; align-items:center; justify-content:center; width:48px; height:48px; margin:0 auto 14px; border-radius:50%; background:#fff1f2; color:#be123c; font-size:18px; }
+.school-sig-delete-dialog .school-sig-modal-actions { margin-top:20px; }
+body.school-sig-modal-open { overflow:hidden; }
+@keyframes sigModalIn { from { opacity:0; transform:translateY(8px) scale(.99); } to { opacity:1; transform:translateY(0) scale(1); } }
+
 .form-group input:focus {
     border-color: #1e3a8a;
     box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
@@ -1424,6 +1470,13 @@ body {
     .form-row {
         grid-template-columns: 1fr;
     }
+
+    .sig-settings-scope-grid { grid-template-columns:1fr; gap:14px; }
+    .school-sig-modal { padding:12px; }
+    .school-sig-modal-dialog { max-height:94vh; padding:18px; }
+    .school-sig-modal-icon { width:38px; height:38px; flex-basis:38px; border-radius:11px; font-size:16px; }
+    .school-sig-modal-header { gap:10px; }
+    .school-sig-delete-dialog { padding:22px; }
 
     .settings-container {
         padding: 20px;

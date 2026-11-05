@@ -299,13 +299,30 @@
         } catch (e) { /* fall through */ }
 
         if (!_years.length) {
-            const cur = new Date().getFullYear();
-            _years = [(cur - 1) + '-' + cur];
+            const currentYear = _currentSchoolYearValue();
+            _years = [currentYear];
         }
 
-        // years arrive sorted ASC, so the newest year is last (matches summary page)
-        _currentYear = _years[_years.length - 1];
+        const currentSchoolYear = _currentSchoolYearValue();
+        if (!_years.includes(currentSchoolYear)) {
+            try {
+                const json = await _apiPost('add_year', { school_year: currentSchoolYear, label: 'SY ' + currentSchoolYear });
+                if (json.success && json.year) {
+                    _yearIdMap[currentSchoolYear] = Number(json.year.id);
+                    _years.push(currentSchoolYear);
+                    _years.sort((a, b) => Number(a.slice(0, 4)) - Number(b.slice(0, 4)));
+                }
+            } catch (e) { console.warn('school-tracker: could not register the current school year', e); }
+        }
+
+        // Open on the school year containing today, not the last year someone added.
+        _currentYear = _years.includes(currentSchoolYear) ? currentSchoolYear : _years[_years.length - 1];
         await _loadYearData(_currentYear);
+    }
+
+    function _currentSchoolYearValue(date = new Date()) {
+        const startYear = date.getMonth() >= 5 ? date.getFullYear() : date.getFullYear() - 1;
+        return `${startYear}-${startYear + 1}`;
     }
 
     async function _loadYearData(yr) {
@@ -594,13 +611,11 @@
         const bar = document.getElementById('st-yr-bar');
         if (!bar) return;
 
-        // ── Private / Public type tabs ──
-        let html = `<div style="display:flex;gap:0;border-bottom:1.5px solid var(--color-border-tertiary);margin-bottom:12px;width:100%;">
-            <button class="st-type-tab${_schoolType === 'private' ? ' active' : ''}" onclick="ST.switchSchoolType('private')">Private Schools</button>
-            <button class="st-type-tab${_schoolType === 'public' ? ' active' : ''}" onclick="ST.switchSchoolType('public')">Public Schools</button>
+        let html = `<div class="st-school-type-tabs">
+            <button class="st-type-tab${_schoolType === 'private' ? ' active' : ''}" onclick="ST.switchSchoolType('private')"><i class="fa-solid fa-school" aria-hidden="true"></i> Private Schools</button>
+            <button class="st-type-tab${_schoolType === 'public' ? ' active' : ''}" onclick="ST.switchSchoolType('public')"><i class="fa-solid fa-landmark" aria-hidden="true"></i> Public Schools</button>
         </div>`;
 
-        // ── If Public → show under-development banner, hide rest ──
         if (_schoolType === 'public') {
             html += `<div style="padding:40px 20px;text-align:center;">
                 <div style="width:56px;height:56px;border-radius:12px;background:#fef9c3;border:1px solid #fde047;
@@ -625,118 +640,23 @@
             return;
         }
 
-        // ── Private → show year pills + school selector ──
         _setTrackerBodyVisible(true);
-
-        const activeSchoolName = _selectedSchoolId
-            ? (_activeSchools().find(s => s.id === _selectedSchoolId)?.name || 'All Schools')
-            : 'All Schools';
-
-        // Fill the earliest gap before extending the sequence into the future.
-        const nextYr = _nextYearToAdd();
-
-        html += `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">`;
-
-        // Year pills — each has the year label + a delete × button
-        _years.forEach(yr => {
-            const isActive = yr === _currentYear;
-            const activeBg      = isActive ? '#1d4ed8' : 'transparent';
-            const activeColor   = isActive ? '#fff'    : 'var(--color-text-primary)';
-            const activeBorder  = isActive ? '#1d4ed8' : '#e5e7eb';
-            const delBg         = isActive ? '#1e40af' : '#f9fafb';
-            const delColor      = isActive ? '#bfdbfe' : '#9ca3af';
-            const delBorderL    = isActive ? '#3b82f6' : '#e5e7eb';
-
-            html += `<div style="display:inline-flex;align-items:stretch;border-radius:20px;
-                overflow:hidden;border:1px solid ${activeBorder};">
-                <button onclick="ST.switchYear('${_esc(yr)}')"
-                    style="padding:5px 10px 5px 14px;border:none;background:${activeBg};
-                        color:${activeColor};font-size:13px;font-weight:${isActive ? '600' : '400'};
-                        cursor:pointer;font-family:inherit;white-space:nowrap;line-height:1.4;">
-                    ${_esc(yr)}
-                </button>
-                <button onclick="ST._deleteYear('${_esc(yr)}')"
-                    title="Delete ${_esc(yr)}"
-                    style="padding:5px 9px;border:none;border-left:1px solid ${delBorderL};
-                        background:${delBg};color:${delColor};font-size:11px;
-                        cursor:pointer;line-height:1;transition:background .15s,color .15s;"
-                    onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626';"
-                    onmouseout="this.style.background='${delBg}';this.style.color='${delColor}';">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>`;
-        });
-
-        // Add year button restores the earliest missing year or adds the next one.
-        if (nextYr) {
-            html += `<button class="st-yr-add" onclick="ST._addNextYear()"
-                title="Add ${_esc(nextYr)}"
-                style="display:inline-flex;align-items:center;gap:5px;">
-                <i class="fa-solid fa-plus" style="font-size:10px;"></i>
-                ${_esc(nextYr)}
-            </button>`;
-        }
-
-        html += `</div>
-
-            <!-- School selector -->
-            <div style="position:relative;" id="stSchoolSelectorWrap">
-                <button id="stSchoolSelectorBtn" onclick="ST._toggleSchoolSelector(event)"
-                    style="display:flex;align-items:center;gap:7px;padding:7px 14px;
-                        background:#eef2ff;border:1.5px solid #c7d2fe;border-radius:8px;
-                        color:#3730a3;font-size:12px;font-weight:600;cursor:pointer;
-                        font-family:inherit;white-space:nowrap;">
-                    <i class="fa-solid fa-school" style="font-size:12px;"></i>
-                    <span id="stSchoolSelectorLabel">${_esc(activeSchoolName)}</span>
-                    <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
-                </button>
-                <div id="stSchoolDropdown" style="display:none;position:absolute;top:calc(100% + 6px);right:0;
-                    width:260px;background:#fff;
-                    border:1px solid #e5e7eb;border-radius:10px;
-                    box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:300;overflow:hidden;">
-                    <div style="padding:8px 10px;border-bottom:1px solid #f3f4f6;background:#fff;">
-                        <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;
-                            background:#f3f4f6;border-radius:6px;">
-                            <i class="fa-solid fa-magnifying-glass" style="font-size:11px;color:#9ca3af;flex-shrink:0;"></i>
-                            <input type="text" id="stSchoolSearchInput" placeholder="Search school…"
-                                oninput="ST._filterSchoolSelector(this.value)"
-                                style="border:none;background:transparent;font-size:12px;
-                                    color:#111827;outline:none;font-family:inherit;width:100%;">
-                        </div>
-                    </div>
-                    <div id="stSchoolSelectorList" style="max-height:220px;overflow-y:auto;padding:5px 6px 8px;background:#fff;">
-                        <button onclick="ST._selectSchool(null, this)"
-                            style="width:100%;text-align:left;padding:7px 10px;border:none;
-                                border-radius:6px;font-size:13px;cursor:pointer;
-                                font-family:inherit;margin-bottom:2px;display:flex;
-                                align-items:center;gap:7px;
-                                background:${!_selectedSchoolId ? '#eef2ff' : '#fff'};
-                                color:${!_selectedSchoolId ? '#3730a3' : '#111827'};
-                                font-weight:${!_selectedSchoolId ? '600' : '400'};">
-                            <span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;
-                                background:${!_selectedSchoolId ? '#6366f1' : '#d1d5db'};"></span>
-                            All Schools (${_activeSchools().length})
-                        </button>
-                        ${_activeSchools().map(s => `
-                            <button onclick="ST._selectSchool(${s.id}, this)"
-                                style="width:100%;text-align:left;padding:7px 10px;border:none;
-                                    border-radius:6px;font-size:12px;cursor:pointer;
-                                    font-family:inherit;margin-bottom:1px;display:block;
-                                    background:${_selectedSchoolId === s.id ? '#eef2ff' : '#fff'};
-                                    color:${_selectedSchoolId === s.id ? '#3730a3' : '#111827'};
-                                    font-weight:${_selectedSchoolId === s.id ? '600' : '400'};"
-                                onmouseover="if(this.style.background==='rgb(255, 255, 255)')this.style.background='#f9fafb';"
-                                onmouseout="this.style.background='${_selectedSchoolId === s.id ? '#eef2ff' : '#fff'}';">
-                                ${_esc(s.name)}
-                            </button>`
-                        ).join('')}
-                    </div>
-                </div>
-            </div>
-        </div>`;
-
         bar.innerHTML = html;
+        _renderYearAndSchoolFilters();
+    }
+
+    function _renderYearAndSchoolFilters() {
+        const yearSelect = document.getElementById('stYearSelect');
+        if (yearSelect) {
+            yearSelect.innerHTML = _years.map(year => `<option value="${_esc(year)}">${_esc(year)}</option>`).join('');
+            yearSelect.value = _currentYear;
+        }
+        const schoolSelect = document.getElementById('stSchoolSelect');
+        if (schoolSelect) {
+            schoolSelect.innerHTML = `<option value="">All Schools (${_activeSchools().length})</option>` + _activeSchools()
+                .map(school => `<option value="${school.id}">${_esc(school.name)}</option>`).join('');
+            schoolSelect.value = _selectedSchoolId === null ? '' : String(_selectedSchoolId);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -745,29 +665,36 @@
     function _renderStats() {
         const el = document.getElementById('st-stats-row');
         if (!el) return;
-        let done = 0, partial = 0, none = 0;
+        let done = 0, partial = 0, none = 0, pctTotal = 0;
         for (const s of _activeSchools()) {
             const { pct } = _progress(_currentYear, s.id);
+            pctTotal += pct;
             if (pct === 100) done++;
             else if (pct > 0) partial++;
             else none++;
         }
+        const total = _activeSchools().length;
+        const avg = total ? Math.round(pctTotal / total) : 0;
         el.innerHTML = `
             <div class="st-stat-card">
-                <div class="st-stat-label">Total Schools</div>
-                <div class="st-stat-val st-sv-blue">${_activeSchools().length}</div>
+                <div class="st-stat-icon st-stat-icon-blue"><i class="fa-solid fa-school" aria-hidden="true"></i></div>
+                <div class="st-stat-body"><div class="st-stat-val st-sv-blue">${total}</div><div class="st-stat-label">Total Schools</div></div>
             </div>
             <div class="st-stat-card">
-                <div class="st-stat-label">Completed</div>
-                <div class="st-stat-val st-sv-green">${done}</div>
+                <div class="st-stat-icon st-stat-icon-green"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+                <div class="st-stat-body"><div class="st-stat-val st-sv-green">${done}</div><div class="st-stat-label">Fully Completed</div></div>
             </div>
             <div class="st-stat-card">
-                <div class="st-stat-label">Ongoing</div>
-                <div class="st-stat-val st-sv-amber">${partial}</div>
+                <div class="st-stat-icon st-stat-icon-amber"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i></div>
+                <div class="st-stat-body"><div class="st-stat-val st-sv-amber">${partial}</div><div class="st-stat-label">Ongoing</div></div>
             </div>
             <div class="st-stat-card">
-                <div class="st-stat-label">Pending</div>
-                <div class="st-stat-val st-sv-red">${none}</div>
+                <div class="st-stat-icon st-stat-icon-red"><i class="fa-solid fa-clock" aria-hidden="true"></i></div>
+                <div class="st-stat-body"><div class="st-stat-val st-sv-red">${none}</div><div class="st-stat-label">Pending</div></div>
+            </div>
+            <div class="st-stat-card">
+                <div class="st-stat-icon st-stat-icon-indigo"><i class="fa-solid fa-percent" aria-hidden="true"></i></div>
+                <div class="st-stat-body"><div class="st-stat-val st-sv-indigo">${avg}%</div><div class="st-stat-label">Avg. Completion</div></div>
             </div>`;
     }
 
@@ -799,13 +726,12 @@
             grid.innerHTML = schools.map(s => {
                 const { checked, total, pct } = _progress(_currentYear, s.id);
                 return `<div class="st-card" onclick="ST._openPanel(${s.id})">
-                    <span class="st-card-num">#${s.id}</span>
                     <span class="st-card-name">${_esc(s.name)}</span>
+                    <div class="st-card-badges">${_levelBadges(s.levels)}</div>
                     <div class="st-prog-wrap">
                         <div class="st-prog-labels"><span>${checked}/${total}</span><span>${pct}%</span></div>
                         <div class="st-prog-bar"><div class="st-prog-fill ${_progClass(pct)}" style="width:${pct}%"></div></div>
                     </div>
-                    <div class="st-card-badges">${_levelBadges(s.levels)}</div>
                     ${_renderCardActions(s)}
                 </div>`;
             }).join('');
@@ -816,7 +742,6 @@
             const { checked, total, pct } = _progress(_currentYear, s.id);
             return `<div class="st-card" onclick="ST._openPanel(${s.id})">
                 <div class="st-card-header">
-                    <span class="st-card-num">#${s.id} &middot; ${_esc(_currentYear)}</span>
                     <div class="st-card-header-actions">
                         <div class="st-card-badges">${_levelBadges(s.levels)}</div>
                         ${_renderCardActions(s)}
@@ -1017,13 +942,30 @@
     async function _savePanel() {
         if (_panelSid === null) return;
         const sid = _panelSid;
-        _yrData(_currentYear)[sid] = JSON.parse(JSON.stringify(_panelTemp));
-        _closePanel();
-        _renderAll();
+        const year = _currentYear;
+        const saveButton = document.querySelector('#st-panel-overlay .st-btn-save');
+        const originalButtonHtml = saveButton ? saveButton.innerHTML : '';
+        const previousData = _schoolData(year, sid);
+        const previousSnapshot = JSON.parse(JSON.stringify(previousData));
+
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:5px;"></i>Saving…';
+        }
+
+        _yrData(year)[sid] = JSON.parse(JSON.stringify(_panelTemp));
         try {
-            await _saveToServer(_currentYear, sid);
+            await _saveToServer(year, sid);
+            _closePanel();
+            _renderAll();
             if (typeof showToast === 'function') showToast('Changes saved successfully.', 'success');
         } catch (e) {
+            _yrData(year)[sid] = previousSnapshot;
+            _panelTemp = JSON.parse(JSON.stringify(previousSnapshot));
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalButtonHtml;
+            }
             if (typeof showToast === 'function') showToast('Failed to save changes. Please try again.', 'error');
         }
     }
@@ -1328,6 +1270,7 @@
     window.ST = {
         async switchSchoolType(type) {
             _schoolType = type;
+            _selectedSchoolId = null;
             if (_yearIdMap[_currentYear]) {
                 await _loadYearData(_currentYear);
             }
@@ -1341,8 +1284,15 @@
         },
         async switchYear(yr) {
             _currentYear = yr;
+            const yearSelect = document.getElementById('stYearSelect');
+            if (yearSelect) yearSelect.value = yr;
             if (!_data[yr]) await _loadYearData(yr);
             _renderAll();
+        },
+        selectSchoolFilter(id) {
+            _selectedSchoolId = id === '' ? null : Number(id);
+            _renderSchools();
+            _renderStats();
         },
 
         // ── Add or restore the earliest missing school year ──
@@ -1396,10 +1346,8 @@
         _toggleAddYr() { this._addNextYear(); },
         _confirmAddYr() {},
 
-        setFilter(f, el) {
+        setFilter(f) {
             _filter = f;
-            document.querySelectorAll('.st-fpill').forEach(p => p.classList.remove('active'));
-            if (el) el.classList.add('active');
             _renderSchools();
             _renderStats();
         },

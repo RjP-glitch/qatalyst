@@ -10,6 +10,12 @@ let tfMode          = null;   // 'increase' | 'no-increase'
 let currentStep     = 1;
 let currentLevel    = 'kinder';
 let docId           = null;
+let saveDraftInFlight = null;
+let activeTuitionBaselineYear = '';
+let activeTuitionBaselineStatus = 'idle';
+let activeTuitionBaselinePayload = null;
+let tuitionBaselineRequestToken = 0;
+let _tuitionSubmissionBlockMessage = '';
 let saveTimer       = null;
 let pctComputeTimer = null;
 let logoDataUrl     = '';
@@ -43,31 +49,49 @@ function updateTuitionSubmissionGuard() {
     const mode = tfMode === 'no-increase' ? 'no_increase' : tfMode;
     const proposedSY = val('tfProposedSY').trim();
     const conflict = hasSubmittedTuitionForYear(proposedSY, docId);
+    const currentSY = normalizeTuitionSY(val('tfCurrentSY'));
+    const baselineBlocking = !!currentSY && !['found', 'missing'].includes(activeTuitionBaselineStatus);
+    const baselineMessage = activeTuitionBaselineStatus === 'loading'
+        ? 'Checking for the prior SDO-approved fee schedule…'
+        : activeTuitionBaselineStatus === 'found'
+        ? 'Current amounts are carried forward from the prior accepted filing and locked.'
+        : activeTuitionBaselineStatus === 'error'
+        ? 'The prior approved fee schedule could not be verified. Please try again before submitting.'
+        : 'No accepted fee schedule was found for the current school year. You may submit this schedule for SDO verification; the SDO must verify the current fees before approving it.';
     const message = conflict ? tuitionConflictMessage(mode, proposedSY) : '';
     const notice = $('tfTuitionConflictNotice');
     if (notice) {
         notice.textContent = message;
         notice.style.display = conflict ? 'block' : 'none';
     }
+    const baselineNotice = $('tfFeeBaselineNotice');
+    if (baselineNotice) {
+        baselineNotice.textContent = currentSY ? baselineMessage : '';
+        baselineNotice.className = 'tf-baseline-notice' + (currentSY ? ` is-${activeTuitionBaselineStatus === 'found' ? 'ready' : activeTuitionBaselineStatus === 'loading' ? 'loading' : 'blocked'}` : '');
+        baselineNotice.style.display = currentSY ? 'block' : 'none';
+    }
+    const blockSubmit = conflict || baselineBlocking || !_reviewHasAnyFee;
+    const blockMessage = conflict ? message : baselineBlocking ? baselineMessage : (!_reviewHasAnyFee ? 'Please enter at least one fee before submitting.' : '');
+    _tuitionSubmissionBlockMessage = conflict ? message : baselineBlocking ? baselineMessage : '';
     ['btnSubmitReview', 'tfBtnFinalSubmitDrop'].forEach(id => {
         const button = $(id);
         if (!button) return;
-        button.disabled = conflict || !_reviewHasAnyFee;
-        button.title = conflict ? message : (_reviewHasAnyFee ? '' : 'Please enter at least one fee before submitting.');
+        button.disabled = blockSubmit;
+        button.title = blockMessage;
     });
     const modalSubmit = $('tfSubmitBtn');
-    if (modalSubmit && conflict) {
-        modalSubmit.disabled = true;
-        modalSubmit.title = message;
+    if (modalSubmit) {
+        modalSubmit.disabled = blockSubmit;
+        modalSubmit.title = blockMessage;
     }
-    return conflict;
+    return conflict || baselineBlocking;
 }
 const DEFAULT_PRINCIPAL_POSITION = 'School Principal';
 const DEFAULT_REVIEWED_BY_POSITION = 'SDO, EPS In Charge';
 const DEFAULT_VALIDATED_BY_POSITION = 'EPS,QAD DepEd RO 3';
-const DEFAULT_NOTED_BY_NAME = 'MAY B. ECLAR, PhD, CESO III';
+const DEFAULT_NOTED_BY_NAME = '';
 const DEFAULT_NOTED_BY_POSITION = 'Regional Director';
-const DEFAULT_SHS_NOTED_BY_NAME     = 'ROWENA T. QUIAMBAO, CESO VI';
+const DEFAULT_SHS_NOTED_BY_NAME     = '';
 const DEFAULT_SHS_NOTED_BY_POSITION = 'Schools Division Superintendent';
 const DEFAULT_SHS_NOTED_BY_OFFICE   = 'Office of the Schools Division Superintendent';
 
@@ -220,6 +244,193 @@ function getGlobalToastElement() {
 /* ══════════════════════════════════════════════
    PRE-FILL TUITION FORM FROM SESSION
 ══════════════════════════════════════════════ */
+function parseTuitionSYStart(value) {
+    const match = String(value || '').trim().match(/^(?:S\.Y\.\s*)?(\d{4})\s*[-–—]\s*(\d{4})$/i);
+    if (!match) return null;
+    const start = Number(match[1]);
+    return Number(match[2]) === start + 1 ? start : null;
+}
+
+function setTuitionYearValue(id, value) {
+    const select = $(id);
+    if (!select) return;
+    const raw = String(value || '').trim();
+    if (!raw) { select.value = ''; return; }
+    const start = parseTuitionSYStart(raw);
+    const normalized = start === null ? raw : `${start}-${start + 1}`;
+    if (select.tagName !== 'SELECT') { select.value = normalized; return; }
+    if (![...select.options].some(option => option.value === normalized)) {
+        const option = document.createElement('option');
+        option.value = normalized;
+        option.textContent = start === null ? raw : `S.Y. ${start}–${start + 1}`;
+        select.appendChild(option);
+    }
+    select.value = normalized;
+}
+
+function initTuitionYearChoosers() {
+    const now = new Date();
+    const start = now.getMonth() + 1 >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+    ['tfCurrentSY', 'tfProposedSY'].forEach(id => {
+        const select = $(id);
+        if (!select || select.tagName !== 'SELECT') return;
+        for (let year = start - 15; year <= start + 20; year++) {
+            const value = `${year}-${year + 1}`;
+            if ([...select.options].some(option => option.value === value)) continue;
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = `S.Y. ${year}–${year + 1}`;
+            select.appendChild(option);
+        }
+    });
+}
+
+function onTuitionSchoolYearChange(changed) {
+    const selected = $(changed === 'current' ? 'tfCurrentSY' : 'tfProposedSY');
+    const start = parseTuitionSYStart(selected?.value);
+    if (start !== null) {
+        if (changed === 'current') setTuitionYearValue('tfProposedSY', `${start + 1}-${start + 2}`);
+        else setTuitionYearValue('tfCurrentSY', `${start - 1}-${start}`);
+    }
+    void refreshTuitionFeeBaseline({ force: true, persistAfterApply: true });
+    scheduleSave();
+    tfLiveUpdate();
+    updateTuitionSubmissionGuard();
+}
+
+function tuitionBaselineAmount(section, fieldId, baselinePayload) {
+    const data = baselinePayload?.[section] || {};
+    if (section === 'elem' && /^e[1-6]_tuition$/.test(fieldId)) {
+        const hasGradeAmount = Array.from({ length: 6 }, (_, i) => Number(data[`e${i + 1}_tuition_prop`] ?? data[`e${i + 1}_tuition_curr`]) || 0).some(amount => amount > 0);
+        const shared = Number(data.e_tuition_prop ?? data.e_tuition_curr) || 0;
+        if (!hasGradeAmount && shared > 0) return shared;
+    }
+    if (section === 'jhs' && /^j(?:[7-9]|10)_tuition$/.test(fieldId)) {
+        const hasGradeAmount = Array.from({ length: 4 }, (_, i) => Number(data[`j${i + 7}_tuition_prop`] ?? data[`j${i + 7}_tuition_curr`]) || 0).some(amount => amount > 0);
+        const shared = Number(data.j_tuition_prop ?? data.j_tuition_curr) || 0;
+        if (!hasGradeAmount && shared > 0) return shared;
+    }
+    const direct = data[fieldId + '_prop'] ?? data[fieldId + '_curr'];
+    if (direct !== undefined && direct !== null) return Number(direct) || 0;
+    if (section === 'elem' && /^e[1-6]_tuition$/.test(fieldId)) return Number(data.e_tuition_prop ?? data.e_tuition_curr) || 0;
+    if (section === 'jhs' && /^j(?:[7-9]|10)_tuition$/.test(fieldId)) return Number(data.j_tuition_prop ?? data.j_tuition_curr) || 0;
+    if (section === 'shs' && fieldId.startsWith('s11_')) {
+        const sharedId = 's_' + fieldId.slice(4);
+        return Number(data[sharedId + '_prop'] ?? data[sharedId + '_curr']) || 0;
+    }
+    if (section === 'shs' && fieldId.startsWith('s12_')) {
+        const sharedId = 's_' + fieldId.slice(4);
+        return Number(data[sharedId + '_prop'] ?? data[sharedId + '_curr']) || 0;
+    }
+    if (section === 'shs' && fieldId.startsWith('s_')) {
+        const name = fieldId.slice(2);
+        const perGrade = [data['s11_' + name + '_prop'] ?? data['s11_' + name + '_curr'], data['s12_' + name + '_prop'] ?? data['s12_' + name + '_curr']];
+        if (perGrade.some(value => value !== undefined && value !== null)) {
+            const a = Number(perGrade[0]) || 0, b = Number(perGrade[1]) || 0;
+            return Math.abs(a - b) < 0.01 ? a : 0;
+        }
+    }
+    return 0;
+}
+
+function setTuitionCurrentFieldsReadOnly(readOnly) {
+    [
+        ['kinder', KINDER_FIELDS], ['elem', ELEM_FIELDS],
+        ['jhs', JHS_FIELDS], ['shs', SHS_FIELDS],
+    ].forEach(([, fields]) => fields.forEach(field => {
+        const input = $(field + '_curr');
+        if (!input) return;
+        input.readOnly = !!readOnly;
+        input.classList.toggle('tf-baseline-current', !!readOnly);
+        input.title = readOnly ? 'Carried forward from the prior accepted fee schedule.' : '';
+    }));
+}
+
+function applyTuitionFeeBaseline(payload) {
+    const baselineCustomDefs = payload?.custom_fees || {};
+    ['kinder', 'elem', 'jhs', 'shs'].forEach(level => {
+        const existingDefs = loadCustomFeesMeta(level);
+        const byId = new Map();
+        [...(baselineCustomDefs[level] || []), ...existingDefs].forEach(def => {
+            if (def?.fieldId && !byId.has(def.fieldId)) byId.set(def.fieldId, def);
+        });
+        restoreCustomFees(level, payload?.[level] || {}, [...byId.values()]);
+    });
+
+    const shs = payload?.shs || {};
+    const hasSHSPerGrade = SHS_FIELDS.some(field => (field.startsWith('s11_') || field.startsWith('s12_'))
+        && (Number(shs[field + '_prop'] ?? shs[field + '_curr']) || 0) > 0);
+    const perGradeToggle = $('chkSHSPerGrade');
+    if (perGradeToggle) {
+        perGradeToggle.checked = hasSHSPerGrade;
+        tfToggleSHSPerGrade();
+    }
+
+    [
+        ['kinder', KINDER_FIELDS], ['elem', ELEM_FIELDS],
+        ['jhs', JHS_FIELDS], ['shs', SHS_FIELDS],
+    ].forEach(([level, fields]) => fields.forEach(field => {
+        const input = $(field + '_curr');
+        if (!input) return;
+        if (level === 'shs' && hasSHSPerGrade && field.startsWith('s_')) {
+            input.value = '0.00';
+            return;
+        }
+        if (level === 'shs' && !hasSHSPerGrade && (field.startsWith('s11_') || field.startsWith('s12_'))) {
+            input.value = '0.00';
+            return;
+        }
+        input.value = tuitionBaselineAmount(level, field, payload).toFixed(2);
+    }));
+    setTuitionCurrentFieldsReadOnly(true);
+    computeKinder(); computeElem(); computeJHS(); computeSHS();
+    tfLiveUpdate();
+}
+
+async function refreshTuitionFeeBaseline({ force = false, persistAfterApply = false } = {}) {
+    const currentSY = val('tfCurrentSY').trim();
+    const normalizedYear = normalizeTuitionSY(currentSY);
+    if (!normalizedYear) {
+        tuitionBaselineRequestToken++;
+        activeTuitionBaselineYear = '';
+        activeTuitionBaselineStatus = 'idle';
+        activeTuitionBaselinePayload = null;
+        setTuitionCurrentFieldsReadOnly(false);
+        updateTuitionSubmissionGuard();
+        return;
+    }
+    if (!force && activeTuitionBaselineYear === normalizedYear && ['loading', 'found', 'missing', 'error'].includes(activeTuitionBaselineStatus)) return;
+
+    const requestToken = ++tuitionBaselineRequestToken;
+    activeTuitionBaselineYear = normalizedYear;
+    activeTuitionBaselineStatus = 'loading';
+    activeTuitionBaselinePayload = null;
+    updateTuitionSubmissionGuard();
+    try {
+        const res = await fetch(`${TF_API}?action=fee_baseline&current_sy=${encodeURIComponent(currentSY)}`, { credentials: 'include' });
+        const json = await res.json();
+        if (requestToken !== tuitionBaselineRequestToken) return;
+        if (!res.ok || !json.success) throw new Error(json.message || 'Could not check the prior approved fee schedule.');
+        if (!json.data?.found || !json.data?.payload) {
+            activeTuitionBaselineStatus = 'missing';
+            setTuitionCurrentFieldsReadOnly(false);
+            updateTuitionSubmissionGuard();
+            return;
+        }
+        activeTuitionBaselinePayload = json.data.payload;
+        activeTuitionBaselineStatus = 'found';
+        applyTuitionFeeBaseline(activeTuitionBaselinePayload);
+        updateTuitionSubmissionGuard();
+        if (persistAfterApply && docId && !_builderLocked) scheduleSave();
+    } catch (error) {
+        if (requestToken !== tuitionBaselineRequestToken) return;
+        console.warn('Could not load tuition fee baseline:', error);
+        activeTuitionBaselineStatus = 'error';
+        setTuitionCurrentFieldsReadOnly(false);
+        updateTuitionSubmissionGuard();
+    }
+}
+
 function prefillTuitionFormFromSession() {
     const schoolName   = localStorage.getItem('edu_school_name')    || '';
     const district     = localStorage.getItem('edu_district_name')  || '';
@@ -279,6 +490,7 @@ function prefillTuitionFormFromSession() {
 
     fill('tfCurrentSY',  currentSY);
     fill('tfProposedSY', proposedSY);
+    void refreshTuitionFeeBaseline();
 }
 
 /* ══════════════════════════════════════════════
@@ -1715,11 +1927,11 @@ function tfRenderFeeInputs() {
         `<div id="shsDiscountRows"></div>`,
         `<div class="tf-fee-section-sublabel"><span class="tf-sublabel-roman"></span> Certification Signatories</div>`,
         `<div class="tf-fee-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div class="fg"><label style="font-size:11px;">Noted by (Schools Division Superintendent)</label><input class="tf-input" id="tfSHSNotedBy" placeholder="${DEFAULT_SHS_NOTED_BY_NAME}" oninput="scheduleSave();tfLiveUpdate()" /></div>
-            <div class="fg"><label style="font-size:11px;">Noted by — Position</label><input class="tf-input" id="tfSHSNotedByPosition" placeholder="${DEFAULT_SHS_NOTED_BY_POSITION}" oninput="scheduleSave();tfLiveUpdate()" /></div>
+            <div class="fg"><label style="font-size:11px;">Noted by (Schools Division Superintendent)</label><input class="tf-input" id="tfSHSNotedBy" readonly aria-readonly="true" placeholder="Set by the SDO/SMME office" oninput="scheduleSave();tfLiveUpdate()" /></div>
+            <div class="fg"><label style="font-size:11px;">Noted by — Position</label><input class="tf-input" id="tfSHSNotedByPosition" readonly aria-readonly="true" placeholder="${DEFAULT_SHS_NOTED_BY_POSITION}" oninput="scheduleSave();tfLiveUpdate()" /></div>
         </div>`,
         `<div class="tf-fee-row">
-            <div class="fg"><label style="font-size:11px;">Noted by — Office</label><input class="tf-input" id="tfSHSNotedByOffice" placeholder="${DEFAULT_SHS_NOTED_BY_OFFICE}" oninput="scheduleSave();tfLiveUpdate()" /></div>
+            <div class="fg"><label style="font-size:11px;">Noted by — Office</label><input class="tf-input" id="tfSHSNotedByOffice" readonly aria-readonly="true" placeholder="${DEFAULT_SHS_NOTED_BY_OFFICE}" oninput="scheduleSave();tfLiveUpdate()" /></div>
         </div>`,
     ];
 
@@ -1813,6 +2025,25 @@ function buildPayload() {
 // FIX #10: saveDraft now returns a boolean indicating success/failure
 // so callers (generatePDF, submitDocument) can react appropriately.
 async function saveDraft(step, quiet = false) {
+    // Serialize saves. If the first autosave is still creating a document,
+    // a manual save or another autosave must wait for its ID before sending
+    // its own request; otherwise both requests can insert separate drafts.
+    if (saveDraftInFlight) {
+        const previousSave = await saveDraftInFlight;
+        if (!previousSave) return false;
+        return saveDraft(step, quiet);
+    }
+
+    const inFlight = performSaveDraft(step, quiet);
+    saveDraftInFlight = inFlight;
+    try {
+        return await inFlight;
+    } finally {
+        if (saveDraftInFlight === inFlight) saveDraftInFlight = null;
+    }
+}
+
+async function performSaveDraft(step, quiet = false) {
     if (_builderLocked) {
         showToast('This document is locked. Request edit approval first.', 'circle-xmark');
         return false;
@@ -1963,20 +2194,25 @@ async function loadSavedTuitionDocs() {
             ];
             if (subs.length && allTuitionDocs.length) {
                 const norm = v => String(v || '').toLowerCase().trim();
+                const submissionDocumentId = s => {
+                    if (s.calendar_document_id) return String(s.calendar_document_id);
+                    const match = String(s.file_path || '').match(/^school_tuition_documents:(\d+)$/);
+                    return match ? match[1] : '';
+                };
                 subs.sort((a, b) => new Date(b.updated_at || b.submitted_at || 0) - new Date(a.updated_at || a.submitted_at || 0));
                 const claimedSubIds = new Set();
                 // First pass: resolve all byId matches and mark those submissions as claimed.
                 allTuitionDocs.forEach(doc => {
-                    const byId = subs.find(s => s.calendar_document_id && String(s.calendar_document_id) === String(doc.id));
+                    const byId = subs.find(s => submissionDocumentId(s) === String(doc.id));
                     if (byId) claimedSubIds.add(byId.id);
                 });
                 allTuitionDocs.forEach(doc => {
                     // 1. Match by document ID (most reliable — avoids cross-doc status bleed)
-                    const byId = subs.find(s => s.calendar_document_id && String(s.calendar_document_id) === String(doc.id));
+                    const byId = subs.find(s => submissionDocumentId(s) === String(doc.id));
                     // 2. Title match: fallback for older submissions without calendar_document_id,
                     //    or when the doc was returned (admin resets doc.status back to 'draft').
                     //    Only match submissions not already claimed by a byId match above.
-                    const isDocSubmitted = ['submitted','Pending Review','pending_review','pending-review','pending'].includes(String(doc.status || ''));
+                    const isDocSubmitted = ['submitted','pending review','pending_review','pending-review','pending'].includes(String(doc.status || '').toLowerCase());
                     const _isReturnedSub = s => {
                         const st = String(s.status || '').toLowerCase().replace(/[\s-]/g, '_');
                         return st === 'returned_for_correction' || st === 'returned' || st === 'rejected';
@@ -2022,6 +2258,7 @@ function tuitionStatusCategory(rawStatus, editApproved) {
         case 'endorsed':
         case 'for-endorsement':         return 'review';
         case 'approved':
+        case 'released':
         case 'released-to-school':      return 'approved';
         case 'returned':
         case 'returned-for-correction':
@@ -2035,11 +2272,11 @@ function renderSavedTuitionDocs() {
     if (!content) return;
 
     const getEffectiveStatus = doc => {
-        // 'Pending Review' is set directly on the tuition document by the server
-        // on final submit. Always honour it over workflow_status (which comes from
-        // school_submissions and may still carry the old 'submitted' value).
+        // school_submissions is authoritative once linked. The tuition document
+        // row retains its original submission status, so preferring that stale
+        // value keeps showing Pending Review after the SDO releases it.
         const docStatus = String(doc.status || '').trim();
-        const effective = docStatus === 'Pending Review' ? docStatus : String(doc.workflow_status || docStatus || 'draft');
+        const effective = String(doc.workflow_status || docStatus || 'draft');
         return effective.toLowerCase().trim().replace(/[\s_]+/g, '-');
     };
     const statusMeta = status => {
@@ -2051,6 +2288,7 @@ function renderSavedTuitionDocs() {
             case 'returned-for-correction':
             case 'returned':                return { css: 'sdc-status-returned',           label: '<i class="fa-solid fa-rotate-left"></i> Returned for Correction' };
             case 'for-endorsement':         return { css: 'sdc-status-for-endorsement',    label: '<i class="fa-solid fa-paper-plane"></i> For Endorsement' };
+            case 'released':
             case 'released-to-school':      return { css: 'sdc-status-released-to-school', label: '<i class="fa-solid fa-box-open"></i> Released to School' };
             case 'pending-review':
             case 'pending':                 return { css: 'sdc-status-pending',            label: '<i class="fa-solid fa-clock"></i> Pending Review' };
@@ -2094,7 +2332,7 @@ function renderSavedTuitionDocs() {
             ? { css: 'sdc-status-returned', label: '<i class="fa-solid fa-unlock"></i> Edit Approved' }
             : statusMeta(rawStatus);
         const isDraft     = rawStatus === 'draft';
-        const isSubmitted = ['submitted','pending','pending-review','review','endorsed','for-endorsement','approved','released-to-school'].includes(rawStatus) && !editApproved;
+        const isSubmitted = ['submitted','pending','pending-review','review','endorsed','for-endorsement','approved','released','released-to-school'].includes(rawStatus) && !editApproved;
         const isReturned  = rawStatus === 'returned-for-correction' || rawStatus === 'returned' || rawStatus === 'rejected' || editApproved;
         const dateText    = doc.workflow_updated_at
             ? formatDate(doc.workflow_updated_at)
@@ -2250,8 +2488,8 @@ async function loadSavedDoc(id) {
         $('tfAddress').value          = f.address           || localStorage.getItem('edu_school_address') || '';
         $('tfSchoolId').value         = f.school_id         || localStorage.getItem('edu_deped_id')       || localStorage.getItem('edu_school_id_no') || '';
         $('tfGovRecogNo').value       = f.gov_recog         || '';
-        $('tfCurrentSY').value        = f.current_sy        || '';
-        $('tfProposedSY').value       = f.proposed_sy       || '';
+        setTuitionYearValue('tfCurrentSY', f.current_sy || '');
+        setTuitionYearValue('tfProposedSY', f.proposed_sy || '');
         updateTuitionSubmissionGuard();
         $('tfIncreasePct').value      = f.increase_pct      || '';
         $('tfPrincipal').value        = f.principal         || localStorage.getItem('edu_elem_principal') || localStorage.getItem('edu_jhs_principal') || localStorage.getItem('edu_shs_principal') || localStorage.getItem('edu_registrar_name') || '';
@@ -2279,19 +2517,45 @@ async function loadSavedDoc(id) {
 
         const e = d.payload_json?.elem || {};
         restoreCustomFees('elem', e, customFeeDefs.elem);
-        ELEM_FIELDS.forEach(fld => { const el = $(fld+'_curr'); if (el) el.value = e[fld+'_curr'] ?? ''; });
+        ELEM_FIELDS.forEach(fld => { const el = $(fld+'_curr'); if (el) el.value = e[fld+'_curr'] ?? e[fld] ?? ''; });
         // Older drafts stored one elementary tuition amount. Use it to seed each
         // grade when loading those drafts; newly saved drafts keep each grade separate.
-        if (![1, 2, 3, 4, 5, 6].some(grade => (parseFloat(e[`e${grade}_tuition_curr`]) || 0) > 0) && (parseFloat(e.e_tuition_curr) || 0) > 0) {
-            [1, 2, 3, 4, 5, 6].forEach(grade => { const el = $(`e${grade}_tuition_curr`); if (el) el.value = e.e_tuition_curr; });
+        if (![1, 2, 3, 4, 5, 6].some(grade => (parseFloat(e[`e${grade}_tuition_curr`] ?? e[`e${grade}_tuition`]) || 0) > 0)) {
+            const legacyTuition = parseFloat(e.e_tuition_curr ?? e.e_tuition) || 0;
+            if (legacyTuition > 0) {
+                [1, 2, 3, 4, 5, 6].forEach(grade => { const el = $(`e${grade}_tuition_curr`); if (el) el.value = legacyTuition; });
+            } else {
+                // Some older records kept reliable section totals while their
+                // tuition row used a field name the current builder no longer
+                // recognizes. Recover a uniform per-grade amount from that
+                // total after subtracting the other saved fees.
+                const sectionTotal = parseFloat(d.elem_total_curr) || 0;
+                const otherFees = Object.entries(e).reduce((sum, [key, value]) => {
+                    if (!key.endsWith('_curr') || /^(?:total|e_total)_curr$/.test(key) || /^e(?:[1-6])?_tuition_curr$/.test(key)) return sum;
+                    return sum + (parseFloat(value) || 0);
+                }, 0);
+                const recovered = Math.max(0, (sectionTotal - otherFees) / 6);
+                if (recovered > 0) [1, 2, 3, 4, 5, 6].forEach(grade => { const el = $(`e${grade}_tuition_curr`); if (el) el.value = recovered; });
+            }
         }
 
         const j = d.payload_json?.jhs || {};
         restoreCustomFees('jhs', j, customFeeDefs.jhs);
-        JHS_FIELDS.forEach(fld => { const el = $(fld+'_curr'); if (el) el.value = j[fld+'_curr'] ?? ''; });
+        JHS_FIELDS.forEach(fld => { const el = $(fld+'_curr'); if (el) el.value = j[fld+'_curr'] ?? j[fld] ?? ''; });
         // Preserve compatibility with drafts that had one shared JHS amount.
-        if (![7, 8, 9, 10].some(grade => (parseFloat(j[`j${grade}_tuition_curr`]) || 0) > 0) && (parseFloat(j.j_tuition_curr) || 0) > 0) {
-            [7, 8, 9, 10].forEach(grade => { const el = $(`j${grade}_tuition_curr`); if (el) el.value = j.j_tuition_curr; });
+        if (![7, 8, 9, 10].some(grade => (parseFloat(j[`j${grade}_tuition_curr`] ?? j[`j${grade}_tuition`]) || 0) > 0)) {
+            const legacyTuition = parseFloat(j.j_tuition_curr ?? j.j_tuition) || 0;
+            if (legacyTuition > 0) {
+                [7, 8, 9, 10].forEach(grade => { const el = $(`j${grade}_tuition_curr`); if (el) el.value = legacyTuition; });
+            } else {
+                const sectionTotal = parseFloat(d.jhs_total_curr) || 0;
+                const otherFees = Object.entries(j).reduce((sum, [key, value]) => {
+                    if (!key.endsWith('_curr') || /^(?:total|j_total)_curr$/.test(key) || /^j(?:[7-9]|10)?_tuition_curr$/.test(key)) return sum;
+                    return sum + (parseFloat(value) || 0);
+                }, 0);
+                const recovered = Math.max(0, (sectionTotal - otherFees) / 4);
+                if (recovered > 0) [7, 8, 9, 10].forEach(grade => { const el = $(`j${grade}_tuition_curr`); if (el) el.value = recovered; });
+            }
         }
 
         const s = d.payload_json?.shs || {};
@@ -2319,6 +2583,8 @@ async function loadSavedDoc(id) {
             chkSHSPerGrade.checked = anyPerGradeValue;
             tfToggleSHSPerGrade();
         }
+
+        await refreshTuitionFeeBaseline({ force: true });
 
         computeKinder(); computeElem(); computeJHS(); computeSHS();
 
@@ -2394,6 +2660,8 @@ function startNewDoc() {
     $('btnStep1Next').disabled = true;
     applyPctFieldVisibility();
     resetFeeInputs();
+    setTuitionYearValue('tfCurrentSY', '');
+    setTuitionYearValue('tfProposedSY', '');
     document.querySelectorAll('.tf-input').forEach(el => { if (!el.readOnly) el.value = ''; });
     if ($('tfPrincipalPosition')) $('tfPrincipalPosition').value = '';
     if ($('tfReviewedByPosition')) $('tfReviewedByPosition').value = '';
@@ -3069,7 +3337,7 @@ function renderSupportingDocsDialogWarning() {
 
 function showTuitionSubmitDialog() {
     if (updateTuitionSubmissionGuard()) {
-        showToast(tuitionConflictMessage(tfMode === 'increase' ? 'increase' : 'no_increase', val('tfProposedSY').trim()), 'circle-xmark');
+        showToast(_tuitionSubmissionBlockMessage || 'Submission is blocked until the fee schedule is verified.', 'circle-xmark');
         return;
     }
     let overlay = $('tfSubmitOverlay');
@@ -3277,7 +3545,7 @@ function renderComplianceErrors(errors) {
 
 async function confirmTuitionSubmit() {
     if (updateTuitionSubmissionGuard()) {
-        showToast(tuitionConflictMessage(tfMode === 'increase' ? 'increase' : 'no_increase', val('tfProposedSY').trim()), 'circle-xmark');
+        showToast(_tuitionSubmissionBlockMessage || 'Submission is blocked until the fee schedule is verified.', 'circle-xmark');
         return;
     }
     const agreed = $('tfSubmitAgreeCheck')?.checked;
@@ -3502,21 +3770,24 @@ function _tfIsAutoSyncableStatus(effectiveStatus) {
  * isOfficeOnlyRoleTuition() / signatoryBuilderType() on the PHP side).
  */
 async function _tfSyncOfficeReviewedBy(effectiveStatus) {
-    if (!_tfIsAutoSyncableStatus(effectiveStatus)) return;
+    const overwriteWithCurrentOfficeDefaults = _tfIsAutoSyncableStatus(effectiveStatus);
     try {
-        await tfLoadSignatories(true); // force a fresh fetch, not the cached copy
+        const loaded = await tfLoadSignatories(true); // force a fresh fetch, not the cached copy
+        if (!loaded) return;
     } catch (e) { return; }
-    ['reviewed_by', 'validated_by', 'noted_by'].forEach(role => {
-        const rows = _tfSignatories[role] || [];
-        const officeDefault = rows.find(s => {
-            const isOffice = s.scope === 'office' || s.private_school_id === null || s.private_school_id === undefined;
-            return isOffice && String(s.is_default) === '1';
-        });
-        if (!officeDefault) return; // nothing configured in Settings — leave the field as-is
+    ['reviewed_by', 'validated_by', 'rd', 'shs_noted_by'].forEach(role => {
+        const officeDefault = role === 'rd'
+            ? (_tfOfficeDefaultForRole('rd') || _tfOfficeDefaultForRole('noted_by'))
+            : _tfOfficeDefaultForRole(role);
         const fieldMap = SIG_TF_FIELDS[role] || {};
         Object.entries(fieldMap).forEach(([key, inputId]) => {
             const el = $(inputId);
-            if (el && officeDefault[key] !== undefined) el.value = officeDefault[key] || '';
+            if (!el) return;
+            if (officeDefault && officeDefault[key] !== undefined && (overwriteWithCurrentOfficeDefaults || !el.value.trim())) {
+                el.value = officeDefault[key] || '';
+            } else if (overwriteWithCurrentOfficeDefaults && ['validated_by', 'rd', 'shs_noted_by'].includes(role)) {
+                el.value = '';
+            }
         });
     });
     if (typeof tfLiveUpdate === 'function') tfLiveUpdate();
@@ -3635,23 +3906,29 @@ async function requestEditApproval() {
 async function generatePDF() {
     const btn = $('btnGeneratePDF');
 
-    // FIX #10: Check save success before attempting PDF generation
-    if (!docId) {
-        const saved = await saveDraft(4);
-        if (!saved || !docId) {
-            showToast('Please save the document first.', 'circle-xmark');
-            return;
-        }
-    } else {
-        const saved = await saveDraft(4);
-        if (!saved) {
-            showToast('Could not save before generating PDF. Please try again.', 'circle-xmark');
-            return;
+    // Submitted/read-only documents already have a saved payload and cannot
+    // be saved again. Drafts still save first so the PDF matches the latest edits.
+    if (!_builderLocked && !window.__submittedTuitionView) {
+        if (!docId) {
+            const saved = await saveDraft(4);
+            if (!saved || !docId) {
+                showToast('Please save the document first.', 'circle-xmark');
+                return;
+            }
+        } else {
+            const saved = await saveDraft(4);
+            if (!saved) {
+                showToast('Could not save before generating PDF. Please try again.', 'circle-xmark');
+                return;
+            }
         }
     }
 
-    btn.disabled  = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating…';
+    const originalButtonHtml = btn?.innerHTML || '';
+    if (btn) {
+        btn.disabled  = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating…';
+    }
 
     try {
         const res = await fetch(`${API_BASE}/school-portal-tuition-pdf.php?id=${docId}`, {
@@ -3679,13 +3956,15 @@ async function generatePDF() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showToast('PDF downloaded! Now click "Submit to SDO" to officially file your document.', 'circle-check');
+        showToast('PDF downloaded.', 'circle-check');
     } catch (e) {
         console.error('PDF generation error:', e);
         showToast('Network error — could not generate PDF.', 'circle-xmark');
     } finally {
-        btn.disabled  = false;
-        btn.innerHTML = '<i class="fa-solid fa-file-pdf" style="color:#dc2626;"></i> Generate PDF';
+        if (btn) {
+            btn.disabled  = false;
+            btn.innerHTML = originalButtonHtml || '<i class="fa-solid fa-file-pdf"></i> Generate PDF';
+        }
     }
 }
 
@@ -3693,6 +3972,7 @@ async function generatePDF() {
    INIT
 ══════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
+    initTuitionYearChoosers();
     // Ensure Step 3 fee inputs exist before wiring autosave listeners.
     tfRenderFeeInputs();
 
@@ -3711,9 +3991,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     $('tfPctFieldGroup').style.display = 'none';
 
-    ['tfSchoolName','tfDivision','tfAddress','tfSchoolId','tfGovRecogNo','tfCurrentSY','tfProposedSY','tfIncreasePct','tfPrincipal','tfPrincipalContact','tfPrincipalPosition','tfReviewedByPosition']
+    ['tfSchoolName','tfDivision','tfAddress','tfSchoolId','tfGovRecogNo','tfIncreasePct','tfPrincipal','tfPrincipalContact','tfPrincipalPosition','tfReviewedByPosition']
         .forEach(id => $(id)?.addEventListener('input', scheduleSave));
-    $('tfProposedSY')?.addEventListener('input', updateTuitionSubmissionGuard);
 
     ['chkKinder','chkElem','chkJHS','chkSHS']
         .forEach(id => $(id)?.addEventListener('change', () => {
@@ -3755,6 +4034,7 @@ const TF_PAGE_MAP = {
     breakdown:   ['tfPgBreakdown'],
     comparative: ['tfPgComparative'],
     shs:         ['tfPgSHS11','tfPgSHS12'],
+    review:      ['tfPgComparative'],
 };
 
 function tfSwitchPage(pageKey) {
@@ -4318,40 +4598,56 @@ const SIG_TF_FIELDS = {
         full_name: 'tfValidatedBy',
         position_title: 'tfValidatedByPosition',
     },
-    noted_by: {
+    rd: {
         full_name: 'tfNotedBy',
         position_title: 'tfNotedByPosition',
     },
     // Schools Division Superintendent — "Noted by" on the SHS Certification
-    // of Fees page specifically (distinct from the Regional Director 'noted_by'
-    // used on the Comparative Schedule pages, and distinct from the calendar
-    // builder's own 'sds' role — see signatoryBuilderType() in the PHP).
+    // of Fees page. This remains separate from the calendar builder's `sds`
+    // role, which is used for transmittal letters.
     shs_noted_by: {
         full_name: 'tfSHSNotedBy',
         position_title: 'tfSHSNotedByPosition',
+        office: 'tfSHSNotedByOffice',
     },
 };
 
+function _tfIsOfficeSignatory(row) {
+    return row?.scope === 'office' || row?.private_school_id === null || row?.private_school_id === undefined;
+}
+
+function _tfOfficeDefaultForRole(role) {
+    return (_tfSignatories[role] || []).find(row => _tfIsOfficeSignatory(row) && String(row.is_default) === '1') || null;
+}
+
+function _tfDefaultForRole(role) {
+    if (role === 'rd') return _tfOfficeDefaultForRole('rd') || _tfOfficeDefaultForRole('noted_by');
+    const defaults = (_tfSignatories[role] || []).filter(row => String(row.is_default) === '1');
+    if (['validated_by', 'shs_noted_by'].includes(role)) return defaults.find(_tfIsOfficeSignatory) || null;
+    if (role === 'principal') return defaults.find(row => !_tfIsOfficeSignatory(row)) || defaults.find(_tfIsOfficeSignatory) || null;
+    return defaults.find(_tfIsOfficeSignatory) || defaults.find(row => !_tfIsOfficeSignatory(row)) || null;
+}
+
 async function tfLoadSignatories(force = false) {
-    if (_tfSigsLoaded && !force) return;
+    if (_tfSigsLoaded && !force) return true;
     try {
         const res  = await fetch(`${TF_API}?action=get_signatories`, { credentials: 'include' });
         const json = await res.json();
-        if (json.success) {
-            _tfSignatories = json.data?.grouped || {};
-            _tfSigsLoaded  = true;
-            _tfApplyDefaultSignatories();
-        }
+        if (!res.ok || !json.success) throw new Error(json.message || 'Could not load office signatories.');
+        _tfSignatories = json.data?.grouped || {};
+        _tfSigsLoaded  = true;
+        _tfApplyDefaultSignatories();
+        return true;
     } catch (e) {
         console.warn('Could not load tuition signatories:', e);
+        return false;
     }
 }
 
 function _tfApplyDefaultSignatories() {
     Object.entries(SIG_TF_FIELDS).forEach(([role, fieldMap]) => {
-        const defaults = (_tfSignatories[role] || []).filter(s => String(s.is_default) === '1');
-        if (!defaults.length) return;
-        const def = defaults[0];
+        const def = _tfDefaultForRole(role);
+        if (!def) return;
         Object.entries(fieldMap).forEach(([key, inputId]) => {
             const el = document.getElementById(inputId);
             if (el && !el.value.trim() && def[key]) el.value = def[key];
@@ -4512,8 +4808,11 @@ async function _tfSubmitSigModal(role, label) {
         const json = await res.json();
         if (!json.success) throw new Error(json.message||'Save failed.');
 
-        const newRow = { id:json.data?.id, role, full_name:name, position_title:pos, office:ofc, city:'', contact, is_default:isDef };
-        if (isDef && _tfSignatories[role]) _tfSignatories[role].forEach(s=>s.is_default=0);
+        const schoolId = json.data?.school_id;
+        const newRow = { id:json.data?.id, role, full_name:name, position_title:pos, office:ofc, city:'', contact, is_default:isDef, scope:'school', private_school_id:schoolId, builder_type:'shared' };
+        if (isDef && _tfSignatories[role]) _tfSignatories[role].forEach(s=>{
+            if (String(s.private_school_id || '') === String(schoolId || '')) s.is_default=0;
+        });
         if (!_tfSignatories[role]) _tfSignatories[role]=[];
         _tfSignatories[role].push(newRow);
 
