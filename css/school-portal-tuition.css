@@ -2022,6 +2022,20 @@ body {
 
 /* Print */
 @media print {
+    body.tf-printing > * { display:none !important; }
+    body.tf-printing > #tfPrintHost { display:block !important; }
+    #tfPrintHost { display:none; }
+    body.tf-printing #tfPrintHost { display:block !important; }
+    body.tf-printing #tfPrintHost .paper {
+        display:block !important;
+        width:210mm !important;
+        min-height:297mm !important;
+        margin:0 !important;
+        border:0 !important;
+        box-shadow:none !important;
+        page-break-after:always !important;
+    }
+    body.tf-printing #tfPrintHost .paper:last-child { page-break-after:auto !important; }
     .sidebar,.page-header,.saved-docs-view,.top-bar,.doc-side-nav,.form-panel,.toast { display:none !important; }
     .preview-panel { padding:0 !important;overflow:visible !important;background:none !important; }
     .workspace { display:block !important; }

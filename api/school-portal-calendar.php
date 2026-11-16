@@ -100,7 +100,7 @@ function ensureCalendarLegendsTable(PDO $pdo): void
             legend_key            VARCHAR(80)   NOT NULL,
             label                 VARCHAR(150)  NOT NULL,
             color                 VARCHAR(20)   NOT NULL DEFAULT '#64748b',
-            symbol                VARCHAR(10)   NOT NULL DEFAULT '●',
+            symbol                VARCHAR(10)   NOT NULL DEFAULT '',
             include_in_school_days TINYINT(1)   NOT NULL DEFAULT 1,
             is_locked             TINYINT(1)    NOT NULL DEFAULT 0,
             created_by            INT(11)       DEFAULT NULL,
@@ -226,14 +226,34 @@ function handleSaveLegend(PDO $pdo, array $user, array $body): void
     $key    = trim((string)($body['key'] ?? ''));
     $label  = mb_substr(trim((string)($body['label'] ?? '')), 0, 150);
     $color  = mb_substr(trim((string)($body['color'] ?? '#64748b')), 0, 20);
-    $symbol = mb_substr(trim((string)($body['symbol'] ?? '●')), 0, 10);
+    $symbol = mb_substr(trim((string)($body['symbol'] ?? '')), 0, 10);
     $inc    = !empty($body['includeInSchoolDays']) ? 1 : 0;
+
+    // Keep the semantic calendar palette and category names available for
+    // the built-in school-day, holiday, activity and examination entries.
+    $reservedColors = ['#2563eb', '#dc2626', '#374151', '#854d0e'];
+    $reservedLabels = [
+        'school day', 'school days', 'holiday', 'holidays', 'activity', 'activities',
+        'school activity', 'school activities', 'exam', 'exams', 'exam / quarter',
+        'quarter examination', 'quarter examinations', 'quiz', 'quizzes',
+    ];
+    $normalizedColor = strtolower($color);
+    $normalizedLabel = preg_replace('/\s+/', ' ', mb_strtolower($label));
+    if (in_array($normalizedColor, $reservedColors, true)) {
+        jsonError('This color is reserved for a built-in calendar category.', 422);
+    }
+    if (in_array($normalizedLabel, $reservedLabels, true)) {
+        jsonError('This label is reserved for a built-in calendar category.', 422);
+    }
 
     if ($label === '') {
         jsonError('Legend label is required.', 422);
     }
     if ($key === '') {
         $key = 'custom_' . bin2hex(random_bytes(6));
+    }
+    if (in_array(strtolower($key), ['holiday', 'activity', 'exam'], true)) {
+        jsonError('This key is reserved for a built-in calendar category.', 422);
     }
 
     if ($id !== null) {

@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="css/school-portal-tuition.css?v15" />
+    <link rel="stylesheet" href="css/school-portal-tuition.css?v16" />
     <style>
 /* ═══════════════════════════════════════════════════════════════════
    OFFICIAL DEPED LETTERHEAD STYLES — faithfully matches Word docs
@@ -431,8 +431,8 @@
                     <button class="tba-btn tba-ghost tf-toolbar-desktop" id="tfBtnTogglePreview" onclick="toggleTuitionPreview()" title="Hide document preview">
                         <i class="fa-solid fa-eye-slash" id="tfTogglePreviewIcon"></i> <span id="tfTogglePreviewLabel">Hide Preview</span>
                     </button>
-                    <button class="tba-btn tba-ghost tf-toolbar-desktop" onclick="exportTuitionWord()">
-                        <i class="fa-solid fa-file-word"></i> Export to Word
+                    <button class="tba-btn tba-ghost tf-toolbar-desktop" onclick="exportTuitionPDF()">
+                        <i class="fa-solid fa-file-pdf"></i> Export PDF
                     </button>
                     <button class="tba-btn tba-ghost tf-toolbar-desktop" onclick="openTuitionHelp()">
                         <i class="fa-solid fa-circle-question"></i> Help / Tutorial
@@ -446,8 +446,8 @@
                                 <i class="fa-solid fa-eye"></i> <span id="tfMenuPreviewLabel">Hide Preview</span>
                             </button>
                             <div class="tba-drop-divider"></div>
-                            <button class="tba-drop-item" onclick="exportTuitionWord();closeTuitionTopBarMenu()">
-                                <i class="fa-solid fa-file-word"></i> Export to Word
+                            <button class="tba-drop-item" onclick="exportTuitionPDF();closeTuitionTopBarMenu()">
+                                <i class="fa-solid fa-file-pdf"></i> Export PDF
                             </button>
                             <div class="tba-drop-divider"></div>
                             <button class="tba-drop-item" onclick="openTuitionHelp();closeTuitionTopBarMenu()">
@@ -1565,7 +1565,33 @@
         else if (m) document.addEventListener('click', _closeTuitionTopBarOutside, { once: true });
     }
 
-    /* ── Export Word ── */
+    /* ── Export PDF ── */
+    function exportTuitionPDF() {
+        closeTuitionTopBarMenu();
+        const preview = document.getElementById('tfPreviewPanel');
+        if (!preview) { showToast('Document preview is not available.', 'triangle-exclamation'); return; }
+
+        const existing = document.getElementById('tfPrintHost');
+        if (existing) existing.remove();
+        const host = document.createElement('div');
+        host.id = 'tfPrintHost';
+        host.innerHTML = preview.innerHTML;
+        document.body.appendChild(host);
+        document.body.classList.add('tf-printing');
+        window.addEventListener('afterprint', function restorePrint() {
+            document.body.classList.remove('tf-printing');
+            host.remove();
+        }, { once: true });
+        setTimeout(() => {
+            if (document.body.classList.contains('tf-printing')) {
+                document.body.classList.remove('tf-printing');
+                host.remove();
+            }
+        }, 30000);
+        window.print();
+    }
+
+    /* ── Legacy Word builder (not exposed in the UI) ── */
     async function exportTuitionWord() {
     closeTuitionTopBarMenu();
 
@@ -2745,7 +2771,7 @@
         { icon: 'fa-school',              title: 'Step 2 — School Information',        body: 'Fill in your school\'s name, address, IDs, and signatory information. This will appear on all document pages automatically.' },
         { icon: 'fa-table-list',          title: 'Step 3 — Fee Schedule',              body: 'Enter tuition and miscellaneous fees per grade level. The Breakdown and Comparative Schedule pages update live as you type.' },
         { icon: 'fa-magnifying-glass',    title: 'Step 4 — Review & Submit',           body: 'Review your summary, then use Final Submit to file your document.' },
-        { icon: 'fa-floppy-disk',         title: 'Auto-Save & Export',                 body: 'Your work is auto-saved as a draft. Use the <strong>⋮</strong> menu in the top bar to export to Word.' },
+        { icon: 'fa-floppy-disk',         title: 'Auto-Save & Export',                 body: 'Your work is auto-saved as a draft. Use the <strong>⋮</strong> menu in the top bar to print or save the document as a PDF.' },
     ];
     let tfTourStep = 0;
     function openTuitionHelp() { tfTourStep = 0; renderTuitionTourOverlay(); }

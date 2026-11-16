@@ -1412,6 +1412,8 @@ body {
         margin: 0;
     }
 
+    .cal-pdf-loading { display:none !important; }
+
     /* Custom legend colors (day-cell pills + legend swatches) are set via
        CSS background-color, which Chrome/Edge/Opera strip on print unless
        the person checks "Background graphics" in the print dialog. Force
@@ -1486,6 +1488,22 @@ body {
         overflow: visible !important;
     }
 
+    /* Preserve the fixed overlay canvas inside calendar dates. The generic
+       print reset above collapses these absolutely positioned layers to
+       zero height, which stacks symbols and numbers across calendar rows. */
+    .ads-print-target #pg-monthly .day-mark-content,
+    .ads-print-target #pg-monthly .mini-day-content {
+        height: 20px !important;
+        min-height: 20px !important;
+    }
+    .ads-print-target #pg-monthly .mini-cal td {
+        height: 20px !important;
+    }
+    .ads-print-target #pg-monthly .day-mark-symbol,
+    .ads-print-target #pg-monthly .day-mark-number {
+        height: 20px !important;
+    }
+
     .ads-print-target .doc-page {
         display: block !important;
     }
@@ -1510,13 +1528,13 @@ body {
         page-break-after: auto !important;
     }
 
-    .ads-print-target #pg-monthly .monthly-wrap { padding: 0 20px 14px !important; }
-    .ads-print-target #pg-monthly .monthly-heading { font-size: 11px !important; margin-bottom: 10px !important; }
+    .ads-print-target #pg-monthly .monthly-wrap { padding: 0 20px 0 !important; }
+    .ads-print-target #pg-monthly .monthly-heading { font-size: 11px !important; margin-bottom: 6px !important; }
     .ads-print-target #pg-monthly .month-block { border-width: 1px !important; }
-    .ads-print-target #pg-monthly .mb-left { padding: 6px 8px !important; border-right-width: 1px !important; }
-    .ads-print-target #pg-monthly .mb-right { padding: 5px 7px !important; }
-    .ads-print-target #pg-monthly .mb-left .month-name { font-size: 11px !important; padding: 3px 6px !important; margin-bottom: 5px !important; }
-    .ads-print-target #pg-monthly .mb-left .activity-list li { font-size: 9.5px !important; padding: 2px 0 !important; line-height: 1.35 !important; }
+    .ads-print-target #pg-monthly .mb-left { padding: 0 6px !important; border-right-width: 1px !important; }
+    .ads-print-target #pg-monthly .mb-right { padding: 0 !important; }
+    .ads-print-target #pg-monthly .mb-right .mini-cal-header { font-size: 10px !important; padding: 2px 6px !important; margin-bottom: 0 !important; }
+    .ads-print-target #pg-monthly .mb-left .activity-list li { font-size: 9.5px !important; padding: 1px 0 !important; line-height: 1.35 !important; }
     .ads-print-target #pg-monthly .mb-left .activity-list li .act-date { min-width: 24px !important; font-size: 9px !important; }
     .ads-print-target #pg-monthly .mini-cal th { font-size: 7.5px !important; padding: 1px 0 !important; }
     .ads-print-target #pg-monthly .mini-cal td { font-size: 9px !important; padding: 1px 0 !important; }
@@ -1543,25 +1561,72 @@ body {
     .ads-print-target { padding: 0 !important; margin: 0 !important; }
 }
 
+/* ── Monthly calendar preview mirrors the school portal layout ── */
+.monthly-wrap { padding: 0 24px 0; }
+.monthly-heading { font-family: inherit; font-size: 12.5px; font-weight: 800; text-align: center; color: #0a1f3d; margin-bottom: 8px; letter-spacing: .3px; text-transform: uppercase; }
+.month-block { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1.5px solid #374151; margin-bottom: 0; }
+.month-block + .month-block { border-top: none; }
+.mb-left { border-right: 1.5px solid #374151; padding: 0 8px; }
+.mb-right { padding: 0; }
+.mb-left .activity-list { list-style: none; padding: 0; margin: 0; }
+.mb-left .activity-list li { font-size: 11px; font-family: var(--serif, 'EB Garamond', Georgia, serif); padding: 1px 0; border-bottom: 1px solid #f0f0f0; color: #374151; line-height: 1.5; display: flex; align-items: flex-start; gap: 7px; }
+.mb-left .activity-list li .act-date { font-weight: 700; color: #0a1f3d; flex: 0 0 42px; width: 42px; font-family: var(--font, 'Plus Jakarta Sans', sans-serif); }
+.act-copy { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.act-title { font-weight: 600; line-height: 1.35; }
+.act-note { display: block; margin-top: 1px; color: #64748b; font-style: italic; font-size: 9px; line-height: 1.35; font-family: inherit; }
+.mb-right .mini-cal-header { display: flex; align-items: center; justify-content: center; font-family: var(--font, 'Plus Jakarta Sans', sans-serif); font-size: 12px; font-weight: 800; color: #fff; background: #0a1f3d; padding: 3px 9px; letter-spacing: .3px; margin-bottom: 0; }
+
 /* ── Mini-cal SVG shape markers (matches school-portal legend symbols) ── */
+.mini-cal { width: 100%; border-collapse: collapse; }
+.mini-cal th { font-family: var(--font, 'Plus Jakarta Sans', sans-serif); font-size: 8.5px; font-weight: 700; text-align: center; padding: 2px 1px; color: #64748b; text-transform: uppercase; }
 .mini-cal td {
     text-align: center;
     vertical-align: middle;
     font-size: 10px;
     padding: 1px 0;
+    border: 1px solid #e2e8f0;
+    height: 20px;
     font-family: inherit;
     line-height: 1;
 }
-.mini-cal .day-svg {
-    display: block;
-    width: 16px;
-    height: 16px;
-    margin: 0 auto;
-    overflow: visible;
-}
-.mini-cal .holiday-day  { color: #dc2626; }
-.mini-cal .activity-day { color: #374151; }
-.mini-cal .exam-day     { color: #854d0e; }
+.mini-cal th + th { border-left: 1px solid #e2e8f0; }
+.mini-cal td.sun:not(.holiday-day):not(.start-day):not(.end-day),
+.mini-cal td.sat:not(.holiday-day):not(.start-day):not(.end-day) { color:#64748b; background:#f1f5f9; }
+.day-mark-content { display:block; position:relative; width:100%; height:20px; }
+.day-mark-symbol { position:absolute; inset:0; z-index:1; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:900; line-height:1; opacity:.55; pointer-events:none; }
+.day-mark-number { position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; line-height:1; color:#172033; }
+.mini-cal .holiday-day  { color: #dc2626; background: #fee2e2; font-weight: 700; }
+.mini-cal .holiday-day .day-mark-symbol { color:#dc2626; }
+.mini-cal .holiday-day .day-mark-number { color:#7f1d1d; }
+.mini-cal .activity-day { color: #1d4ed8; }
+.mini-cal .activity-day .day-mark-symbol { inset:3px; box-sizing:border-box; border:2px solid #374151; color:transparent; font-size:0; opacity:.8; }
+.mini-cal .activity-day .day-mark-number { color:#1e3a8a; }
+.mini-cal .exam-day     { color: #1d4ed8; }
+.mini-cal .exam-day .day-mark-symbol { color:#854d0e; font-size:30px; }
+.mini-cal .exam-day .day-mark-number { color:#1e3a8a; }
+.mini-cal .custom-mark-day .day-mark-number { color:#fff; }
+.mini-cal .custom-mark-day.schoolday-shade .day-mark-number { color:#1e3a8a; }
+.mini-cal .schoolday-shade { background: #bfdbfe; color: #1d4ed8; }
+.mini-cal .start-day, .mini-cal .end-day, .mini-cal .start-end-day { border-radius: 2px; }
+.mini-cal .start-day { background: #15803d; color: #fff !important; }
+.mini-cal .end-day { background: #b8860b; color: #fff !important; }
+.mini-cal .start-end-day { background: linear-gradient(135deg, #15803d 0 50%, #b8860b 50% 100%); color: #fff !important; }
+.mini-day-content { display:block; position:relative; width:100%; height:20px; }
+.class-boundary-symbols { display:inline-flex; align-items:center; gap:1px; line-height:1; }
+.class-boundary-symbols svg { flex:0 0 auto; }
+.mini-cal .class-boundary-symbols { position:absolute; inset:0; z-index:1; display:flex; align-items:center; justify-content:center; }
+.mini-cal .class-boundary-symbols svg { width:24px; height:24px; }
+.mini-cal .start-day .class-boundary-symbols svg,
+.mini-cal .end-day .class-boundary-symbols svg { filter:brightness(0) invert(1); }
+.custom-mark-pill { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; margin:0 auto; border-radius:2px; color:#fff; font-weight:700; font-size:9px; line-height:1; }
+.custom-mark-pill-sm { width:14px; height:14px; border-radius:2px; vertical-align:middle; }
+.class-days-row { font-weight: 800 !important; font-size: 11px !important; }
+.cal-pdf-loading { position:fixed; inset:0; z-index:10000; display:grid; place-items:center; background:rgba(10,31,61,.42); backdrop-filter:blur(2px); }
+.cal-pdf-loading-card { display:flex; align-items:center; gap:15px; min-width:280px; padding:20px 24px; border:1px solid #dbe4ef; border-radius:14px; background:#fff; box-shadow:0 18px 55px rgba(15,23,42,.24); color:#0a1f3d; font-family:var(--ds-font,sans-serif); }
+.cal-pdf-loading-card > i { color:#2563eb; font-size:25px; }
+.cal-pdf-loading-card strong,.cal-pdf-loading-card span { display:block; }
+.cal-pdf-loading-card strong { font-size:14px; font-weight:800; }
+.cal-pdf-loading-card span { margin-top:4px; color:#64748b; font-size:12px; }
 
 /* ── Card "click to view" hint bar ─────────────────────────────────── */
 .ds-card-view-hint {

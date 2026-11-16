@@ -10,7 +10,7 @@
 		rel="stylesheet" />
 	<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-	<link rel="stylesheet" href="css/school-portal-calendar.css?v9" />
+	<link rel="stylesheet" href="css/school-portal-calendar.css?v30" />
 	<style>
 		/* Supporting-document upload widget (Checklist tab). Kept inline since
 		   these classes are new and css/school-portal-calendar.css is a
@@ -150,8 +150,8 @@
 						<button class="tba-btn tba-ghost cal-toolbar-desktop" id="calBtnTogglePreview" onclick="toggleCalendarPreview()" title="Hide document preview">
 							<i class="fa-solid fa-eye-slash" id="calTogglePreviewIcon"></i> <span id="calTogglePreviewLabel">Hide Preview</span>
 						</button>
-						<button class="tba-btn tba-ghost cal-toolbar-desktop" onclick="exportCalendarWord()">
-							<i class="fa-solid fa-file-word"></i> Export to Word
+						<button class="tba-btn tba-ghost cal-toolbar-desktop" onclick="exportCalendarPDF()">
+							<i class="fa-solid fa-file-pdf"></i> Export PDF
 						</button>
 						<button class="tba-btn tba-ghost cal-toolbar-desktop" onclick="openHelp()">
 							<i class="fa-solid fa-circle-question"></i> Help / Tutorial
@@ -166,8 +166,8 @@
 									<i class="fa-solid fa-eye"></i> <span id="calMenuPreviewLabel">Hide Preview</span>
 								</button>
 								<div class="tba-drop-divider"></div>
-								<button class="tba-drop-item" onclick="exportCalendarWord();closeTopBarMenu()">
-									<i class="fa-solid fa-file-word"></i> Export to Word
+				<button class="tba-drop-item" onclick="exportCalendarPDF();closeTopBarMenu()">
+									<i class="fa-solid fa-file-pdf"></i> Export PDF
 								</button>
 								<div class="tba-drop-divider"></div>
 								<button class="tba-drop-item" onclick="openHelp();closeTopBarMenu()">
@@ -872,7 +872,7 @@ Photocopy of Government Recognition/Permit</textarea>
 									</div>
 								</div>
 
-								<div class="monthly-wrap" style="padding-top:14px">
+								<div class="monthly-wrap" style="padding-top:0">
 									<div class="monthly-heading" id="pv_monthly_heading_1">SCHOOL CALENDAR FOR SCHOOL
 										YEAR 2026–2027</div>
 									<div id="pv_monthly_grid_1"></div>
@@ -891,23 +891,21 @@ Photocopy of Government Recognition/Permit</textarea>
 										</div>
 									</div>
 								</div>
-								<div class="monthly-wrap" style="padding-top:14px">
+								<div class="monthly-wrap" style="padding-top:0">
 									<div class="monthly-heading" id="pv_monthly_heading_2">SCHOOL CALENDAR FOR SCHOOL
 										YEAR 2026–2027</div>
 									<div id="pv_monthly_grid_2"></div>
-									<div class="legend-box" style="margin-top:18px">
+									<div class="legend-box" style="margin-top:8px">
 										<div class="leg-title">Legend:</div>
-										<div class="legend-item"><svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><rect x="1" y="1" width="16" height="16" fill="none" stroke="#dc2626" stroke-width="1.8"/><line x1="1" y1="1" x2="17" y2="17" stroke="#dc2626" stroke-width="1.8"/><line x1="17" y1="1" x2="1" y2="17" stroke="#dc2626" stroke-width="1.8"/></svg>
+										<div class="legend-item"><svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><line x1="3" y1="3" x2="15" y2="15" stroke="#dc2626" stroke-width="2.4"/><line x1="15" y1="3" x2="3" y2="15" stroke="#dc2626" stroke-width="2.4"/></svg>
 											— Declared Holidays</div>
 										<div class="legend-item"><svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><rect x="1" y="1" width="16" height="16" fill="none" stroke="#374151" stroke-width="1.8"/></svg>
 											— School activities for teachers, personnel, and other stakeholders</div>
 										<div class="legend-item"><svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><polygon points="9,1 17,17 1,17" fill="none" stroke="#854d0e" stroke-width="1.8" stroke-linejoin="round"/></svg> —
 											Administration of Quarter examination</div>
-										<div class="legend-item"><span
-												style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#0a1f3d;color:#fff;font-size:8px;font-weight:900;">★</span>
+						<div class="legend-item"><i class="fa-solid fa-book-open" style="font-size:14px;color:#15803d;"></i>
 											— Start of Classes</div>
-										<div class="legend-item"><span
-												style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#991b1b;color:#fff;font-size:8px;font-weight:900;">■</span>
+						<div class="legend-item"><i class="fa-solid fa-graduation-cap" style="font-size:14px;color:#b8860b;"></i>
 											— End of Classes</div>
 										<!-- Custom legends from the Calendar Picker are injected here at render time -->
 										<div id="pv_legend_custom"></div>
@@ -946,6 +944,7 @@ Photocopy of Government Recognition/Permit</textarea>
 									<div class="cp-color-wrap"><input type="color" id="cp_custom_color"
 											value="#7c3aed" /></div>
 								</div>
+								<div style="font-size:11px;color:#64748b;margin:-4px 0 10px;">Blue school-day and red holiday shades, plus built-in category colors and labels, are reserved.</div>
 								<label class="cp-addcat-toggle" for="cp_custom_counts_schoolday"><input type="checkbox"
 										id="cp_custom_counts_schoolday" checked /><span>Count this category as school
 										day</span></label>
@@ -1285,7 +1284,7 @@ Photocopy of Government Recognition/Permit</textarea>
 					if (!markKey) { if (!isWknd) count++; continue; }
 					const legend = legends[markKey];
 					const inc = legend ? legend.includeInSchoolDays !== false : true;
-					if (inc) count++;
+					if (!isWknd && inc) count++;
 				}
 				return count;
 			};
@@ -1295,6 +1294,17 @@ Photocopy of Government Recognition/Permit</textarea>
 				const firstDow = new Date(y, m, 1).getDay();
 				const colW = Math.floor(width / 7);
 				const rows = [];
+				rows.push(new TableRow({
+					cantSplit: true,
+					children: [new TableCell({
+						columnSpan: 7,
+						width: { size: width, type: WidthType.DXA },
+						borders: noCellBorders,
+						shading: { type: ShadingType.CLEAR, fill: '0A1F3D' },
+						margins: { top: 50, bottom: 50, left: 40, right: 40 },
+						children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [run(MONTH_NAMES[m].toUpperCase(), { size: 18, bold: true, color: 'FFFFFF' })], spacing: { after: 0 } })],
+					})],
+				}));
 				rows.push(new TableRow({
 					children: DAY_SHORT.map((d) => new TableCell({
 						width: { size: colW, type: WidthType.DXA },
@@ -1312,12 +1322,26 @@ Photocopy of Government Recognition/Permit</textarea>
 					const k = mkKey(y, m, d);
 					const markKey = markStore[k];
 					const legend = markKey ? legends[markKey] : null;
-					const symbol = legend?.symbol || '';
-					const dayRuns = [run(String(d), { size: 16, bold: true, strike: markKey === 'holiday' })];
+					const symbol = markKey === 'holiday' ? 'X' : (['activity', 'exam'].includes(markKey) ? (legend?.symbol || '') : '');
+					const isWeekend = [0, 6].includes(new Date(y, m, d).getDay());
+					const openingDateForCell = parseDateOnly(opening);
+					const closingDateForCell = parseDateOnly(closing);
+					const isStartDay = openingDateForCell && openingDateForCell.getFullYear() === y && openingDateForCell.getMonth() === m && openingDateForCell.getDate() === d;
+					const isEndDay = closingDateForCell && closingDateForCell.getFullYear() === y && closingDateForCell.getMonth() === m && closingDateForCell.getDate() === d;
+					const cellDate = new Date(y, m, d);
+					const inClassRange = (!opening || cellDate >= parseDateOnly(opening)) && (!closing || cellDate <= parseDateOnly(closing));
+					const isSchoolDate = !isWeekend && inClassRange && (markKey ? markKey !== 'holiday' && legend?.includeInSchoolDays !== false : true);
+					const dayColor = isStartDay ? '15803D' : isEndDay ? 'B8860B' : markKey === 'holiday' ? 'DC2626' : (isSchoolDate ? '1D4ED8' : (isWeekend ? '94A3B8' : '374151'));
+					const dayFill = isStartDay ? '15803D' : isEndDay ? 'B8860B' : markKey === 'holiday' ? 'FEE2E2' : (isSchoolDate ? 'BFDBFE' : (isWeekend ? 'F8FAFC' : 'FFFFFF'));
+					const dayRuns = [];
+					if (isStartDay) dayRuns.push(run('📖 ', { size: 12, color: '15803D' }));
+					if (isEndDay) dayRuns.push(run('🎓 ', { size: 12, color: 'B8860B' }));
+					dayRuns.push(run(String(d), { size: 16, bold: true, color: dayColor }));
 					if (symbol) dayRuns.push(run(' ' + symbol, { size: 14, color: '64748B' }));
 					cells.push(new TableCell({
 						width: { size: colW, type: WidthType.DXA },
 						borders: cellBorders(thinBorder),
+						shading: { fill: dayFill, type: ShadingType.CLEAR },
 						margins: CAL_CELL_MARGIN,
 						children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: dayRuns })],
 					}));
@@ -1340,15 +1364,18 @@ Photocopy of Government Recognition/Permit</textarea>
 					const [ky, km] = k.split('-').map(Number);
 					return ky === y && km === m;
 				}).sort((a, b) => parseInt(a[0].split('-')[2], 10) - parseInt(b[0].split('-')[2], 10));
-				const monthNotes = Object.entries(remarkStore).filter(([k]) => {
-					const [ky, km] = k.split('-').map(Number);
-					return ky === y && km === m && !markStore[k];
-				}).map(([k]) => [k, '__note_only__']);
-
-				const combined = [...monthMarks, ...monthNotes];
 				const openingDateObj = parseDateOnly(opening);
 				const closingDateObj = parseDateOnly(closing);
 				const sameStartEnd = openingDateObj && closingDateObj && openingDateObj.getTime() === closingDateObj.getTime();
+				const specialKeys = new Set();
+				if (openingDateObj && openingDateObj.getFullYear() === y && openingDateObj.getMonth() === m) specialKeys.add(mkKey(y, m, openingDateObj.getDate()));
+				if (!sameStartEnd && closingDateObj && closingDateObj.getFullYear() === y && closingDateObj.getMonth() === m) specialKeys.add(mkKey(y, m, closingDateObj.getDate()));
+				const monthNotes = Object.entries(remarkStore).filter(([k]) => {
+					const [ky, km] = k.split('-').map(Number);
+					return ky === y && km === m && !markStore[k] && !specialKeys.has(k);
+				}).map(([k]) => [k, '__note_only__']);
+
+				const combined = [...monthMarks, ...monthNotes];
 				if (openingDateObj && openingDateObj.getFullYear() === y && openingDateObj.getMonth() === m) {
 					const key = mkKey(y, m, openingDateObj.getDate());
 					combined.push([key, sameStartEnd ? '__start_end__' : '__start__']);
@@ -1380,32 +1407,33 @@ Photocopy of Government Recognition/Permit</textarea>
 				if (!entries.length) {
 					return [para('No activities marked', { run: { italics: true, size: 18 }, spacing: { after: 40 } })];
 				}
-				return entries.map((entry) => {
+				return entries.flatMap((entry) => {
 					const dayLabel = entry.startDay === entry.endDay
 						? String(entry.startDay)
 						: `${entry.startDay}-${entry.endDay}`;
 					let label = '';
-					if (entry.type === '__start_end__') label = 'Start and End of Classes';
-					else if (entry.type === '__start__') label = 'Start of Classes';
-					else if (entry.type === '__end__') label = 'End of Classes';
-					else if (entry.type === '__note_only__') label = entry.remark ? `Note - ${entry.remark}` : 'Note';
+					let note = '';
+					if (entry.type === '__start_end__') { label = 'Start and End of Classes'; note = entry.remark; }
+					else if (entry.type === '__start__') { label = 'Start of Classes'; note = entry.remark; }
+					else if (entry.type === '__end__') { label = 'End of Classes'; note = entry.remark; }
+					else if (entry.type === '__note_only__') label = entry.remark || '';
 					else {
 						const leg = legends[entry.type] || { label: entry.type };
 						label = entry.remark || leg.label;
 					}
-					return new Paragraph({
-						children: [run(`${dayLabel}: ${label}`, { size: 18 })],
+					const main = new Paragraph({
+						children: [run(`${dayLabel}: ${label}`, { size: entry.type === '__note_only__' ? 15 : 18, italic: entry.type === '__note_only__', color: entry.type === '__note_only__' ? '64748B' : '374151' })],
 						bullet: { level: 0 },
 						spacing: { after: 40 },
 					});
+					const secondary = note ? new Paragraph({ children: [run(`      ${note}`, { size: 14, italic: true, color: '64748B' })], spacing: { after: 40 } }) : null;
+					return secondary ? [main, secondary] : [main];
 				});
 			};
 
 			const buildMonthBlock = (y, m) => {
 				const leftW = Math.floor(CONTENT_W * 0.42);
 				const rightW = CONTENT_W - leftW;
-				const monthName = MONTH_NAMES[m].toUpperCase();
-				const monthHeading = para(monthName, { run: { bold: true, size: 20 }, spacing: { after: 60 } });
 				const activityList = buildMonthActivityParagraphs(y, m);
 				const calTable = buildMiniCalendarTable(y, m, rightW);
 				const classDays = calcSchoolDaysInMonth(y, m);
@@ -1418,14 +1446,14 @@ Photocopy of Government Recognition/Permit</textarea>
 							new TableCell({
 								width: { size: leftW, type: WidthType.DXA },
 								borders: noCellBorders,
-								children: [monthHeading, ...activityList],
+									children: [...activityList],
 							}),
 							new TableCell({
 								width: { size: rightW, type: WidthType.DXA },
 								borders: noCellBorders,
 								children: [
 									calTable,
-									para(`Class days: ${classDays}`, { run: { size: 18 }, spacing: { before: 40 } }),
+								para(`Class days: ${classDays}`, { run: { size: 20, bold: true }, alignment: AlignmentType.RIGHT, spacing: { before: 40 } }),
 								],
 							}),
 						]
@@ -1680,12 +1708,9 @@ Photocopy of Government Recognition/Permit</textarea>
 				const monthBlocks = [];
 				months.forEach(({ y, m }) => {
 					monthBlocks.push(buildMonthBlock(y, m));
-					monthBlocks.push(emptyPara(120));
 				});
-				if (monthBlocks.length) monthBlocks.pop();
 				return [
-					emptyPara(80),
-					new Paragraph({ alignment: AlignmentType.CENTER, children: [run(heading, { bold: true, size: 20 })], spacing: { after: 120 } }),
+					new Paragraph({ alignment: AlignmentType.CENTER, children: [run(heading, { bold: true, size: 20 })], spacing: { after: 40 } }),
 					...monthBlocks,
 				];
 			};
@@ -1793,7 +1818,7 @@ Photocopy of Government Recognition/Permit</textarea>
                     if (!mark) { if (!isWknd) total++; }
                     else {
                         const leg = legends[mark];
-                        if (leg ? leg.includeInSchoolDays !== false : true) total++;
+						if (!isWknd && (leg ? leg.includeInSchoolDays !== false : true)) total++;
                     }
                 }
             });
@@ -1923,7 +1948,7 @@ Photocopy of Government Recognition/Permit</textarea>
 	<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 	<script src="js/config.js?v4"></script>
 	<script src="js/school-portal-permissions.js"></script>
-	<script src="js/school-portal-calendar.js?v14"></script>
+	<script src="js/school-portal-calendar.js?v32"></script>
 </body>
 
 </html>

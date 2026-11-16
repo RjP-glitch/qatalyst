@@ -48,7 +48,7 @@ const ADS = (() => {
             const link = document.createElement('link');
             link.id   = 'adsPortalCalendarCss';
             link.rel  = 'stylesheet';
-            link.href = 'css/school-portal-calendar.css?v29';
+            link.href = 'css/school-portal-calendar.css?v39';
             head.appendChild(link);
         }
     }
@@ -956,10 +956,7 @@ const ADS = (() => {
         const isTf   = type === 'tuition' || type === 'no_tuition';
         if (String(format || '').toLowerCase() === 'pdf') {
             if (isCal) { printCalendarPreview(id); return; }
-        }
-        if (isTf && ['pdf', 'word', 'docx'].includes(String(format || '').toLowerCase())) {
-            exportSubmittedTuitionWord(id);
-            return;
+            if (isTf)  { printTuitionPreview(id); return; }
         }
         const url = apiUrl(`/documents-submitted.php?action=download&id=${encodeURIComponent(id)}&format=${encodeURIComponent(format)}&preview=1`);
         const a = document.createElement('a');
@@ -992,22 +989,8 @@ const ADS = (() => {
 
         if (t === 'calendar') {
             if (format === 'pdf') { printCalendarPreview(id); return; }
-            if (format === 'word') {
-                const url = apiUrl(`/documents-submitted.php?action=download&id=${encodeURIComponent(id)}&format=word`);
-                try {
-                    const res = await fetch(url, { credentials: 'include' });
-                    const ct  = res.headers.get('Content-Type') || '';
-                    if (ct.includes('application/json')) { const json = await res.json(); alert('Download failed: ' + (json.message || 'Unknown error')); return; }
-                    const blob    = await res.blob();
-                    const blobUrl = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = blobUrl; a.download = `calendar-${id}.docx`; a.rel = 'noopener';
-                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-                } catch (err) { alert('Download failed: ' + err.message); }
-                return;
-            }
         }
+        if ((t === 'tuition' || t === 'no_tuition') && format === 'pdf') { printTuitionPreview(id); return; }
 
         if (!filePath) return;
         try {
@@ -1027,13 +1010,41 @@ const ADS = (() => {
 
     function openCard(id) { openDetailModal(id); }
 
+    function setSubmissionPdfLoading(visible, message = 'Preparing submitted calendar…') {
+        let overlay = document.getElementById('adsCalendarPdfLoading');
+        if (!visible) { overlay?.remove(); return; }
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'adsCalendarPdfLoading';
+            overlay.className = 'cal-pdf-loading';
+            overlay.setAttribute('role', 'status');
+            overlay.setAttribute('aria-live', 'polite');
+            overlay.innerHTML = '<div class="cal-pdf-loading-card"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><div><strong>Preparing calendar PDF</strong><span></span></div></div>';
+            document.body.appendChild(overlay);
+        }
+        const label = overlay.querySelector('span');
+        if (label) label.textContent = message;
+    }
+
     async function printCalendarPreview(id) {
+        setSubmissionPdfLoading(true, 'Loading submitted calendar…');
+        const originalDocumentTitle = document.title;
+        try {
         ensureCalendarPreviewStyles();
         if (Number(detailRecordId) !== Number(id)) openDetailModal(id);
         await loadCalendarPreviewHtml(id, { silent: true });
 
         const sourceHost = document.getElementById('adsCalendarPreviewHost');
         if (!sourceHost || sourceHost.dataset.loaded !== '1') { alert('Preview is not ready yet. Please try again.'); return; }
+
+        const record = allRecords.find((item) => Number(item.id) === Number(id));
+        const schoolName = String(record?.school_name || record?.title || 'School').trim();
+        const levelName = String(record?.cal_level || 'Elementary School').trim();
+        const schoolYear = String(record?.school_year || '').trim();
+        const schoolYearParts = schoolYear.split(/\s*[-–—]\s*/).filter(Boolean);
+        const syStart = schoolYearParts[0] || '20__';
+        const syEnd = schoolYearParts[1] || '20__';
+        const calendarPdfTitle = `School Calendar - ${schoolName} - ${levelName} (${syStart}-${syEnd})`;
 
         const existingHost = document.getElementById('adsPrintHost');
         if (existingHost) existingHost.remove();
@@ -1069,7 +1080,8 @@ const ADS = (() => {
             }
         });
 
-        window.print();
+        setSubmissionPdfLoading(false);
+        document.title = calendarPdfTitle;
 
         const restore = () => {
             allPages.forEach((p) => p.style.removeProperty('display'));
@@ -1077,11 +1089,16 @@ const ADS = (() => {
             hiddenPages.forEach((p) => p.style.removeProperty('display'));
             if (printHost.parentNode) printHost.parentNode.removeChild(printHost);
             delete document.body.dataset.printing;
+            document.title = originalDocumentTitle;
             window.removeEventListener('afterprint', restore);
         };
 
         window.addEventListener('afterprint', restore);
         setTimeout(restore, 2000);
+        window.print();
+        } finally {
+            setSubmissionPdfLoading(false);
+        }
     }
 
     async function printTuitionPreview(id) {
@@ -1343,8 +1360,8 @@ const ADS = (() => {
                     <i class="fa-solid fa-print"></i> Print / PDF
                 </button>` : ''}
                 ${isTuition ? `
-                <button class="dsd-btn-print" onclick="ADS.exportSubmittedTuitionWord(${Number(id)})">
-                    <i class="fa-solid fa-file-word"></i> Export Word
+                <button class="dsd-btn-print" onclick="ADS.printTuitionPreview(${Number(id)})">
+                    <i class="fa-solid fa-file-pdf"></i> Print / PDF
                 </button>` : ''}
             `;
         }
@@ -2967,10 +2984,16 @@ const ADS = (() => {
         /* SVG symbol helper — matches the updated school-portal legend symbols */
         const symSvg = (key, color, size = 12) => {
             const s = size;
-            if (key === 'holiday') return `<svg width="${s}" height="${s}" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><rect x="1" y="1" width="16" height="16" fill="none" stroke="${color}" stroke-width="1.8"/><line x1="1" y1="1" x2="17" y2="17" stroke="${color}" stroke-width="1.8"/><line x1="17" y1="1" x2="1" y2="17" stroke="${color}" stroke-width="1.8"/></svg>`;
+            if (key === 'holiday') return `<svg width="${s}" height="${s}" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><line x1="3" y1="3" x2="15" y2="15" stroke="${color}" stroke-width="2.4"/><line x1="15" y1="3" x2="3" y2="15" stroke="${color}" stroke-width="2.4"/></svg>`;
             if (key === 'activity') return `<svg width="${s}" height="${s}" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><rect x="1" y="1" width="16" height="16" fill="none" stroke="${color}" stroke-width="1.8"/></svg>`;
             if (key === 'exam')     return `<svg width="${s}" height="${s}" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><polygon points="9,1 17,17 1,17" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
-            return `<span style="display:inline-block;width:${s}px;height:${s}px;border-radius:50%;background:${color};vertical-align:middle;"></span>`;
+            return `<span style="display:inline-block;width:${s}px;height:${s}px;border-radius:2px;background:${color};vertical-align:middle;"></span>`;
+        };
+        const boundarySymbols = (isStart, isEnd) => {
+            const size = 12;
+            const book = `<svg width="${size}" height="${size}" viewBox="0 0 18 18" aria-label="Start of classes: book" style="vertical-align:middle"><path d="M2 3.5c2.5-1 4.8-.7 7 1v11c-2.2-1.7-4.5-2-7-1zM16 3.5c-2.5-1-4.8-.7-7 1v11c2.2-1.7 4.5-2 7-1z" fill="none" stroke="#15803d" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 4.5v11" stroke="#15803d" stroke-width="1.4"/></svg>`;
+            const cap = `<svg width="${size}" height="${size}" viewBox="0 0 18 18" aria-label="End of classes: graduation cap" style="vertical-align:middle"><path d="m1.5 6 7.5-4 7.5 4-7.5 4z" fill="none" stroke="#b8860b" stroke-width="1.8" stroke-linejoin="round"/><path d="M4.5 7.7v3.4c2.8 2 6.2 2 9 0V7.7M16.5 6v4" fill="none" stroke="#b8860b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+            return `<span class="class-boundary-symbols">${isStart ? book : ''}${isEnd ? cap : ''}</span>`;
         };
 
         const form         = (payload.form         && typeof payload.form         === 'object') ? payload.form         : {};
@@ -3115,7 +3138,7 @@ const ADS = (() => {
                 if (!mark) { if (!isWeekend(y, m, d)) count++; }
                 else {
                     const leg = legends[mark];
-                    if (leg ? leg.includeInSchoolDays !== false : true) count++;
+                    if (!isWeekend(y, m, d) && mark !== 'holiday' && (leg ? leg.includeInSchoolDays !== false : true)) count++;
                 }
             }
             return count;
@@ -3222,7 +3245,7 @@ const ADS = (() => {
                 const isOpeningMonth = openingYear === y && openingMonth === m;
                 const isClosingMonth = closingYear === y && closingMonth === m;
 
-                let calHtml = `<div class="mini-cal-header">${mName}</div>`;
+                let calHtml = `<div class="mini-cal-header">${mName.toUpperCase()}</div>`;
                 calHtml += `<table class="mini-cal"><thead><tr>`;
                 DAY_SHORT.forEach(d => calHtml += `<th class="${d==='Su'?'sun':d==='Sa'?'sat':''}">${d}</th>`);
                 calHtml += `</tr></thead><tbody><tr>`;
@@ -3242,22 +3265,28 @@ const ADS = (() => {
                     if (isStartDay) cls += ' start-day';
                     if (isEndDay)   cls += ' end-day';
                     if (isStartDay && isEndDay) cls += ' start-end-day';
-                    let content  = String(d);
-                    if      (mark === 'holiday')  { cls += ' holiday-day'; content = `<svg class="day-svg" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="1" x2="17" y2="17" stroke="currentColor" stroke-width="1.5"/><line x1="17" y1="1" x2="1" y2="17" stroke="currentColor" stroke-width="1.5"/><text x="9" y="12" text-anchor="middle" font-size="8" font-family="inherit" fill="currentColor" font-weight="700">${d}</text></svg>`; }
-                    else if (mark === 'activity') { cls += ' activity-day'; content = `<svg class="day-svg" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="9" y="12" text-anchor="middle" font-size="8" font-family="inherit" fill="currentColor" font-weight="700">${d}</text></svg>`; }
-                    else if (mark === 'exam')     { cls += ' exam-day'; content = `<svg class="day-svg" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><polygon points="9,1 17,17 1,17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><text x="9" y="15" text-anchor="middle" font-size="7" font-family="inherit" fill="currentColor" font-weight="700">${d}</text></svg>`; }
+                    let content  = `<span class="day-mark-content"><span class="day-mark-number">${d}</span></span>`;
+                    let customCellStyle = '';
+                    const isSchoolDate = !isWknd && inRange(y, m, d)
+                        && (mark ? mark !== 'holiday' && (legends[mark] ? legends[mark].includeInSchoolDays !== false : true) : !isWknd);
+                    if (isSchoolDate) cls += ' schoolday-shade';
+                    if      (mark === 'holiday')  { cls += ' holiday-day'; content = `<span class="day-mark-content"><span class="day-mark-symbol">X</span><span class="day-mark-number">${d}</span></span>`; }
+                    else if (mark === 'activity') { cls += ' activity-day'; content = `<span class="day-mark-content"><span class="day-mark-symbol">□</span><span class="day-mark-number">${d}</span></span>`; }
+                    else if (mark === 'exam')     { cls += ' exam-day'; content = `<span class="day-mark-content"><span class="day-mark-symbol">△</span><span class="day-mark-number">${d}</span></span>`; }
                     else if (mark && legends[mark]) {
-                        /* Custom user-created legend category — fill the day
-                           cell with its own color as a pill so the calendar
-                           box itself (not just the activity list) reflects
-                           the custom legend, matching the school-portal
-                           builder's design. */
+                        /* Keep school-day custom marks as a full-cell blue
+                           shade, matching the school portal calendar. */
                         const customLeg   = legends[mark];
                         const customColor = customLeg.color || '#64748b';
                         cls += ' custom-mark-day';
-                        content = `<span class="custom-mark-pill" style="background:${customColor};" title="${e(customLeg.label || mark)}">${d}</span>`;
+                        content = `<span class="day-mark-content"><span class="day-mark-number">${d}</span></span>`;
+                        if (!isSchoolDate) customCellStyle = ` style="background:${customColor};color:#fff;"`;
                     }
-                    calHtml += `<td class="${cls.trim()}">${content}</td>`;
+                    if (isStartDay || isEndDay) {
+                        const dateLayer = mark ? content : `<span class="day-mark-number">${d}</span>`;
+                        content = `<span class="mini-day-content">${dateLayer}${boundarySymbols(isStartDay, isEndDay)}</span>`;
+                    }
+                    calHtml += `<td class="${cls.trim()}"${customCellStyle}>${content}</td>`;
                     cellCount++;
                 }
                 const rem = 7 - (cellCount % 7);
@@ -3269,8 +3298,14 @@ const ADS = (() => {
                     .filter(([k]) => { const [ky,km] = k.split('-').map(Number); return ky===y && km===m; })
                     .sort((a,b) => parseInt(a[0].split('-')[2]) - parseInt(b[0].split('-')[2]));
 
+                const specialDayKeys = new Set();
+                if (sameStartEnd && isOpeningMonth && openingDay) specialDayKeys.add(mkKey(openingYear, openingMonth, openingDay));
+                else {
+                    if (isOpeningMonth && openingDay) specialDayKeys.add(mkKey(openingYear, openingMonth, openingDay));
+                    if (isClosingMonth && closingDay) specialDayKeys.add(mkKey(closingYear, closingMonth, closingDay));
+                }
                 const monthNotes = Object.entries(savedRemarks)
-                    .filter(([k]) => { const [ky,km] = k.split('-').map(Number); return ky===y && km===m && !savedMarks[k]; })
+                    .filter(([k]) => { const [ky,km] = k.split('-').map(Number); return ky===y && km===m && !savedMarks[k] && !specialDayKeys.has(k); })
                     .map(([k]) => [k, '__note_only__']);
 
                 let combined = [...monthMarks, ...monthNotes];
@@ -3282,7 +3317,7 @@ const ADS = (() => {
                 }
                 combined.sort((a,b) => parseInt(a[0].split('-')[2]) - parseInt(b[0].split('-')[2]));
 
-                let actHtml = `<div class="month-name">${mName.toUpperCase()}</div><ul class="activity-list">`;
+                let actHtml = `<ul class="activity-list">`;
                 if (!combined.length) {
                     actHtml += `<li><span class="act-date" style="color:#94a3b8;">—</span> <span style="color:#94a3b8;">No activities marked</span></li>`;
                 } else {
@@ -3297,19 +3332,14 @@ const ADS = (() => {
                     });
                     grouped.forEach(({ type, remark, startDay, endDay }) => {
                         const dayLabel = startDay === endDay ? String(startDay) : `${startDay}-${endDay}`;
-                        const rmk = remark ? ` — <em style="color:#475569;">${e(remark)}</em>` : '';
-                        if (type === '__start_end__') { actHtml += `<li><span class="act-date">${dayLabel}</span> <span style="display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:13px;border-radius:6px;background:#0a1f3d;color:#fff;font-size:8px;font-weight:900;flex-shrink:0;letter-spacing:.5px;padding:0 5px;">START/END</span> <strong>Start and End of Classes</strong></li>`; return; }
-                        if (type === '__start__')     { actHtml += `<li><span class="act-date">${dayLabel}</span> <span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#0a1f3d;color:#fff;font-size:8px;font-weight:900;flex-shrink:0;">★</span> <strong>Start of Classes</strong></li>`; return; }
-                        if (type === '__end__')       { actHtml += `<li><span class="act-date">${dayLabel}</span> <span style="display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:13px;border-radius:6px;background:#991b1b;color:#fff;font-size:8px;font-weight:900;flex-shrink:0;letter-spacing:.5px;padding:0 5px;">END</span> <strong>End of Classes</strong></li>`; return; }
-                        if (type === '__note_only__') { actHtml += `<li><span class="act-date">${dayLabel}</span> <span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#0f172a;color:#fff;font-size:8px;font-weight:900;flex-shrink:0;">✎</span> <strong>Note</strong>${rmk}</li>`; return; }
+                        const listEntry = (title, icon = '', note = '') => `<li><span class="act-date">${dayLabel}</span><span class="act-copy"><span class="act-title">${icon}${title}</span>${note ? `<span class="act-note">${note}</span>` : ''}</span></li>`;
+                        if (type === '__start_end__') { const k = mkKey(openingYear, openingMonth, openingDay); actHtml += listEntry('Start and End of Classes', '<i class="fa-solid fa-book-open" style="color:#15803d;"></i> <i class="fa-solid fa-graduation-cap" style="color:#b8860b;"></i> ', e(savedRemarks[k] || '')); return; }
+                        if (type === '__start__')     { const k = mkKey(openingYear, openingMonth, openingDay); actHtml += listEntry('Start of Classes', '<i class="fa-solid fa-book-open" style="color:#15803d;"></i> ', e(savedRemarks[k] || '')); return; }
+                        if (type === '__end__')       { const k = mkKey(closingYear, closingMonth, closingDay); actHtml += listEntry('End of Classes', '<i class="fa-solid fa-graduation-cap" style="color:#b8860b;"></i> ', e(savedRemarks[k] || '')); return; }
+                        if (type === '__note_only__') { actHtml += `<li><span class="act-date">${dayLabel}</span><span class="act-copy"><span class="act-note">${e(remark)}</span></span></li>`; return; }
                         const leg = legends[type] || { label: type, color: '#64748b', symbol: '●' };
-                        if (type === 'holiday' || type === 'activity' || type === 'exam') {
-                            actHtml += `<li><span class="act-date">${dayLabel}</span> ${symSvg(type, leg.color || '#64748b', 12)} ${e(leg.label)}${rmk}</li>`;
-                        } else {
-                            /* Custom legend entry — swatch pill matches the
-                               color used in the day cell above. */
-                            actHtml += `<li><span class="act-date">${dayLabel}</span> <span class="custom-mark-pill custom-mark-pill-sm" style="background:${leg.color || '#64748b'};"></span> ${e(leg.label)}${rmk}</li>`;
-                        }
+                        const icon = ['holiday', 'activity', 'exam'].includes(type) ? symSvg(type, leg.color || '#64748b', 12) : '';
+                        actHtml += listEntry(e(remark || leg.label), icon);
                     });
                 }
                 actHtml += `</ul>`;
@@ -3509,23 +3539,23 @@ const ADS = (() => {
                 <div class="paper-section-label"><i class="fa-solid fa-calendar-days"></i> Pages 9–10 — Monthly Calendar Detail</div>
                 <div class="paper">
                     ${lh()}
-                    <div class="monthly-wrap" style="padding-top:14px">
+                    <div class="monthly-wrap" style="padding-top:0">
                         <div class="monthly-heading">SCHOOL CALENDAR FOR SCHOOL YEAR ${syRange}</div>
                         <div>${monthGrid1}</div>
                     </div>
                 </div>
                 <div class="paper">
                     ${lh()}
-                    <div class="monthly-wrap" style="padding-top:14px">
+                    <div class="monthly-wrap" style="padding-top:0">
                         <div class="monthly-heading">SCHOOL CALENDAR FOR SCHOOL YEAR ${syRange}</div>
                         <div>${monthGrid2}</div>
-                        <div class="legend-box" style="margin-top:18px">
+                        <div class="legend-box" style="margin-top:8px">
                             <div class="leg-title">Legend:</div>
                             <div class="legend-item"><span style="font-size:12px;font-weight:700;text-decoration:line-through;color:#dc2626;">X</span> — Declared Holidays</div>
                             <div class="legend-item"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid #374151;"></span> — School activities for teachers, personnel, and other stakeholders</div>
                             <div class="legend-item"><span style="font-size:12px;color:#374151;">△</span> — Administration of Quarter examination</div>
-                            <div class="legend-item"><span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#0a1f3d;color:#fff;font-size:8px;font-weight:900;">★</span> — Start of Classes</div>
-                            <div class="legend-item"><span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#991b1b;color:#fff;font-size:8px;font-weight:900;">■</span> — End of Classes</div>
+                            <div class="legend-item"><i class="fa-solid fa-book-open" style="font-size:14px;color:#15803d;"></i> — Start of Classes</div>
+                            <div class="legend-item"><i class="fa-solid fa-graduation-cap" style="font-size:14px;color:#b8860b;"></i> — End of Classes</div>
                             ${Object.keys(legends).filter(k => !DEFAULT_LEGENDS[k]).map(k => {
                                 const leg = legends[k];
                                 return `<div class="legend-item"><span class="custom-mark-pill custom-mark-pill-sm" style="background:${leg.color || '#64748b'};"></span><span>— ${e(leg.label || k)}</span></div>`;
@@ -3844,7 +3874,6 @@ const ADS = (() => {
         generateIndorsementFromRecord,
         printCalendarPreview,
         printTuitionPreview,
-        exportSubmittedTuitionWord,
         openSupportingUpload,
         toggleDetailPreview,
         switchTab,

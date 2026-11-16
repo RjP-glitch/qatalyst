@@ -6,7 +6,7 @@
     <title>QATALYST – Submitted Calendar</title>
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="css/school-portal-calendar.css?v3" />
+    <link rel="stylesheet" href="css/school-portal-calendar.css?v30" />
     <style>
         /* ─── Reset layout for scrollable full-page view ─── */
         html, body { height: auto; overflow-y: auto; background: #e8edf4; }
@@ -298,9 +298,6 @@
                 <button class="banner-btn banner-btn-ghost" id="btnExportPdf">
                     <i class="fa-solid fa-file-pdf"></i> Export PDF
                 </button>
-                <button class="banner-btn banner-btn-ghost" id="btnExportWord">
-                    <i class="fa-solid fa-file-word"></i> Export Word
-                </button>
                 <button class="banner-btn banner-btn-ghost" id="btnViewDocs">
                     <i class="fa-solid fa-folder-open"></i> Documents
                 </button>
@@ -585,7 +582,7 @@
                                 <div class="lh-logo-placeholder" id="lhLogoPlaceholder8"><i class="fa-solid fa-school"></i></div>
                                 <div class="lh-text"><h3 id="pv_school8"></h3><p id="pv_dept8"></p><p id="pv_meta8"></p></div>
                             </div></div>
-                            <div class="monthly-wrap" style="padding-top:14px">
+                            <div class="monthly-wrap" style="padding-top:0">
                                 <div class="monthly-heading" id="pv_monthly_heading_1">SCHOOL CALENDAR FOR SCHOOL YEAR 2026–2027</div>
                                 <div id="pv_monthly_grid_1"></div>
                             </div>
@@ -596,16 +593,16 @@
                                 <div class="lh-logo-placeholder" id="lhLogoPlaceholder9"><i class="fa-solid fa-school"></i></div>
                                 <div class="lh-text"><h3 id="pv_school9"></h3><p id="pv_dept9"></p><p id="pv_meta9"></p></div>
                             </div></div>
-                            <div class="monthly-wrap" style="padding-top:14px">
+                            <div class="monthly-wrap" style="padding-top:0">
                                 <div class="monthly-heading" id="pv_monthly_heading_2">SCHOOL CALENDAR FOR SCHOOL YEAR 2026–2027</div>
                                 <div id="pv_monthly_grid_2"></div>
-                                <div class="legend-box" style="margin-top:18px">
+                                <div class="legend-box" style="margin-top:8px">
                                     <div class="leg-title">Legend:</div>
-                                    <div class="legend-item"><span style="font-size:12px;font-weight:700;text-decoration:line-through;color:#dc2626;">X</span> — Declared Holidays</div>
+                                    <div class="legend-item"><span style="font-size:12px;font-weight:700;color:#dc2626;">X</span> — Declared Holidays</div>
                                     <div class="legend-item"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid #374151;"></span> — School activities</div>
                                     <div class="legend-item"><span style="font-size:12px;color:#374151;">△</span> — Quarter examination</div>
-                                    <div class="legend-item"><span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#0a1f3d;color:#fff;font-size:8px;font-weight:900;">★</span> — Start of Classes</div>
-                                    <div class="legend-item"><span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#991b1b;color:#fff;font-size:8px;font-weight:900;">■</span> — End of Classes</div>
+                                    <div class="legend-item"><i class="fa-solid fa-book-open" style="font-size:14px;color:#15803d;"></i> — Start of Classes</div>
+                                    <div class="legend-item"><i class="fa-solid fa-graduation-cap" style="font-size:14px;color:#b8860b;"></i> — End of Classes</div>
                                     <div id="pv_legend_custom"></div>
                                 </div>
                             </div>
@@ -733,7 +730,7 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/school-portal-permissions.js"></script>
-<script src="js/school-portal-calendar.js?v10"></script>
+<script src="js/school-portal-calendar.js?v32"></script>
 
 <script>
 /* ══════════════════════════════════════════════════════════════════
@@ -968,7 +965,6 @@
     /* Run after current event loop tick so all JS is settled */
     setTimeout(function () {
         wrapExportBtn('btnExportPdf',  'exportCalendarPDF');
-        wrapExportBtn('btnExportWord', 'exportCalendarWord');
         loadAndRender();
     }, 50);
 

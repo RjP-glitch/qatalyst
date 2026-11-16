@@ -1324,6 +1324,18 @@ body {
 	line-height: 1.5
 }
 
+.lh-text #pv_dept,
+.lh-text [id^="pv_dept"] {
+	display: inline-block;
+	margin: 2px 0 3px;
+	padding: 2px 8px;
+	border-radius: 3px;
+	background: #eff6ff;
+	color: #1d4ed8;
+	font-size: 10px;
+	font-weight: 800;
+}
+
 /* Cover */
 .cover-body {
 	padding: 56px 44px 64px;
@@ -1628,7 +1640,7 @@ body {
 
 /* Monthly */
 .monthly-wrap {
-	padding: 0 32px 32px
+	padding: 0 24px 0
 }
 
 .monthly-heading {
@@ -1637,7 +1649,7 @@ body {
 	font-weight: 800;
 	text-align: center;
 	color: var(--navy);
-	margin-bottom: 18px;
+	margin-bottom: 8px;
 	letter-spacing: .3px;
 	text-transform: uppercase
 }
@@ -1656,58 +1668,55 @@ body {
 
 .mb-left {
 	border-right: 1.5px solid #374151;
-	padding: 9px 12px
+	padding: 0 8px
 }
 
 .mb-right {
-	padding: 7px 9px
-}
-
-.mb-left .month-name {
-	font-family: var(--font);
-	font-size: 12.5px;
-	font-weight: 800;
-	text-align: center;
-	background: #0a1f3d;
-	color: #fff;
-	padding: 4px 9px;
-	margin-bottom: 7px;
-	letter-spacing: .3px
+	padding: 0
 }
 
 .mb-left .activity-list {
 	list-style: none;
-	padding: 0
+	padding: 0;
+	margin: 0
 }
 
 .mb-left .activity-list li {
 	font-size: 11px;
 	font-family: var(--serif);
-	padding: 3px 0;
+	padding: 1px 0;
 	border-bottom: 1px solid #f0f0f0;
 	color: #374151;
 	line-height: 1.5;
 	display: flex;
-	gap: 5px
+	align-items: flex-start;
+	gap: 7px
 }
 
 .mb-left .activity-list li .act-date {
 	font-weight: 700;
 	color: #0a1f3d;
-	flex-shrink: 0;
-	min-width: 28px;
+	flex: 0 0 42px;
+	width: 42px;
 	font-family: var(--font)
 }
+
+.act-copy { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.act-title { font-weight: 600; line-height: 1.35; }
+.act-note { display: block; margin-top: 1px; color: #64748b; font: italic 9px/1.35 var(--font); }
 
 .mb-right .mini-cal-header {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	font-family: var(--font);
-	font-size: 10.5px;
-	font-weight: 700;
-	color: #0a1f3d;
-	margin-bottom: 4px
+	font-size: 12px;
+	font-weight: 800;
+	color: #fff;
+	background: #0a1f3d;
+	padding: 4px 9px;
+	letter-spacing: .3px;
+	margin-bottom: 0
 }
 
 .mini-cal {
@@ -1725,47 +1734,67 @@ body {
 	text-transform: uppercase
 }
 
+.mini-cal th + th { border-left: 1px solid #e2e8f0; }
+
 .mini-cal td {
 	text-align: center;
 	font-size: 10px;
 	padding: 2px 1px;
+	border: 1px solid #e2e8f0;
+	height: 20px;
 	font-family: var(--font);
 	line-height: 1
 }
 
-.mini-cal .sun,
-.mini-cal .sat {
-	color: #dc2626
+.mini-cal td.sun:not(.holiday-day):not(.start-day):not(.end-day),
+.mini-cal td.sat:not(.holiday-day):not(.start-day):not(.end-day) {
+	color: #64748b;
+	background: #f1f5f9
 }
 
 .mini-cal td {
 	vertical-align: middle;
 	line-height: 1;
-	padding: 1px 0
+	padding: 1px 0;
+	border: 1px solid #e2e8f0;
+	height: 20px
 }
 
-/* ── SVG shape markers — number drawn inside shape ── */
-.mini-cal .day-svg {
-	display: block;
-	width: 16px;
-	height: 16px;
-	margin: 0 auto;
-	overflow: visible
-}
+/* Text-based marks survive image-based PDF export reliably. */
+.day-mark-content { display:block; position:relative; width:100%; height:20px; }
+.day-mark-symbol { position:absolute; inset:0; z-index:1; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:900; line-height:1; opacity:.55; pointer-events:none; }
+.day-mark-number { position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; line-height:1; color:#172033; }
 
 /* Holiday: square with X, red */
 .mini-cal .holiday-day {
-	color: #dc2626
+	color: #dc2626;
+	background: #fee2e2;
+	font-weight: 700
 }
+.mini-cal .holiday-day .day-mark-symbol { color:#dc2626; }
+.mini-cal .holiday-day .day-mark-number { color:#7f1d1d; }
 
 /* Activity: square outline, dark gray */
 .mini-cal .activity-day {
 	color: #374151
 }
+.mini-cal .activity-day .day-mark-symbol { inset:3px; box-sizing:border-box; border:2px solid #374151; color:transparent; font-size:0; opacity:.8; }
+.mini-cal .activity-day .day-mark-number { color:#1e3a8a; }
 
 /* Exam: triangle outline, amber */
 .mini-cal .exam-day {
 	color: #854d0e
+}
+.mini-cal .exam-day .day-mark-symbol { color:#854d0e; font-size:30px; }
+.mini-cal .exam-day .day-mark-number { color:#1e3a8a; }
+.mini-cal .custom-mark-day .day-mark-number { color:#fff; }
+.mini-cal .custom-mark-day.schoolday-shade .day-mark-number { color:#1e3a8a; }
+
+/* Marked class activities and exams count as school days, so their calendar
+   boxes use the shared blue school-day shade. */
+.mini-cal .schoolday-shade {
+	background: #bfdbfe;
+	color: #1d4ed8
 }
 
 .mini-cal .satclass-day {
@@ -1776,9 +1805,9 @@ body {
 }
 
 .mini-cal .start-day {
-	background: #0a1f3d;
+	background: #15803d;
 	color: #fff !important;
-	border-radius: 50%;
+	border-radius: 2px;
 	font-weight: 900;
 	position: relative
 }
@@ -1789,9 +1818,9 @@ body {
 }
 
 .mini-cal .end-day {
-	background: #b91c1c;
+	background: #b8860b;
 	color: #fff !important;
-	border-radius: 50%;
+	border-radius: 2px;
 	font-weight: 900
 }
 
@@ -1801,9 +1830,18 @@ body {
 }
 
 .mini-cal .start-end-day {
-	background: #d97706;
+	background: linear-gradient(135deg, #15803d 0 50%, #b8860b 50% 100%);
 	color: #fff !important
 }
+
+.mini-day-content { display:block; position:relative; width:100%; height:20px; }
+.class-boundary-symbols { display: inline-flex; align-items: center; gap: 1px; line-height: 1; }
+.class-boundary-symbols svg { flex: 0 0 auto; }
+.mini-cal .class-boundary-symbols { position:absolute; inset:0; z-index:1; display:flex; align-items:center; justify-content:center; }
+.mini-cal .class-boundary-symbols svg { width:24px; height:24px; }
+.mini-cal .start-day .class-boundary-symbols svg,
+.mini-cal .end-day .class-boundary-symbols svg { filter: brightness(0) invert(1); }
+.cp-boundary .class-boundary-symbols svg { filter: brightness(0) invert(1); }
 
 /* Custom user-created legend categories — color comes from inline style
    (set dynamically in JS from the legend's chosen color) since these
@@ -1819,7 +1857,7 @@ body {
 	width: 16px;
 	height: 16px;
 	margin: 0 auto;
-	border-radius: 50%;
+	border-radius: 2px;
 	color: #fff;
 	font-weight: 700;
 	font-size: 9px;
@@ -1837,7 +1875,8 @@ body {
 	text-align: right;
 	font-size: 10px;
 	font-family: var(--font);
-	font-weight: 700;
+	font-weight: 800;
+	font-size: 11px;
 	color: #0a1f3d;
 	padding-top: 3px
 }
@@ -1847,22 +1886,32 @@ body {
 	padding: 9px 12px;
 	margin: 14px 0 0;
 	font-size: 10px;
-	font-family: var(--font)
+	font-family: var(--font);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	column-gap: 16px;
+	row-gap: 3px
 }
 
 .legend-box .leg-title {
 	font-weight: 800;
-	margin-bottom: 4px;
-	font-size: 10.5px
+	margin: 0;
+	font-size: 10.5px;
+	flex: 0 0 100%
 }
 
 .legend-item {
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	margin-bottom: 3px;
-	font-size: 10px
+	margin: 0;
+	font-size: 10px;
+	flex: 0 0 auto;
+	white-space: nowrap
 }
+
+#pv_legend_custom { display: contents }
 
 /* The .custom-mark-pill swatch is shared with the mini-calendar day cells,
    where its `margin: 0 auto` centers it inside a block-level <td>. But
@@ -2333,7 +2382,7 @@ body {
 .cp-dot {
 	width: 15px;
 	height: 15px;
-	border-radius: 50%;
+	border-radius: 2px;
 	flex-shrink: 0;
 	display: inline-flex;
 	align-items: center;
@@ -2482,8 +2531,7 @@ body {
 	cursor: pointer;
 	transition: background .12s, border-color .12s;
 	position: relative;
-	display: flex;
-	flex-direction: column;
+	display: block;
 	overflow: hidden
 }
 
@@ -2531,57 +2579,104 @@ body {
 }
 
 .cp-daynum {
-	font-size: 11px;
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 14px;
 	font-weight: 800;
-	color: #374151;
-	padding: 3px 4px 2px;
+	color: #1f2937;
+	padding: 0;
 	line-height: 1;
-	z-index: 1;
-	position: relative
+	z-index: 2;
+	text-shadow: none;
+	pointer-events: none
 }
 
 .cp-cell.wknd .cp-daynum {
-	color: #9ca3af
+	color: #64748b
 }
 
-.cp-cell.marked .cp-daynum {
-	color: #fff !important;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, .3)
+.cp-cell.mark-holiday .cp-daynum { color: #991b1b }
+.cp-cell.mark-activity .cp-daynum,
+.cp-cell.mark-exam .cp-daynum { color: #1e3a8a }
+.cp-cell.mark-custom .cp-daynum,
+.cp-cell.boundary .cp-daynum {
+	color: #fff;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, .35)
+}
+.cp-cell.mark-custom.schoolday-shade .cp-daynum { color: #1d4ed8 }
+
+.cp-day-symbol {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1;
+	font-size: 56px;
+	font-weight: 900;
+	line-height: 1;
+	opacity: .52;
+	pointer-events: none
+}
+
+.cp-symbol-holiday { color: #dc2626 }
+.cp-symbol-activity {
+	inset: 8px;
+	border: 3px solid #374151;
+	color: transparent;
+	opacity: .82
+}
+.cp-symbol-exam { color: #854d0e; font-size: 50px }
+
+.cp-cell.mark-activity .cp-symbol-activity,
+.cp-cell.mark-exam .cp-symbol-exam { opacity: .82 }
+
+.cp-cell.mark-holiday .cp-daynum { z-index: 2 }
+
+.cp-cell.mark-activity:not(.marked),
+.cp-cell.mark-exam:not(.marked) {
+	background: #f1f5f9
 }
 
 .cp-boundary {
 	position: absolute;
-	top: 4px;
-	right: 4px;
-	font-size: 9px;
-	font-weight: 800;
-	letter-spacing: .3px;
-	text-transform: uppercase;
-	padding: 2px 4px;
-	border-radius: 5px;
-	line-height: 1;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0;
+	padding: 0;
+	border-radius: 0;
 	background: #e2e8f0;
 	color: #0f172a;
-	border: 1px solid #cbd5e1;
-	z-index: 2
+	border: 0;
+	z-index: 1
+}
+
+.cp-boundary .class-boundary-symbols svg {
+	width: 38px;
+	height: 38px
 }
 
 .cp-boundary-start {
-	background: #dcfce7;
-	color: #166534;
-	border-color: #bbf7d0
+	background: #15803d;
+	color: #fff;
+	border-color: #166534
 }
 
 .cp-boundary-end {
-	background: #fee2e2;
-	color: #991b1b;
-	border-color: #fecaca
+	background: #b8860b;
+	color: #fff;
+	border-color: #8b6508
 }
 
 .cp-boundary-both {
-	background: #fef3c7;
-	color: #92400e;
-	border-color: #fde68a
+	background: linear-gradient(135deg, #15803d 0 50%, #b8860b 50% 100%);
+	color: #fff;
+	border-color: #8b6508
 }
 
 .cp-markers {
@@ -2864,6 +2959,19 @@ body {
 	color: #334155;
 	font-weight: 700
 }
+
+.cp-weekend-warning {
+	margin-top: 7px;
+	padding: 7px 9px;
+	border: 1px solid #fbbf24;
+	border-radius: 5px;
+	background: #fffbeb;
+	color: #92400e;
+	font-size: 10.5px;
+	line-height: 1.4;
+}
+
+.cp-weekend-warning[hidden] { display: none; }
 
 .cp-remark-popup textarea {
 	width: 100%;
@@ -4019,6 +4127,13 @@ body {
 	box-shadow: 0 7px 22px rgba(29, 78, 216, .32)
 }
 
+.cal-pdf-loading { position:fixed; inset:0; z-index:10000; display:grid; place-items:center; background:rgba(10,31,61,.42); backdrop-filter:blur(2px); }
+.cal-pdf-loading-card { display:flex; align-items:center; gap:15px; min-width:280px; padding:20px 24px; border:1px solid #dbe4ef; border-radius:14px; background:#fff; box-shadow:0 18px 55px rgba(15,23,42,.24); color:#0a1f3d; font-family:var(--font,sans-serif); }
+.cal-pdf-loading-card > i { color:#2563eb; font-size:25px; }
+.cal-pdf-loading-card strong,.cal-pdf-loading-card span { display:block; }
+.cal-pdf-loading-card strong { font-size:14px; font-weight:800; }
+.cal-pdf-loading-card span { margin-top:4px; color:#64748b; font-size:12px; }
+
 /* ── PAGE VISIBILITY ── */
 .doc-page {
 	display: none
@@ -4201,7 +4316,7 @@ body {
     }
 
     .sidebar, .page-header, .saved-docs-view, .top-bar,
-    .doc-side-nav, .form-panel, .cp-overlay, .toast, .cal-toast,
+    .doc-side-nav, .form-panel, .cp-overlay, .toast, .cal-toast, .cal-pdf-loading,
     #calBuilderStepper, #calStepperSubBar, #calLockedBanner,
     #calReturnedBanner, .cal-health-panel, .paper-section-label {
         display: none !important;
@@ -4252,12 +4367,12 @@ body {
 
 	/* Tighten monthly layout to prevent overflow splitting */
 	#pg-monthly .monthly-wrap {
-		padding: 0 20px 14px !important;
+		padding: 0 20px 0 !important;
 	}
 
 	#pg-monthly .monthly-heading {
 		font-size: 11px !important;
-		margin-bottom: 10px !important;
+		margin-bottom: 6px !important;
 	}
 
 	#pg-monthly .month-block {
@@ -4265,23 +4380,23 @@ body {
 	}
 
 	#pg-monthly .mb-left {
-		padding: 6px 8px !important;
+		padding: 0 8px !important;
 		border-right-width: 1px !important;
 	}
 
 	#pg-monthly .mb-right {
-		padding: 5px 7px !important;
+		padding: 0 !important;
 	}
 
-	#pg-monthly .mb-left .month-name {
-		font-size: 11px !important;
-		padding: 3px 6px !important;
-		margin-bottom: 5px !important;
+	#pg-monthly .mb-right .mini-cal-header {
+		font-size: 10px !important;
+		padding: 2px 6px !important;
+		margin-bottom: 0 !important;
 	}
 
 	#pg-monthly .mb-left .activity-list li {
 		font-size: 9.5px !important;
-		padding: 2px 0 !important;
+		padding: 1px 0 !important;
 		line-height: 1.35 !important;
 	}
 

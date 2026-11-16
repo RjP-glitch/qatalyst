@@ -474,7 +474,7 @@ function actionDownload(PDO $pdo): void
     $preview = isset($_GET['preview']) && (string)$_GET['preview'] === '1';
  
     if (!$id) { respond(false, 'Record ID required', null, 422); }
-    if (!in_array($format, ['pdf', 'word', 'json'], true)) { respond(false, 'Invalid format', null, 422); }
+    if (!in_array($format, ['pdf', 'json'], true)) { respond(false, 'Invalid format', null, 422); }
 
     // Determine submission type first so we know which document table/builder to use.
     $typeStmt = $pdo->prepare("SELECT type FROM school_submissions WHERE id = :id LIMIT 1");
@@ -518,7 +518,7 @@ function actionDownload(PDO $pdo): void
  
     if (!$row) { respond(false, 'Record not found', null, 404); }
  
-    if (empty($row['calendar_document_id']) && in_array($format, ['pdf', 'word'], true)) {
+    if (empty($row['calendar_document_id']) && $format === 'pdf') {
         respond(false, 'No calendar document is linked to this submission. Cannot export.', null, 422);
     }
  
@@ -675,7 +675,7 @@ function actionDownloadTuition(PDO $pdo, int $id, string $format, bool $preview)
 
     $tuitionDoc = dsFindTuitionDocument($pdo, $sub);
 
-    if (!$tuitionDoc && in_array($format, ['pdf', 'word'], true)) {
+    if (!$tuitionDoc && $format === 'pdf') {
         respond(false, 'No tuition fee document is linked to this submission. Cannot export.', null, 422);
     }
 
@@ -2135,7 +2135,8 @@ function dsComputeSchoolDaysByMonth(array $payload): array
 
             if ($mark) {
                 $legend = $legends[$mark] ?? null;
-                $include = is_array($legend) ? (($legend['includeInSchoolDays'] ?? true) !== false) : true;
+                $include = !$isWeekend && $mark !== 'holiday'
+                    && (is_array($legend) ? (($legend['includeInSchoolDays'] ?? true) !== false) : true);
                 if ($include) {
                     $count++;
                 }
@@ -2420,30 +2421,43 @@ function buildCalendarDocHtml(array $row, array $payload): string
   .total-row td   { background:#e8f0fb; font-weight:bold; }
 
   .month-layout { width:100%; }
-  .month-left   { width:48%; vertical-align:top; padding-right:8pt;
-                  border:1px solid #aaa; padding:6pt; font-size:9.5pt; }
-  .month-right  { width:48%; vertical-align:top; padding-left:8pt; }
+  .month-left   { width:48%; vertical-align:top; padding:0 6pt;
+                  border:1px solid #aaa; font-size:9.5pt; }
+  .month-right  { width:48%; vertical-align:top; padding:0; }
   .month-header { font-size:11pt; font-weight:bold; text-align:center;
-                  background:#dde4f0; border:1px solid #aaa; padding:4pt; margin-bottom:4pt; }
+                  color:#fff; background:#0a1f3d; border:1px solid #0a1f3d; padding:3pt; margin-bottom:0; }
   .date-act-hdr { font-weight:bold; border-bottom:1px solid #aaa; font-size:10pt;
                   padding-bottom:2pt; margin-bottom:4pt; }
-  .cal-grid     { width:100%; }
-  .cal-grid th  { border:1px solid #bbb; padding:3pt; text-align:center; font-size:8pt;
+  .cal-grid     { width:100%; border-collapse:collapse; }
+  .cal-grid th  { border:1px solid #bbb; padding:2pt; text-align:center; font-size:8pt;
                   background:#eef2fa; font-weight:bold; }
-  .cal-grid td  { border:1px solid #bbb; padding:3pt; text-align:center; font-size:8pt; width:13%; }
+  .cal-grid td  { border:1px solid #bbb; padding:1pt; text-align:center; font-size:8pt; width:13%; }
   .cal-days-row td { border:none; text-align:right; font-size:8.5pt;
                      padding-top:3pt; font-style:italic; }
-  .weekend  { color:#999; }
-  .mark-x   { color:#cc0000; font-weight:bold; }
-  .mark-sq  { color:#333; font-weight:bold; }
-  .mark-tri { color:#7a4f00; font-weight:bold; }
+  .weekend  { color:#64748b; background:#f1f5f9; }
+  .schoolday-shade { background:#bfdbfe; color:#1d4ed8; }
+  .mark-x   { color:#dc2626; background:#fee2e2; font-weight:bold; }
+  .mark-sq  { color:#1d4ed8; font-weight:bold; }
+  .mark-tri { color:#1d4ed8; font-weight:bold; }
+  .mark-sq .day-mark-symbol { color:#374151; }
+  .mark-tri .day-mark-symbol { color:#854d0e; }
+  .day-mark-content { display:block; position:relative; width:100%; height:18pt; text-align:center; line-height:1; }
+  .day-mark-symbol { position:absolute; left:0; right:0; top:0; bottom:0; z-index:1; display:block; font-size:26pt; font-weight:bold; line-height:18pt; opacity:.55; }
+  .day-mark-number { position:relative; z-index:2; display:block; padding-top:5pt; font-size:8pt; line-height:8pt; color:#172033; }
+  .mark-x .day-mark-number { color:#7f1d1d; }
+  .mark-sq .day-mark-symbol { left:3pt; right:3pt; top:3pt; bottom:3pt; border:1.5pt solid #374151; font-size:0; opacity:.8; }
+  .mark-tri .day-mark-symbol { font-size:28pt; color:#854d0e; }
+  .mark-start .day-mark-number, .mark-end .day-mark-number, .mark-start-end .day-mark-number { color:#fff; }
   .mark-start, .mark-end, .mark-start-end {
-      color:#fff; font-weight:bold; border-radius:8pt;
+      color:#fff; font-weight:bold; border-radius:2pt;
   }
-  .mark-start     { background:#0a1f3d; }
-  .mark-end       { background:#991b1b; }
-  .mark-start-end { background:#0a1f3d; }
-  .mark-custom    { color:#fff; font-weight:bold; border-radius:8pt; }
+  .mark-start     { background:#15803d; }
+  .mark-end       { background:#b8860b; }
+  .mark-start-end { background:#15803d; }
+  .mark-custom    { color:#fff; font-weight:bold; border-radius:2pt; }
+  .mark-custom .day-mark-number { color:#fff; }
+  .mark-custom.schoolday-shade .day-mark-number { color:#1e3a8a; }
+  .weekend.mark-custom .day-mark-number { color:#64748b; }
 
   .legend-box { border:1px solid #aaa; padding:6pt 10pt; margin-top:10pt; font-size:8.5pt; }
   .legend-box b { font-size:9pt; }
@@ -2661,7 +2675,7 @@ function buildCalendarDocHtml(array $row, array $payload): string
         }
         $legColor = (string)($legVal['color'] ?? '#64748b');
         $legLabel = (string)($legVal['label'] ?? $legKey);
-        $customLegendHtml .= '<span style="display:inline-block;width:8pt;height:8pt;border-radius:8pt;background:'
+        $customLegendHtml .= '<span style="display:inline-block;width:8pt;height:8pt;border-radius:0;background:'
             . $e($legColor) . ';margin-right:3pt;"></span>&nbsp;- ' . $e($legLabel) . '<br>';
     }
 
@@ -2671,18 +2685,18 @@ function buildCalendarDocHtml(array $row, array $payload): string
       X &nbsp;- Declared Holidays<br>
       &#9633; - School activities for teachers, personnel, and other stakeholders<br>
       &#9651; - Administration of Quarter examination<br>
-      <span style="display:inline-block;width:8pt;height:8pt;border-radius:8pt;background:#0a1f3d;margin-right:3pt;"></span>&nbsp;- Start of Classes<br>
-      <span style="display:inline-block;width:8pt;height:8pt;border-radius:8pt;background:#991b1b;margin-right:3pt;"></span>&nbsp;- End of Classes<br>
+      <span style="color:#15803d;font-size:12pt;font-weight:bold;margin-right:3pt;">📖</span>&nbsp;- Start of Classes<br>
+      <span style="color:#b8860b;font-size:12pt;font-weight:bold;margin-right:3pt;">🎓</span>&nbsp;- End of Classes<br>
       ' . $customLegendHtml . '
     </div>';
 
     foreach ($acadMonthChunks as $chunk) {
-        $gridHtml = '<div class="tbl-title" style="font-size:11pt; margin-bottom:8pt;">
+        $gridHtml = '<div class="tbl-title" style="font-size:11pt; margin-bottom:4pt;">
             SCHOOL CALENDAR FOR SCHOOL YEAR ' . $e($d['syDash']) . '
         </div>';
 
         $gridHtml .= '
-        <table style="width:100%; margin-bottom:6pt; border:1px solid #888;">
+        <table style="width:100%; margin:0; border-collapse:collapse; border-spacing:0; border:1px solid #888;">
           <thead>
             <tr>
               <th style="width:8%; border:1px solid #888; padding:4pt; background:#dde4f0; font-size:9pt;">DATE</th>
@@ -2716,32 +2730,47 @@ function buildCalendarDocHtml(array $row, array $payload): string
                 $isWeekend = ($dow === 0 || $dow === 6);
                 $isStartDay = $openingDate && $dt->format('Y-m-d') === $openingDate->format('Y-m-d');
                 $isEndDay   = $closingDate && $dt->format('Y-m-d') === $closingDate->format('Y-m-d');
-                $cls      = $isWeekend ? ' class="weekend"' : '';
+                $inClassRange = (!$openingDate || $dt >= $openingDate) && (!$closingDate || $dt <= $closingDate);
+                $markLegend = $mark ? ($d['legends'][$mark] ?? null) : null;
+                $isSchoolDate = !$isWeekend && $inClassRange && ($mark
+                    ? ($mark !== 'holiday' && (is_array($markLegend) ? (($markLegend['includeInSchoolDays'] ?? true) !== false) : true))
+                    : true);
+                $cls      = $isSchoolDate ? ' class="schoolday-shade"' : ($isWeekend ? ' class="weekend"' : '');
+                $styleAttr = '';
                 $symbol   = '';
 
                 if ($isStartDay && $isEndDay) {
-                    $symbol = ' &#9733;'; $cls = ' class="mark-start-end"';
+                    $symbol = '<span class="day-mark-symbol">📖🎓</span>'; $cls = ' class="mark-start-end"';
                 } elseif ($isStartDay) {
-                    $symbol = ' &#9733;'; $cls = ' class="mark-start"';
+                    $symbol = '<span class="day-mark-symbol">📖</span>'; $cls = ' class="mark-start"';
                 } elseif ($isEndDay) {
-                    $symbol = ' &#9632;'; $cls = ' class="mark-end"';
+                    $symbol = '<span class="day-mark-symbol">🎓</span>'; $cls = ' class="mark-end"';
                 } elseif ($mark) {
                     $mt = strtolower((string)$mark);
-                    if ($mt === 'holiday')  { $symbol = 'x'; $cls = ' class="mark-x"'; }
-                    elseif ($mt === 'activity') { $symbol = '&#9633;'; $cls = ' class="mark-sq"'; }
-                    elseif ($mt === 'exam') { $symbol = '&#9651;'; $cls = ' class="mark-tri"'; }
+                    if ($mt === 'holiday')  { $symbol = '<span class="day-mark-symbol">X</span>'; $cls = ' class="mark-x"'; }
+                    elseif ($mt === 'activity') { $symbol = '<span class="day-mark-symbol">&#9633;</span>'; $cls = ' class="' . ($isSchoolDate ? 'schoolday-shade ' : ($isWeekend ? 'weekend ' : '')) . 'mark-sq"'; }
+                    elseif ($mt === 'exam') { $symbol = '<span class="day-mark-symbol">&#9651;</span>'; $cls = ' class="' . ($isSchoolDate ? 'schoolday-shade ' : ($isWeekend ? 'weekend ' : '')) . 'mark-tri"'; }
                     else {
-                        /* Custom user-created legend category — color the
-                           day cell with its own swatch, matching the
-                           builder's custom-mark-pill design. */
+                        /* Custom categories counted as school days share
+                           the full blue school-day cell shade. */
                         $legVal = $d['legends'][$mark] ?? null;
                         $legColor = is_array($legVal) ? (string)($legVal['color'] ?? '#64748b') : '#64748b';
-                        $cls = ' class="mark-custom" style="background:' . $e($legColor) . ';"';
+                        if ($isSchoolDate) {
+                            $cls = ' class="schoolday-shade mark-custom"';
+                        } elseif ($isWeekend) {
+                            $cls = ' class="weekend mark-custom"';
+                        } else {
+                            $cls = ' class="mark-custom"';
+                            $styleAttr = ' style="background:' . $e($legColor) . ';color:#fff;"';
+                        }
                         $symbol = '';
                     }
                 }
 
-                $calRows .= '<td' . $cls . '>' . $day . $symbol . '</td>';
+                $cellContent = $symbol !== ''
+                    ? '<span class="day-mark-content">' . $symbol . '<span class="day-mark-number">' . $day . '</span></span>'
+                    : (string)$day;
+                $calRows .= '<td' . $cls . $styleAttr . '>' . $cellContent . '</td>';
                 $col++;
                 if ($col % 7 === 0 && $day < $daysInM) {
                     $calRows .= '</tr><tr>';
@@ -2757,16 +2786,15 @@ function buildCalendarDocHtml(array $row, array $payload): string
             }
 
             $gridHtml .= '
-            <table style="width:100%; border:1px solid #888; margin-bottom:6pt;">
+            <table style="width:100%; border:1px solid #888; border-collapse:collapse; border-spacing:0; margin:0;">
               <tr>
                 <td style="width:55%; vertical-align:top; border-right:1px solid #888; padding:0;">
-                  <div class="month-header">' . strtoupper($mName) . '</div>
-                  <div style="padding:6pt; font-size:9pt; min-height:60pt; color:#555;">
+                  <div style="padding:0; font-size:9pt; color:#555;">
                     (Activities listed in school calendar)
                   </div>
                 </td>
-                <td style="width:45%; vertical-align:top; padding:4pt 6pt;">
-                  <div style="font-size:9pt; font-weight:bold; text-align:center; margin-bottom:4pt;">' . $mName . '</div>
+                <td style="width:45%; vertical-align:top; padding:0;">
+                  <div class="month-header">' . strtoupper($mName) . '</div>
                   <table class="cal-grid">
                     ' . $calRows . '
                     <tr class="cal-days-row"><td colspan="7">Class days: <strong>' . $schoolDays . '</strong></td></tr>
