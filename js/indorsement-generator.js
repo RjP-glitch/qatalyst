@@ -25,6 +25,7 @@ let _indSelectedSchoolId = null;
 let _indSelectedPrivateSchoolId = null;
 let _indSubmissionEligibility = null;
 let _indEligibilityRequestSeq = 0;
+let _indCurrentCalendarLevels = [];
 
 const _indTypeMeta = {
     school_calendar: {
@@ -118,6 +119,7 @@ async function _indCheckSubmissionEligibility(force = false) {
     const type = _indCurrentType;
     const schoolYear = _indNormalizeSY(document.getElementById('ind_sy')?.value);
     const key = _indEligibilityKey();
+    _indCurrentCalendarLevels = [];
     const messageEl = document.getElementById('ind_submissionGateMsg');
     const hasSchool = !!(schoolId || privateSchoolId);
 
@@ -162,6 +164,8 @@ async function _indCheckSubmissionEligibility(force = false) {
         if (!response.ok || !data.success) throw new Error(data.message || 'Could not check for a matching submission.');
         if (requestSeq !== _indEligibilityRequestSeq || key !== _indEligibilityKey()) return false;
         _indSubmissionEligibility = { key, eligible: true, checking: false, message: data.message || 'Endorsement can be saved and will appear in the summary report.' };
+        _indCurrentCalendarLevels = Array.isArray(data.levels) ? data.levels.map(String) : [];
+        if (_indCurrentType === 'school_calendar' && typeof _indUpdatePreview === 'function') _indUpdatePreview();
         if (messageEl) {
             messageEl.textContent = _indSubmissionEligibility.message;
             messageEl.style.display = 'block';
@@ -617,25 +621,25 @@ function _indSetVal(id, val) {
      c) neither — ends with period after SY
 ══════════════════════════════════════════════════════ */
 
-function _indComposeParagraph(schoolName, address, sy, totalDays, startDate, endDate) {
+function _indComposeParagraph(schoolName, address, sy, totalDays, startDate, endDate, levels = []) {
     const base = 'Respectfully forwarded to the Regional Director, DepEd Region III, Government Center, Maimpis, City of San Fernando, Pampanga (Attention: Quality Assurance Division- Focal Person In-Charge of Private Schools), the herein request of the School Head, ';
 
     let afterSchoolBeforeLevel, afterLevel, daysBold;
 
     if (startDate && endDate) {
         // Case a: dates are present — use "which will start on X to Y"
-        afterSchoolBeforeLevel = `, ${address || ''}, this Schools Division, for the School Calendar of Activities, SY ${sy || '____-____'} which will start on `;
+        afterSchoolBeforeLevel = `, ${address || ''}, this Schools Division, for the School Calendar of Activities${levels.length ? ' for ' + levels.join(', ') : ''}, SY ${sy || '____-____'} which will start on `;
         afterLevel = `${startDate} to ${endDate}`;
         afterLevel += totalDays ? ', with a total of ' : '.';
         daysBold   = totalDays ? `${totalDays} days.` : '';
     } else if (totalDays) {
         // Case b: no dates, but days provided — avoid "which will start on" prefix
-        afterSchoolBeforeLevel = `, ${address || ''}, this Schools Division, for the School Calendar of Activities, SY ${sy || '____-____'}, with a total of `;
+        afterSchoolBeforeLevel = `, ${address || ''}, this Schools Division, for the School Calendar of Activities${levels.length ? ' for ' + levels.join(', ') : ''}, SY ${sy || '____-____'}, with a total of `;
         afterLevel = '';
         daysBold   = `${totalDays} days.`;
     } else {
         // Case c: nothing extra — clean sentence ending
-        afterSchoolBeforeLevel = `, ${address || ''}, this Schools Division, for the School Calendar of Activities, SY ${sy || '____-____'}.`;
+        afterSchoolBeforeLevel = `, ${address || ''}, this Schools Division, for the School Calendar of Activities${levels.length ? ' for ' + levels.join(', ') : ''}, SY ${sy || '____-____'}.`;
         afterLevel = '';
         daysBold   = '';
     }
@@ -689,6 +693,7 @@ async function openIndorsementModal(prefill) {
     _indSelectedSchoolId = null;
     _indSelectedPrivateSchoolId = null;
     _indSubmissionEligibility = null;
+    _indCurrentCalendarLevels = [];
     _indEligibilityRequestSeq++;
 
     // FIX #5: reset listener-bound flag so listeners re-attach cleanly
@@ -1019,7 +1024,7 @@ function _indUpdatePreview() {
         const rawEnd    =  document.getElementById('ind_endDate')?.value   || '';
         const startFmt  = _indFormatDate(rawStart) || '';
         const endFmt    = _indFormatDate(rawEnd)   || '';
-        const { rich }  = _indComposeParagraph(schoolName, address, sy, totalDays, startFmt, endFmt);
+        const { rich }  = _indComposeParagraph(schoolName, address, sy, totalDays, startFmt, endFmt, _indCurrentCalendarLevels);
         bodyHTML =
             rich.before +
             `<strong>${rich.schoolBold}</strong>` +
@@ -1340,7 +1345,7 @@ async function generateStandaloneIndorsement() {
         const rawEnd    =  document.getElementById('ind_endDate')?.value   || '';
         const startFmt  = _indFormatDate(rawStart) || '';
         const endFmt    = _indFormatDate(rawEnd)   || '';
-        rich      = _indComposeParagraph(schoolName, address, sy, totalDays, startFmt, endFmt).rich;
+        rich      = _indComposeParagraph(schoolName, address, sy, totalDays, startFmt, endFmt, _indCurrentCalendarLevels).rich;
         fileLabel = 'SchoolCalendar';
     }
 

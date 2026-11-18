@@ -309,6 +309,16 @@ let cpEditingLegendKey = null;
 let cpCategoryListVisible = localStorage.getItem('edu_cp_categories_visible') !== '0';
 let builderInitialized = false;
 let currentCalendarDocumentId = null;
+// A versioned calendar package stores one editable calendar payload per
+// registered level while keeping a single document/submission ID.
+let calendarPackageLevels = [];
+let calendarPackageCalendars = {};
+let calendarPackageActiveLevel = '';
+let calendarPackageMode = false;
+let calendarPackageShared = {};
+let calendarPackageApplyTargets = null;
+let suppressCalendarLevelChange = false;
+const CALENDAR_PACKAGE_SHARED_FIELDS = ['f_school','f_sid','f_gov','f_sy1','f_sy2','f_chk_school','f_chk_address','f_chk_school_id','f_rd_name','f_rd_pos','f_rd_office','f_sds_name','f_sds_pos','f_sds_office','f_sds_city'];
 let allCalendarDocs = [];
 let savedDocsSearchTerm = '';
 let savedDocsStatusFilter = 'all';
@@ -1292,9 +1302,12 @@ function buildCpGrid() {
             }
         }
         const dayTitle = canEditMonth
-            ? `${MONTH_NAMES[cpMonth]} ${d}`
-            : `${MONTH_NAMES[cpMonth]} ${d} is outside the opening/closing month range`;
-        html += `<div class="${cls}" style="${cellStyle}" onclick="cpToggleDay(${d},event)" title="${dayTitle}"><div class="cp-daynum">${d}</div>${boundaryHtml}${markersHtml}</div>`;
+            ? `${MONTH_NAMES[cpMonth]} ${d}${rmk ? ` — Note: ${rmk}` : ''}`
+            : `${MONTH_NAMES[cpMonth]} ${d} is outside the opening/closing month range${rmk ? ` — Note: ${rmk}` : ''}`;
+        const noteIndicatorHtml = rmk
+            ? `<span class="cp-note-indicator" aria-label="Note attached" title="${escHtml(rmk)}"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i></span>`
+            : '';
+        html += `<div class="${cls}" style="${cellStyle}" onclick="cpToggleDay(${d},event)" title="${escHtml(dayTitle)}"><div class="cp-daynum">${d}</div>${boundaryHtml}${markersHtml}${noteIndicatorHtml}</div>`;
     }
     const remainder = 7 - (totalDays + firstDow) % 7;
     if (remainder < 7) for (let i = 0; i < remainder; i++) html += `<div class="cp-cell empty"></div>`;
@@ -1528,6 +1541,19 @@ async function cpSaveAndApply() {
     Object.entries(marks).forEach(([k, v]) => { savedMarks[k] = v; });
     Object.keys(savedRemarks).forEach(k => delete savedRemarks[k]);
     Object.entries(remarks).forEach(([k, v]) => { savedRemarks[k] = v; });
+    let copiedLevels = [];
+    if (calendarPackageMode && calendarPackageLevels.length > 1) {
+        const activeLevel = calendarPackageActiveLevel || v('f_dept');
+        const activeProfile = buildSingleCalendarPayload();
+        calendarPackageCalendars[activeLevel] = cloneCalendarProfile(activeProfile);
+        if (calendarProfileHasSchedule(activeProfile)) {
+            getCalendarCopyTargetLevels().forEach(level => {
+                const target = calendarPackageCalendars[level];
+                calendarPackageCalendars[level] = copyCalendarSchedule(activeProfile, target || null, level, false);
+                copiedLevels.push(level);
+            });
+        }
+    }
     closeRemarkPopup();
     document.getElementById('cpOverlay').classList.remove('open');
     liveUpdate();
@@ -1544,7 +1570,11 @@ async function cpSaveAndApply() {
         if (!payload.success) throw new Error(payload.message || 'Failed to save calendar document.');
         currentCalendarDocumentId = payload.data?.document_id || currentCalendarDocumentId;
         await loadSavedCalendarDocs();
-        showToast('Calendar saved & applied to preview!', 'fa-floppy-disk');
+        showToast(copiedLevels.length
+            ? `Calendar saved and copied to ${escHtml(copiedLevels.join(', '))}.`
+            : calendarPackageMode && Array.isArray(calendarPackageApplyTargets) && calendarPackageApplyTargets.length === 0
+                ? `Calendar saved for ${escHtml(calendarPackageActiveLevel || v('f_dept'))}; other levels were unchanged.`
+            : 'Calendar saved & applied to preview!', 'fa-floppy-disk');
     } catch (err) {
         showToast(err.message || 'Could not save calendar document.', 'fa-triangle-exclamation');
     }
@@ -1758,6 +1788,23 @@ async function saveAndContinueDocFlow() {
 ══════════════════════════════════════════════════════════════════════════ */
 function showFinalSubmitDialog() {
     const grand = computeGrandTotal();
+    if (calendarPackageMode) {
+        const payload = buildCalendarSavePayload();
+        const invalid = calendarPackageLevels.find(level => {
+            const days = Number(payload.calendars?.[level]?.totalDays || 0);
+            return days < 200 || days > 220;
+        });
+        if (invalid) {
+            const select = document.getElementById('f_dept');
+            if (select && select.value !== invalid) {
+                select.value = invalid;
+                handleCalendarLevelChange(invalid);
+            }
+            const days = Number(payload.calendars?.[invalid]?.totalDays || 0);
+            showToast(`${invalid} calendar has ${days} school days. Each included level must have 200–220 days before submitting.`, 'fa-triangle-exclamation');
+            return;
+        }
+    }
     /* Eligibility guard */
     if (grand < 200 || grand > 220) {
         openCalPicker();
@@ -1800,6 +1847,7 @@ function showFinalSubmitDialog() {
                 <div class="csm-confirm-msg"><i class="fa-solid fa-circle-check"></i>
                     Your calendar meets the 200–220 day requirement. Once submitted, you will <strong>not be able to edit</strong> it unless an administrator approves your edit request.
                 </div>
+                ${calendarPackageMode ? `<div class="csm-confirm-msg" style="margin-top:10px;"><strong>Included levels:</strong> ${escHtml(calendarPackageLevels.join(', '))}. Each level will be reviewed and returned together as one submission.</div>` : ''}
                 <div class="csm-confirm-check"><label><input type="checkbox" id="csmAgreeCheck">
                     I understand that submitting is final and edits require admin approval.</label></div>
             </div>
@@ -1915,6 +1963,13 @@ function unlockBuilder() {
 function lockDeptField() {
     const deptSelect = document.getElementById('f_dept');
     if (!deptSelect) return;
+    if (calendarPackageMode && !_builderLocked) {
+        deptSelect.disabled = false;
+        deptSelect.style.opacity = '';
+        deptSelect.style.cursor = '';
+        deptSelect.title = 'Switch between the calendars included in this submission package.';
+        return;
+    }
     deptSelect.disabled = true;
     deptSelect.style.opacity = '0.6';
     deptSelect.style.cursor = 'not-allowed';
@@ -2108,6 +2163,7 @@ function setCalendarPdfLoading(visible, message = 'Preparing your PDF…') {
 }
 
 async function exportCalendarPDF() {
+    if (calendarPackageMode) return exportCalendarPackagePDF();
     if (typeof closeTopBarMenu === 'function') closeTopBarMenu();
     if (typeof ensureExportSourceBadges === 'function') ensureExportSourceBadges();
 
@@ -2207,6 +2263,63 @@ async function exportCalendarPDF() {
         showToast('PDF export failed: ' + (err.message || 'Please try again.'), 'fa-circle-xmark');
     } finally {
         pagesToRestore.forEach((p, i) => { p.style.display = prevDisplay[i]; });
+        setCalendarPdfLoading(false);
+    }
+}
+
+async function exportCalendarPackagePDF() {
+    if (typeof closeTopBarMenu === 'function') closeTopBarMenu();
+    const packagePayload = buildCalendarSavePayload();
+    const restorePayload = buildSingleCalendarPayload();
+    setCalendarPdfLoading(true, 'Preparing all level calendars…');
+    try {
+        if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+            await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
+        }
+        const JsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+        if (typeof html2canvas === 'undefined' || typeof JsPDF === 'undefined') throw new Error('PDF export libraries are unavailable.');
+        const pdf = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+        const PW = 215.9, PH = 279.4, SCALE = 2;
+        let pageCount = 0;
+        for (const level of packagePayload.levels) {
+            const profile = packagePayload.calendars[level];
+            if (!profile) continue;
+            hydrateSingleCalendarFromPayload(profile);
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            const pageNodes = Array.from(document.querySelectorAll('.doc-page'));
+            const oldDisplay = pageNodes.map(node => node.style.display);
+            pageNodes.forEach(node => node.style.setProperty('display', 'block', 'important'));
+            try {
+                const papers = Array.from(document.querySelectorAll('.doc-page .paper')).filter(paper => {
+                    const clone = paper.cloneNode(true); clone.querySelector('.lh')?.remove();
+                    return !!(clone.textContent || '').replace(/\s+/g, '');
+                });
+                for (const paper of papers) {
+                    setCalendarPdfLoading(true, `Rendering ${level} calendar, page ${pageCount + 1}…`);
+                    const oldVisibility = paper.style.visibility;
+                    paper.style.visibility = 'visible';
+                    let canvas;
+                    try { canvas = await html2canvas(paper, { scale: SCALE, useCORS: true, allowTaint: true, backgroundColor: '#fff', logging: false }); }
+                    finally { paper.style.visibility = oldVisibility; }
+                    if (!canvas.width || !canvas.height) continue;
+                    if (pageCount > 0) pdf.addPage('letter', 'portrait');
+                    const width = canvas.width / SCALE, height = canvas.height / SCALE;
+                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, PW, Math.min(height * PW / width, PH));
+                    pageCount++;
+                }
+            } finally {
+                pageNodes.forEach((node, index) => { node.style.display = oldDisplay[index]; });
+            }
+        }
+        if (!pageCount) throw new Error('No calendar pages were available to export.');
+        pdf.save((buildCalendarDocumentTitle() || 'school-calendar') + '.pdf');
+    } catch (err) {
+        console.error('Calendar package PDF export failed:', err);
+        showToast('Package PDF export failed: ' + (err.message || 'Please try again.'), 'fa-circle-xmark');
+    } finally {
+        hydrateSingleCalendarFromPayload(restorePayload);
         setCalendarPdfLoading(false);
     }
 }
@@ -3424,12 +3537,43 @@ async function exportCalendarWord() {
 function buildCalendarDocumentTitle() {
     const school = v('f_school') || 'School';
     const sy1 = v('f_sy1') || '20__', sy2 = v('f_sy2') || '20__';
-    const dept  = v('f_dept') || 'Elementary School';
-    // Include dept level so JHS, SHS, and Elem calendars for the same school
-    // year get distinct titles and never collide as duplicates in the DB.
+    const dept = calendarPackageMode && calendarPackageLevels.length
+        ? calendarPackageLevels.join(' + ')
+        : (v('f_dept') || 'Elementary School');
     return `School Calendar - ${school} - ${dept} (${sy1}-${sy2})`;
 }
-function buildCalendarSavePayload() {
+function cloneCalendarProfile(profile) {
+    return JSON.parse(JSON.stringify(profile || {}));
+}
+function calendarProfileHasSchedule(profile) {
+    // Notes alone do not establish school days. The day total is based on
+    // savedMarks, so only a profile with applied marks counts as initialized.
+    return !!(profile?.savedMarks && typeof profile.savedMarks === 'object' && Object.keys(profile.savedMarks).length > 0);
+}
+function copyCalendarSchedule(source, target, level, preserveTargetNotes = true) {
+    const sourceCopy = cloneCalendarProfile(source);
+    const targetCopy = target ? cloneCalendarProfile(target) : cloneCalendarProfile(sourceCopy);
+    ['marks', 'savedMarks', 'legends'].forEach(key => {
+        if (sourceCopy[key] && typeof sourceCopy[key] === 'object') targetCopy[key] = cloneCalendarProfile(sourceCopy[key]);
+    });
+    ['remarks', 'savedRemarks'].forEach(key => {
+        targetCopy[key] = preserveTargetNotes
+            ? { ...(sourceCopy[key] || {}), ...(targetCopy[key] || {}) }
+            : cloneCalendarProfile(sourceCopy[key] || {});
+    });
+    targetCopy.totalDays = sourceCopy.totalDays;
+    targetCopy.form = {
+        ...(sourceCopy.form || {}),
+        ...(targetCopy.form || {}),
+        f_sy1: sourceCopy.form?.f_sy1 ?? targetCopy.form?.f_sy1 ?? '',
+        f_sy2: sourceCopy.form?.f_sy2 ?? targetCopy.form?.f_sy2 ?? '',
+        f_opening: sourceCopy.form?.f_opening ?? targetCopy.form?.f_opening ?? '',
+        f_closing: sourceCopy.form?.f_closing ?? targetCopy.form?.f_closing ?? '',
+        f_dept: level,
+    };
+    return targetCopy;
+}
+function buildSingleCalendarPayload() {
     const formIds = [
         'f_school','f_dept','f_sid','f_gov','f_sy1','f_sy2','f_opening','f_closing','f_period_override',
         'f_rcvby','f_rcvctrl',
@@ -3453,7 +3597,191 @@ function buildCalendarSavePayload() {
     // totalDays is computed client-side (legend/weekend rules live in JS) and
     // stored as a lightweight summary column server-side, so the saved-docs
     // list can show it on every card without re-deriving it per row.
-    return { form: formData, marks, savedMarks, remarks, savedRemarks, legends, logoDataUrl: logoDataUrl || storedLogo, active_tab: currentActivePage, totalDays: computeGrandTotal() };
+    return {
+        form: formData,
+        marks: { ...marks },
+        savedMarks: { ...savedMarks },
+        remarks: { ...remarks },
+        savedRemarks: { ...savedRemarks },
+        legends: cloneCalendarProfile(legends),
+        logoDataUrl: logoDataUrl || storedLogo,
+        active_tab: currentActivePage,
+        totalDays: computeGrandTotal(),
+    };
+}
+function buildCalendarSavePayload() {
+    const current = buildSingleCalendarPayload();
+    if (!calendarPackageMode || calendarPackageLevels.length < 2) return current;
+    CALENDAR_PACKAGE_SHARED_FIELDS.forEach(id => {
+        if (Object.prototype.hasOwnProperty.call(current.form || {}, id)) calendarPackageShared[id] = current.form[id];
+    });
+    calendarPackageCalendars[calendarPackageActiveLevel || current.form.f_dept] = cloneCalendarProfile(current);
+    for (const level of calendarPackageLevels) {
+        const profile = calendarPackageCalendars[level] || cloneCalendarProfile(current);
+        profile.form = { ...(profile.form || {}), ...calendarPackageShared, f_dept: level };
+        calendarPackageCalendars[level] = profile;
+    }
+    return {
+        calendar_package_version: 2,
+        levels: [...calendarPackageLevels],
+        active_level: calendarPackageActiveLevel || current.form.f_dept,
+        shared: { ...calendarPackageShared },
+        calendars: { ...calendarPackageCalendars },
+        logoDataUrl: current.logoDataUrl || '',
+        active_tab: current.active_tab || 'pg-cover',
+    };
+}
+
+function clearCalendarPackageState() {
+    calendarPackageLevels = [];
+    calendarPackageCalendars = {};
+    calendarPackageActiveLevel = '';
+    calendarPackageMode = false;
+    calendarPackageShared = {};
+    calendarPackageApplyTargets = null;
+    syncCalendarCopyTargetControl();
+}
+
+function startCalendarPackage(levels) {
+    const normalized = [...new Set((levels || []).map(x => String(x || '').trim()).filter(Boolean))];
+    clearCalendarPackageState();
+    if (!normalized.length) return;
+    applyDeptSelection(normalized[0]);
+    if (normalized.length < 2) return;
+    calendarPackageLevels = normalized;
+    calendarPackageMode = true;
+    calendarPackageActiveLevel = normalized[0];
+    calendarPackageApplyTargets = null;
+    syncCalendarCopyTargetControl();
+    const initialForm = buildSingleCalendarPayload().form;
+    CALENDAR_PACKAGE_SHARED_FIELDS.forEach(id => {
+        if (Object.prototype.hasOwnProperty.call(initialForm, id)) calendarPackageShared[id] = initialForm[id];
+    });
+}
+
+function handleCalendarLevelChange(level) {
+    if (suppressCalendarLevelChange) { liveUpdate(); return; }
+    const next = String(level || '').trim();
+    if (!next || next === calendarPackageActiveLevel) { liveUpdate(); return; }
+    if (!calendarPackageMode || !calendarPackageLevels.includes(next)) { liveUpdate(); return; }
+
+    calendarPackageCalendars[calendarPackageActiveLevel] = buildSingleCalendarPayload();
+    const currentForm = calendarPackageCalendars[calendarPackageActiveLevel]?.form || {};
+    CALENDAR_PACKAGE_SHARED_FIELDS.forEach(id => {
+        if (Object.prototype.hasOwnProperty.call(currentForm, id)) calendarPackageShared[id] = currentForm[id];
+    });
+    let target = calendarPackageCalendars[next] ? cloneCalendarProfile(calendarPackageCalendars[next]) : null;
+    let scheduleSource = calendarPackageCalendars[calendarPackageActiveLevel];
+    if (!calendarProfileHasSchedule(scheduleSource)) {
+        scheduleSource = calendarPackageLevels
+            .filter(levelName => levelName !== next && levelName !== calendarPackageActiveLevel)
+            .map(levelName => calendarPackageCalendars[levelName])
+            .find(calendarProfileHasSchedule) || scheduleSource;
+    }
+    if (calendarProfileHasSchedule(scheduleSource) && (!target || !calendarProfileHasSchedule(target))) {
+        target = copyCalendarSchedule(scheduleSource, target, next);
+        calendarPackageCalendars[next] = cloneCalendarProfile(target);
+    }
+    calendarPackageActiveLevel = next;
+    suppressCalendarLevelChange = true;
+    if (target) {
+        hydrateSingleCalendarFromPayload({ ...cloneCalendarProfile(target), form: { ...(target.form || {}), ...calendarPackageShared, f_dept: next } });
+    } else {
+        const seed = cloneCalendarProfile(scheduleSource || calendarPackageCalendars[calendarPackageLevels[0]] || buildSingleCalendarPayload());
+        seed.form = { ...(seed.form || {}), ...calendarPackageShared, f_dept: next };
+        hydrateSingleCalendarFromPayload(seed);
+    }
+    applyDeptSelection(next);
+    syncCalendarCopyTargetControl();
+    suppressCalendarLevelChange = false;
+    liveUpdate();
+    renderBuilderStepper();
+    renderMonthHealthPanel();
+    showToast(`Editing the ${next} calendar in this package.`, 'fa-layer-group');
+}
+
+function getCalendarCopyTargetLevels() {
+    const activeLevel = calendarPackageActiveLevel || v('f_dept');
+    const available = calendarPackageLevels.filter(level => level !== activeLevel);
+    return Array.isArray(calendarPackageApplyTargets)
+        ? available.filter(level => calendarPackageApplyTargets.includes(level))
+        : available;
+}
+
+function syncCalendarCopyTargetControl() {
+    const control = document.getElementById('calCopyTargetControl');
+    const summary = document.getElementById('calCopyTargetSummary');
+    if (!control) return;
+    const visible = calendarPackageMode && calendarPackageLevels.length > 1;
+    control.style.display = visible ? '' : 'none';
+    if (!visible || !summary) return;
+    const selected = getCalendarCopyTargetLevels();
+    const activeLevel = calendarPackageActiveLevel || v('f_dept');
+    summary.textContent = selected.length === 0
+        ? `Save & Apply will use ${activeLevel} only`
+        : selected.length === calendarPackageLevels.length - 1
+            ? `Unified calendar: same marked dates for all ${calendarPackageLevels.length} levels`
+            : `Save & Apply will apply to ${[activeLevel, ...selected].join(', ')}`;
+}
+
+function openCalendarCopyTargetsModal() {
+    if (!calendarPackageMode || calendarPackageLevels.length < 2) return;
+    document.getElementById('calCopyTargetsOverlay')?.remove();
+    const activeLevel = calendarPackageActiveLevel || v('f_dept');
+    const available = calendarPackageLevels.filter(level => level !== activeLevel);
+    const selected = new Set(getCalendarCopyTargetLevels());
+    const allSelected = selected.size === available.length;
+    const overlay = document.createElement('div');
+    overlay.id = 'calCopyTargetsOverlay';
+    overlay.className = 'cal-copy-target-overlay';
+    overlay.innerHTML = `
+        <section class="cal-copy-target-modal" role="dialog" aria-modal="true" aria-labelledby="calCopyTargetsTitle">
+            <header class="cal-copy-target-head">
+                <div><h3 id="calCopyTargetsTitle"><i class="fa-solid fa-copy"></i> Copy calendar dates</h3>
+                <p>Choose which levels receive the <strong>${escHtml(activeLevel)}</strong> calendar.</p></div>
+                <button type="button" class="cal-copy-target-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+            </header>
+            <div class="cal-copy-target-list">
+                <label class="cal-copy-target-option cal-copy-target-all">
+                    <input type="checkbox" id="calCopyTargetsAll" ${allSelected ? 'checked' : ''}>
+                    <span><strong>All other levels</strong><small>Copy to every other level in this package</small></span>
+                </label>
+                ${available.map(level => `<label class="cal-copy-target-option">
+                    <input type="checkbox" class="cal-copy-target-level" value="${escHtml(level)}" ${selected.has(level) ? 'checked' : ''}>
+                    <span>${escHtml(level)}</span>
+                </label>`).join('')}
+            </div>
+            <p class="cal-copy-target-note">The next Calendar Picker <strong>Save &amp; Apply</strong> copies marked dates, school-day settings, date range, and notes to the selected levels. Their existing calendar schedule and notes will be replaced.</p>
+            <footer class="cal-copy-target-actions">
+                <button type="button" class="cal-copy-target-cancel">Cancel</button>
+                <button type="button" class="cal-copy-target-apply"><i class="fa-solid fa-check"></i> Use selected levels</button>
+            </footer>
+        </section>`;
+    document.body.appendChild(overlay);
+    const allToggle = overlay.querySelector('#calCopyTargetsAll');
+    const levelToggles = Array.from(overlay.querySelectorAll('.cal-copy-target-level'));
+    const syncAllToggle = () => {
+        const checkedCount = levelToggles.filter(input => input.checked).length;
+        allToggle.checked = checkedCount === levelToggles.length;
+        allToggle.indeterminate = checkedCount > 0 && checkedCount < levelToggles.length;
+    };
+    allToggle.addEventListener('change', () => levelToggles.forEach(input => { input.checked = allToggle.checked; }));
+    levelToggles.forEach(input => input.addEventListener('change', syncAllToggle));
+    const close = () => overlay.remove();
+    overlay.querySelector('.cal-copy-target-close').addEventListener('click', close);
+    overlay.querySelector('.cal-copy-target-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+    overlay.querySelector('.cal-copy-target-apply').addEventListener('click', () => {
+        const chosenLevels = levelToggles.filter(input => input.checked).map(input => input.value);
+        calendarPackageApplyTargets = chosenLevels.length === available.length ? null : chosenLevels;
+        syncCalendarCopyTargetControl();
+        close();
+        showToast(calendarPackageApplyTargets === null
+            ? 'Unified calendar selected. Save & Apply will use the same dates for all levels.'
+            : calendarPackageApplyTargets.length
+                ? `Calendar will copy to ${escHtml(calendarPackageApplyTargets.join(', '))} on Save & Apply.`
+            : `Calendar will stay on ${activeLevel} only.`, 'fa-copy');
+    });
 }
 /* Save feedback is shown through temporary toast messages. */
 function _markFormDirty() {}
@@ -3586,9 +3914,6 @@ function populateDeptOptionsFromOfferings() {
         opt.value = label; opt.textContent = label;
         deptSelect.appendChild(opt);
     });
-    const otherOpt = document.createElement('option');
-    otherOpt.value = 'Other'; otherOpt.textContent = 'Other';
-    deptSelect.appendChild(otherOpt);
     if (offered.includes(previousValue)) deptSelect.value = previousValue;
 }
 /* Shows/hides and populates the "which level?" selector next to the
@@ -3598,23 +3923,12 @@ function populateDeptOptionsFromOfferings() {
    defaulting to a single one. */
 function populateNewCalLevelSelector() {
     const levelSelect = document.getElementById('newCalLevelSelect');
-    if (!levelSelect) return;
+    if (levelSelect) { levelSelect.style.display = 'none'; levelSelect.innerHTML = ''; }
     const offered = getOfferedLevelLabels(localStorage.getItem('edu_grade') || '');
-    if (offered.length <= 1) {
-        levelSelect.style.display = 'none';
-        levelSelect.innerHTML = '';
-        syncCreateNewButtonState();
-        return;
-    }
-    const previousValue = levelSelect.value;
-    levelSelect.innerHTML = '';
-    offered.forEach(label => {
-        const opt = document.createElement('option');
-        opt.value = label; opt.textContent = label;
-        levelSelect.appendChild(opt);
-    });
-    levelSelect.style.display = '';
-    levelSelect.value = offered.includes(previousValue) ? previousValue : offered[0];
+    const button = document.getElementById('btnCreateNewCalendar');
+    if (button) button.innerHTML = `<i class="fa-solid fa-plus"></i> ${offered.length > 1 ? 'Create Calendar Package' : 'Create Calendar'}`;
+    const deptLabel = document.getElementById('f_dept')?.closest('.fg')?.querySelector('label');
+    if (deptLabel) deptLabel.textContent = offered.length > 1 ? 'Calendar level in this package' : 'School / Grade / Department';
     syncCreateNewButtonState();
 }
 /* Entry point for the "Create New Calendar Document" button. When the
@@ -3622,10 +3936,7 @@ function populateNewCalLevelSelector() {
    School Info dept field first, so the per-level active-submission guard
    in openCalendarBuilder() checks the level the user actually picked. */
 function handleCreateNewCalendarClick() {
-    const levelSelect = document.getElementById('newCalLevelSelect');
-    if (levelSelect && levelSelect.style.display !== 'none' && levelSelect.value) {
-        applyDeptSelection(levelSelect.value);
-    }
+    startCalendarPackage(getOfferedLevelLabels(localStorage.getItem('edu_grade') || ''));
     openCalendarBuilder();
 }
 function applyDeptSelection(value) {
@@ -3641,6 +3952,25 @@ function applyDeptSelection(value) {
     deptSelect.value = target;
 }
 function hydrateCalendarFromPayload(payload, documentId = null) {
+    if (!payload || typeof payload !== 'object') return;
+    if (documentId != null && documentId !== '') currentCalendarDocumentId = documentId;
+    if (Number(payload.calendar_package_version) === 2 && payload.calendars && typeof payload.calendars === 'object') {
+        calendarPackageLevels = Array.isArray(payload.levels) ? payload.levels.map(String) : Object.keys(payload.calendars);
+        calendarPackageCalendars = { ...payload.calendars };
+        calendarPackageMode = calendarPackageLevels.length > 1;
+        calendarPackageActiveLevel = String(payload.active_level || calendarPackageLevels[0] || '');
+        calendarPackageShared = payload.shared && typeof payload.shared === 'object' ? { ...payload.shared } : {};
+        const active = calendarPackageCalendars[calendarPackageActiveLevel] || calendarPackageCalendars[calendarPackageLevels[0]];
+        if (active) hydrateSingleCalendarFromPayload({ ...active, form: { ...(active.form || {}), ...calendarPackageShared } }, documentId);
+        calendarPackageApplyTargets = null;
+        syncCalendarCopyTargetControl();
+        return;
+    }
+    clearCalendarPackageState();
+    hydrateSingleCalendarFromPayload(payload, documentId);
+}
+
+function hydrateSingleCalendarFromPayload(payload, documentId = null) {
     if (!payload || typeof payload !== 'object') return;
     if (documentId != null && documentId !== '') currentCalendarDocumentId = documentId;
     const form = payload.form && typeof payload.form === 'object' ? payload.form : {};
@@ -3665,10 +3995,14 @@ function hydrateCalendarFromPayload(payload, documentId = null) {
     replaceObject(remarks, payload.remarks);
     replaceObject(savedRemarks, payload.savedRemarks);
     Object.keys(legends).forEach(k => delete legends[k]);
+    // Built-in categories are required picker options, even when a saved
+    // profile contains an empty or older legends object. Merge profile data
+    // over the defaults so legacy/package payloads cannot hide them.
+    Object.entries(DEFAULT_LEGENDS).forEach(([k, v]) => { legends[k] = { ...v }; });
     if (payload.legends && typeof payload.legends === 'object') {
-        Object.entries(payload.legends).forEach(([k, v]) => { legends[k] = v; });
-    } else {
-        Object.entries(DEFAULT_LEGENDS).forEach(([k, v]) => { legends[k] = { ...v }; });
+        Object.entries(payload.legends).forEach(([k, v]) => {
+            if (v && typeof v === 'object') legends[k] = { ...(legends[k] || {}), ...v };
+        });
     }
     normalizeLegendSettings();
     /* School-wide legends (defaults + this school's custom categories) now
@@ -3742,9 +4076,13 @@ function getActiveSubmissionDoc(deptLabel = null) {
         if (deptLabel) {
             const targetGroup = _getLevelGroup(deptLabel);
             const storedDept  = String(d.department || '').toLowerCase().trim();
-            if (storedDept) {
-                // Block if the stored dept is in the same equivalence group
-                if (!targetGroup.includes(storedDept)) return false;
+            const storedLevels = Array.isArray(d.levels) && d.levels.length
+                ? d.levels.map(level => String(level).toLowerCase().trim())
+                : storedDept.split(/\s*\+\s*/).filter(Boolean);
+            if (storedLevels.length) {
+                // Package rows list every covered level; a match on any level
+                // blocks a duplicate submission for that same level.
+                if (!storedLevels.some(level => _getLevelGroup(level).some(alias => targetGroup.includes(alias)))) return false;
             } else {
                 // Fallback: check title substring for pre-summary-column docs
                 const titleLower = String(d.title || '').toLowerCase();
@@ -3778,11 +4116,15 @@ async function openCalendarBuilder(documentId = null) {
     }
 
     if (!documentId) {
-        /* ── GUARD: block new creation if an active submission for the SAME
-           department level already exists. A school with JHS AND SHS can
-           build both calendars independently — each level is checked separately. */
-        const currentDept = _currentDeptLabel();
-        const activeDoc = getActiveSubmissionDoc(currentDept || null);
+        /* One package covers all registered levels; don't allow an overlapping
+           package while any one of those levels is already under review. */
+        const offeredLevels = calendarPackageMode
+            ? calendarPackageLevels
+            : getOfferedLevelLabels(localStorage.getItem('edu_grade') || '');
+        const currentDept = offeredLevels[0] || _currentDeptLabel();
+        const activeDoc = offeredLevels.length
+            ? offeredLevels.map(level => getActiveSubmissionDoc(level)).find(Boolean)
+            : getActiveSubmissionDoc(currentDept || null);
         if (activeDoc) {
             /* Snap back to saved-docs view immediately */
             setBuilderModeUi(false);
@@ -3795,6 +4137,10 @@ async function openCalendarBuilder(documentId = null) {
         }
 
         currentCalendarDocumentId = null;
+        if (calendarPackageMode) {
+            calendarPackageCalendars = {};
+            [marks, savedMarks, remarks, savedRemarks].forEach(state => Object.keys(state).forEach(key => delete state[key]));
+        }
         resetDocFlowNavigation();
         _switchPageBase('pg-cover');
         unlockBuilder();
@@ -3892,6 +4238,12 @@ function _showActiveSubmissionBlockModal(activeDoc, deptLabel = null) {
     }[String(activeDoc.workflow_status || activeDoc.status || '').toLowerCase().trim().replace(/[\s_]+/g,'-')] || 'In Progress';
 
     const docTitle = escHtml(activeDoc.title || 'Untitled Calendar');
+    const packageLevelLabels = Array.isArray(activeDoc.levels) && activeDoc.levels.length
+        ? activeDoc.levels.join(', ')
+        : String(activeDoc.department || '').split(/\s*\+\s*/).filter(Boolean).join(', ');
+    const activeSubmissionReason = calendarPackageMode
+        ? `Only one calendar package for all registered school levels may be under review at a time. The active package includes <strong>${escHtml(packageLevelLabels || deptLabel || 'one or more of your registered levels')}</strong>.`
+        : `Only one calendar submission per department level per school year is allowed at a time. ${deptLabel ? `You already have a <strong>${escHtml(deptLabel)}</strong> calendar pending SDO review.` : 'You already have a calendar pending SDO review for this level.'} If your school has multiple levels, you can create a separate calendar for each.`;
     const overlay = document.createElement('div');
     overlay.id = 'activeSubmissionBlockOverlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -3917,9 +4269,7 @@ function _showActiveSubmissionBlockModal(activeDoc, deptLabel = null) {
                     </div>
                 </div>
                 <p style="font-size:13px;color:#374151;line-height:1.6;margin:0 0 6px;">
-                    Only <strong>one calendar submission per department level per school year</strong> is allowed at a time.
-                    ${deptLabel ? `You already have a <strong>${escHtml(deptLabel)}</strong> calendar pending SDO review.` : 'You already have a calendar pending SDO review for this level.'}
-                    If your school has multiple levels (e.g. JHS <em>and</em> SHS), you can create a separate calendar for each — just select the other department from the School Info page first.
+                    ${activeSubmissionReason}
                 </p>
                 <p style="font-size:12.5px;color:#6b7280;line-height:1.55;margin:0;">
                     To revise this submission, wait for it to be <strong>returned for revision</strong> by the SDO administrator, or contact your SDO to have it rejected first.
@@ -3948,7 +4298,10 @@ function syncCreateNewButtonState() {
     // Scope the check to the currently selected dept so the button stays
     // enabled when only a different level (e.g. JHS) is under review.
     const currentDept = _currentDeptLabel();
-    const activeDoc = getActiveSubmissionDoc(currentDept || null);
+    const offeredLevels = getOfferedLevelLabels(localStorage.getItem('edu_grade') || '');
+    const activeDoc = offeredLevels.length > 1
+        ? offeredLevels.map(level => getActiveSubmissionDoc(level)).find(Boolean)
+        : getActiveSubmissionDoc(currentDept || null);
     if (activeDoc) {
         btn.disabled = true;
         const levelHint = currentDept ? ` for ${currentDept}` : '';
@@ -3974,6 +4327,23 @@ async function loadSavedCalendarDocs() {
             throw new Error(payload.message || 'Failed to load saved documents.');
         }
         allCalendarDocs = Array.isArray(payload.data?.documents) ? payload.data.documents : [];
+        // The document-list endpoint keeps package payloads lightweight, so
+        // fetch the per-level day totals only for package cards that need them.
+        const packageDocs = allCalendarDocs.filter(doc => `${doc.department || ''} ${doc.title || ''}`.includes(' + '));
+        await Promise.all(packageDocs.map(async doc => {
+            try {
+                const detailRes = await fetch(`${CALENDAR_API}?document_id=${encodeURIComponent(doc.id)}&include_payload=1`, { credentials: 'include' });
+                const detail = await detailRes.json();
+                const packagePayload = detail?.data?.document?.payload;
+                if (!detail.success || Number(packagePayload?.calendar_package_version) !== 2 || !packagePayload.calendars) return;
+                const levels = Array.isArray(packagePayload.levels) ? packagePayload.levels : Object.keys(packagePayload.calendars);
+                doc.level_days = levels.map(level => {
+                    const profile = packagePayload.calendars[level] || {};
+                    const rawDays = profile.totalDays;
+                    return { level: String(level), days: rawDays !== null && rawDays !== undefined && Number.isFinite(Number(rawDays)) ? Number(rawDays) : null };
+                });
+            } catch (_) { /* Keep the package card usable if a summary lookup fails. */ }
+        }));
         /* Merge workflow statuses from submissions API */
         try {
             const subRes = await fetch(`${API_BASE}/school-portal-submissions.php?type=calendar&limit=100`, { credentials: 'include' });
@@ -3993,6 +4363,10 @@ async function loadSavedCalendarDocs() {
                     doc.workflow_status = best.status;
                     doc.workflow_updated_at = best.updated_at || best.submitted_at || null;
                     doc.admin_remarks = best.remarks || '';
+                    if (Array.isArray(best.cal_levels) && best.cal_levels.length) {
+                        doc.levels = best.cal_levels;
+                        doc.department = best.cal_level || best.cal_levels.join(' + ');
+                    }
                 });
             }
         } catch { /* Keep rendering even if workflow lookup fails */ }
@@ -4141,6 +4515,7 @@ function renderSavedCalendarDocs() {
            reflects unsaved changes immediately — mirrors the existing
            cachedDays/computeGrandTotal() fallback pattern below. */
         const department = sub.department || (isCurrentDoc ? v('f_dept') : '') || deptFromTitleFallback(rawTitle);
+        const isCalendarPackage = String(department).includes(' + ') || String(rawTitle).includes(' + ');
         const schoolYear  = sub.school_year || (isCurrentDoc ? (() => {
             const sy1 = v('f_sy1'), sy2 = v('f_sy2');
             return (sy1 && sy2) ? `${sy1}-${sy2}` : '';
@@ -4152,7 +4527,11 @@ function renderSavedCalendarDocs() {
         const grandTotal = cachedDays !== null ? cachedDays : (isCurrentDoc ? computeGrandTotal() : null);
         const daysKnown  = grandTotal !== null;
         const daysValid  = daysKnown && grandTotal >= 200 && grandTotal <= 220;
-        const canSubmit  = isDraft && daysValid;
+        const packageDaySummary = isCalendarPackage && Array.isArray(sub.level_days) ? sub.level_days : [];
+        const packageDaysKnown = packageDaySummary.length > 0 && packageDaySummary.every(item => Number.isFinite(item.days));
+        const packageDaysValid = packageDaysKnown && packageDaySummary.every(item => item.days >= 200 && item.days <= 220);
+        const distinctPackageDayCounts = [...new Set(packageDaySummary.filter(item => Number.isFinite(item.days)).map(item => item.days))];
+        const canSubmit  = isDraft && (isCalendarPackage ? packageDaysValid : daysValid);
         let submitTitle, submitStyle, submitOnclick;
         if (isReturned) {
             submitTitle = 'Open builder, correct, and re-submit'; submitStyle = '';
@@ -4160,6 +4539,18 @@ function renderSavedCalendarDocs() {
         } else if (!isDraft) {
             submitTitle = { pending:'Submitted and awaiting review', review:'Under SDO evaluation', endorsed:'Endorsed', approved:'Approved by SDO', rejected:'Returned for revision', submitted:'Already submitted' }[rawStatus] || 'Already submitted';
             submitStyle = 'opacity:0.5;cursor:not-allowed;background:#f1f5f9;color:#9ca3af;border:1px solid #e2e8f0;';
+            submitOnclick = '';
+        } else if (isCalendarPackage && packageDaysValid) {
+            submitTitle = 'Every included level meets the 200–220 school-day requirement';
+            submitStyle = 'background:#15803d;color:#fff;border:none;cursor:pointer;';
+            submitOnclick = `onclick="openCalendarBuilder(${docId}).then(()=>showFinalSubmitDialog())"`;
+        } else if (isCalendarPackage && packageDaysKnown) {
+            submitTitle = 'At least one level needs 200–220 school days';
+            submitStyle = 'opacity:0.65;cursor:not-allowed;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;';
+            submitOnclick = '';
+        } else if (isCalendarPackage) {
+            submitTitle = 'Open the package and save each level to calculate its school days';
+            submitStyle = 'opacity:0.65;cursor:not-allowed;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;';
             submitOnclick = '';
         } else if (!daysKnown) {
             submitTitle = 'Open the builder to compute school days first';
@@ -4176,7 +4567,20 @@ function renderSavedCalendarDocs() {
             submitOnclick = `onclick="openCalendarBuilder(${docId}).then(()=>showFinalSubmitDialog())"`;
         }
         let daysPill = '';
-        if (daysKnown && isDraft) {
+        if (isCalendarPackage && isDraft) {
+            if (packageDaysKnown) {
+                const levelTotals = packageDaySummary.map(item => `${escHtml(item.level)}: ${item.days}`).join(' · ');
+                if (packageDaysValid && distinctPackageDayCounts.length === 1) {
+                    daysPill = `<div class="sdc-days-pill sdc-days-ok"><i class="fa-solid fa-circle-check"></i> ${distinctPackageDayCounts[0]} days per level — ready to submit</div>`;
+                } else {
+                    daysPill = packageDaysValid
+                        ? `<div class="sdc-days-pill sdc-days-ok"><i class="fa-solid fa-circle-check"></i> All levels meet 200–220 days — ${levelTotals}</div>`
+                        : `<div class="sdc-days-pill sdc-days-warn"><i class="fa-solid fa-triangle-exclamation"></i> Each level needs 200–220 days — ${levelTotals}</div>`;
+                }
+            } else {
+                daysPill = `<div class="sdc-days-pill sdc-days-warn"><i class="fa-solid fa-triangle-exclamation"></i> School-day totals are not saved for every level yet. Open the package and click Save &amp; Apply on each level.</div>`;
+            }
+        } else if (daysKnown && isDraft) {
             daysPill = daysValid
                 ? `<div class="sdc-days-pill sdc-days-ok"><i class="fa-solid fa-circle-check"></i> ${grandTotal} days — ready to submit</div>`
                 : `<div class="sdc-days-pill sdc-days-warn"><i class="fa-solid fa-triangle-exclamation"></i> ${grandTotal} days — needs 200–220 to submit</div>`;
@@ -4209,8 +4613,12 @@ function renderSavedCalendarDocs() {
            many school days it covers. */
         const openingDisplay = fmtPlainDate(openingRaw) || '—';
         const closingDisplay = fmtPlainDate(closingRaw) || '—';
-        const daysDisplay    = daysKnown ? String(grandTotal) : '—';
-        const daysStatClass  = daysKnown ? (daysValid ? 'sdc-stat-ok' : 'sdc-stat-warn') : '';
+        const daysDisplay    = daysKnown ? String(grandTotal) : (isCalendarPackage && packageDaysKnown
+            ? (distinctPackageDayCounts.length === 1 ? `${distinctPackageDayCounts[0]} each` : 'Per level')
+            : '—');
+        const daysStatClass  = isCalendarPackage && packageDaysKnown
+            ? (packageDaysValid ? 'sdc-stat-ok' : 'sdc-stat-warn')
+            : (daysKnown ? (daysValid ? 'sdc-stat-ok' : 'sdc-stat-warn') : '');
         const statsRow = `<div class="sdc-stats-row">
             <div class="sdc-stat"><i class="fa-solid fa-door-open"></i><div class="sdc-stat-text"><span class="sdc-stat-label">Opens</span><span class="sdc-stat-value">${escHtml(openingDisplay)}</span></div></div>
             <div class="sdc-stat"><i class="fa-solid fa-door-closed"></i><div class="sdc-stat-text"><span class="sdc-stat-label">Closes</span><span class="sdc-stat-value">${escHtml(closingDisplay)}</span></div></div>

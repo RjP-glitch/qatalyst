@@ -10,7 +10,7 @@
 		rel="stylesheet" />
 	<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-	<link rel="stylesheet" href="css/school-portal-calendar.css?v30" />
+	<link rel="stylesheet" href="css/school-portal-calendar.css?v32" />
 	<style>
 		/* Supporting-document upload widget (Checklist tab). Kept inline since
 		   these classes are new and css/school-portal-calendar.css is a
@@ -253,9 +253,8 @@
 							</div>
 							<div class="fg"><label><i class="fa-solid fa-building-columns"></i> School
 										Name</label><input id="f_school" oninput="liveUpdate()" /></div>
-							<div class="fg"><label><i class="fa-solid fa-layer-group"></i> School / Grade /
-									Department</label>
-								<select id="f_dept" onchange="liveUpdate()">
+							<div class="fg"><label><i class="fa-solid fa-layer-group"></i> Calendar level in this package</label>
+								<select id="f_dept" onchange="handleCalendarLevelChange(this.value)">
 									<option>Kindergarten</option>
 									<option>Preschool</option>
 									<option value="Elementary School" selected>Elementary School</option>
@@ -265,6 +264,12 @@
 									<option>SPED</option>
 									<option>Other</option>
 								</select>
+								<div class="cal-copy-target-control" id="calCopyTargetControl" style="display:none;">
+									<button type="button" class="cal-copy-target-button" id="calCopyTargetButton" onclick="openCalendarCopyTargetsModal()">
+										<i class="fa-solid fa-copy"></i> Choose levels for this calendar…
+									</button>
+									<div class="cal-copy-target-summary" id="calCopyTargetSummary">Unified calendar: same marked dates for all levels</div>
+								</div>
 							</div>
 							<div class="fg-pair">
 								<div class="fg"><label>School ID</label><input id="f_sid" oninput="liveUpdate()" /></div>
@@ -1948,7 +1953,7 @@ Photocopy of Government Recognition/Permit</textarea>
 	<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 	<script src="js/config.js?v4"></script>
 	<script src="js/school-portal-permissions.js"></script>
-	<script src="js/school-portal-calendar.js?v32"></script>
+	<script src="js/school-portal-calendar.js?v41"></script>
 </body>
 
 </html>

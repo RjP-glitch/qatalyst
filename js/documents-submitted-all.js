@@ -571,7 +571,7 @@ const ADS = (() => {
         const hasEditReq = editReqs.length > 0;
         const levelLabel = r.cal_level || r.document_type_label || 'School Calendar';
         const calInfo    = (r.cal_opening || r.cal_days)
-            ? `${r.cal_opening ? `Opens ${esc(formatDate(r.cal_opening))}` : ''}${(r.cal_opening && r.cal_days) ? ' &middot; ' : ''}${r.cal_days ? `${esc(r.cal_days)} days` : ''}`
+            ? `${r.cal_opening ? `Opens ${esc(formatDate(r.cal_opening))}` : ''}${(r.cal_opening && r.cal_days) ? ' &middot; ' : ''}${r.cal_days ? `${esc(r.cal_days)}${String(r.cal_days).includes('across levels') ? '' : ' days'}` : ''}`
             : '—';
 
         return `
@@ -1186,7 +1186,7 @@ const ADS = (() => {
             ${record.school_address ? `<div class="dsd-field-row"><div class="dsd-field-label">Address</div><div class="dsd-field-value">${esc(record.school_address)}</div></div>` : ''}
             ${record.cal_opening    ? `<div class="dsd-field-row"><div class="dsd-field-label">Start Date</div><div class="dsd-field-value">${esc(formatDate(record.cal_opening))}</div></div>` : ''}
             ${record.cal_closing    ? `<div class="dsd-field-row"><div class="dsd-field-label">End Date</div><div class="dsd-field-value">${esc(formatDate(record.cal_closing))}</div></div>` : ''}
-            ${record.cal_days       ? `<div class="dsd-field-row"><div class="dsd-field-label">Total School Days</div><div class="dsd-field-value"><strong>${esc(record.cal_days)}</strong> days</div></div>` : ''}
+            ${record.cal_days       ? `<div class="dsd-field-row"><div class="dsd-field-label">Total School Days</div><div class="dsd-field-value"><strong>${esc(record.cal_days)}</strong>${String(record.cal_days).includes('across levels') ? '' : ' days'}</div></div>` : ''}
             <div class="dsd-section">
                 <div class="dsd-section-title"><i class="fa-solid fa-folder-open"></i> Supporting Documents</div>
                 <div id="adsCalendarSupportingDocs" class="ads-tf-supp-list">
@@ -2977,6 +2977,14 @@ const ADS = (() => {
 
 
     function _buildAdminCalendarPreview(payload, checklistItems = [], checklistUploads = []) {
+        if (payload?.calendar_package_version === 2 && payload.calendars && typeof payload.calendars === 'object') {
+            const levels = Array.isArray(payload.levels) ? payload.levels : Object.keys(payload.calendars);
+            return `<div class="ads-calendar-package-preview">${levels.map(level => {
+                const calendar = payload.calendars[level];
+                const safeLevel = String(level).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                return calendar ? `<section class="ads-calendar-package-level"><h3>${safeLevel}</h3>${_buildAdminCalendarPreview(calendar, checklistItems, checklistUploads)}</section>` : '';
+            }).join('')}</div>`;
+        }
         const e = (v) => String(v == null ? '' : v)
             .replace(/&/g,'&amp;').replace(/</g,'&lt;')
             .replace(/>/g,'&gt;').replace(/"/g,'&quot;');

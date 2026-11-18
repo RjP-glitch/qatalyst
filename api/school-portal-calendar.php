@@ -784,6 +784,10 @@ function getStatusValueForSchoolSubmission(PDO $pdo): string
 function extractSchoolYear(array $payload, string $title): string
 {
     $form = $payload['form'] ?? [];
+    if (!$form && !empty($payload['calendars']) && is_array($payload['calendars'])) {
+        $first = reset($payload['calendars']);
+        $form = is_array($first['form'] ?? null) ? $first['form'] : [];
+    }
     $sy1 = trim((string)($form['f_sy1'] ?? ''));
     $sy2 = trim((string)($form['f_sy2'] ?? ''));
     if ($sy1 !== '' && $sy2 !== '') {
@@ -798,6 +802,10 @@ function extractSchoolYear(array $payload, string $title): string
 
 function extractDepartment(array $payload): string
 {
+    if (is_array($payload['levels'] ?? null) && $payload['levels']) {
+        $levels = array_values(array_unique(array_filter(array_map(static fn($v) => trim((string)$v), $payload['levels']))));
+        if ($levels) return mb_substr(implode(' + ', $levels), 0, 100);
+    }
     $form = $payload['form'] ?? [];
     $dept = trim((string)($form['f_dept'] ?? ''));
     return $dept !== '' ? mb_substr($dept, 0, 100) : '';
@@ -806,6 +814,10 @@ function extractDepartment(array $payload): string
 function extractCalendarDateField(array $payload, string $fieldName): ?string
 {
     $form = $payload['form'] ?? [];
+    if (!$form && !empty($payload['calendars']) && is_array($payload['calendars'])) {
+        $first = reset($payload['calendars']);
+        $form = is_array($first['form'] ?? null) ? $first['form'] : [];
+    }
     $raw = trim((string)($form[$fieldName] ?? ''));
     if ($raw === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
         return null;
@@ -827,6 +839,15 @@ function extractClosingDate(array $payload): ?string
 
 function extractTotalDays(array $payload): ?int
 {
+    if (is_array($payload['calendars'] ?? null) && $payload['calendars']) {
+        $days = [];
+        foreach ($payload['calendars'] as $calendar) {
+            $value = $calendar['totalDays'] ?? null;
+            if (!is_numeric($value)) return null;
+            $days[] = (int)$value;
+        }
+        return count(array_unique($days)) === 1 ? $days[0] : null;
+    }
     if (!isset($payload['totalDays']) || !is_numeric($payload['totalDays'])) {
         return null;
     }
@@ -1383,6 +1404,10 @@ function handleSave(PDO $pdo, array $user, array $jsonBody, bool $hasActiveTabCo
 
     $privateSchoolId = !empty($user['private_school_id']) ? (int)$user['private_school_id'] : null;
 
+    if (isset($payload['calendar_package_version'])) {
+        validateCalendarPackageLevels($pdo, $privateSchoolId, $payload);
+    }
+
     $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     if ($payloadJson === false) {
         jsonError('Failed to encode calendar payload.', 500);
@@ -1585,6 +1610,46 @@ function handleSave(PDO $pdo, array $user, array $jsonBody, bool $hasActiveTabCo
         'status' => $status,
         'active_tab' => $activeTab,
     ], 'Calendar document saved successfully.', 201);
+}
+
+function validateCalendarPackageLevels(PDO $pdo, ?int $privateSchoolId, array $payload): void
+{
+    if ((int)($payload['calendar_package_version'] ?? 0) !== 2 || !$privateSchoolId) {
+        jsonError('Invalid calendar package.', 422);
+    }
+    $levels = $payload['levels'] ?? null;
+    $calendars = $payload['calendars'] ?? null;
+    if (!is_array($levels) || count($levels) < 2 || !is_array($calendars)) {
+        jsonError('A unified calendar package must include at least two school levels.', 422);
+    }
+    $stmt = $pdo->prepare('SELECT levels FROM private_schools WHERE id = :id AND active = 1 LIMIT 1');
+    $stmt->execute([':id' => $privateSchoolId]);
+    $raw = trim((string)($stmt->fetchColumn() ?: ''));
+    if ($raw === '') jsonError('Your school level records are unavailable. Please contact the SDO.', 422);
+    $codes = json_decode($raw, true);
+    if (!is_array($codes)) $codes = preg_split('/[,;|]+/', $raw) ?: [];
+    $map = [
+        'kinder' => ['Kindergarten'], 'kindergarten' => ['Kindergarten'], 'kg' => ['Kindergarten'], 'k' => ['Kindergarten'],
+        'preschool' => ['Preschool'], 'pre-school' => ['Preschool'], 'prek' => ['Preschool'], 'pre-k' => ['Preschool'], 'nursery' => ['Preschool'],
+        'pre' => ['Kindergarten', 'Preschool'], 'elem' => ['Elementary School'], 'elementary' => ['Elementary School'],
+        'elementary school' => ['Elementary School'], 'elementary department' => ['Elementary School'],
+        'jhs' => ['Junior High School'], 'junior' => ['Junior High School'], 'junior high' => ['Junior High School'], 'junior high school' => ['Junior High School'],
+        'shs' => ['Senior High School'], 'senior' => ['Senior High School'], 'senior high' => ['Senior High School'], 'senior high school' => ['Senior High School'],
+        'college' => ['College'], 'sped' => ['SPED'],
+    ];
+    $registered = [];
+    foreach ($codes as $code) {
+        $key = strtolower(trim((string)$code));
+        if ($key === '') continue;
+        foreach ($map[$key] ?? [trim((string)$code)] as $label) $registered[$label] = true;
+    }
+    $submitted = array_values(array_unique(array_filter(array_map(static fn($v) => trim((string)$v), $levels))));
+    $registeredLabels = array_keys($registered);
+    sort($submitted); sort($registeredLabels);
+    if ($submitted !== $registeredLabels) jsonError('The package levels must match the levels registered for your school. Refresh the portal or contact the SDO to update your school record.', 422);
+    foreach ($submitted as $level) {
+        if (!isset($calendars[$level]) || !is_array($calendars[$level])) jsonError('A calendar is missing for ' . $level . '.', 422);
+    }
 }
 
 function handleEditRequest(PDO $pdo, array $user, array $jsonBody): void

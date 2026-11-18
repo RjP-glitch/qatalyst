@@ -100,7 +100,7 @@ function findMatchingEndorsementSubmission(PDO $pdo, ?int $schoolId, ?int $priva
     $schoolColumn = $privateSchoolId ? 'private_school_id' : 'school_id';
     $targetSchoolId = $privateSchoolId ?: $schoolId;
     $stmt = $pdo->prepare(
-        "SELECT id, status, school_year, title, history_json
+        "SELECT id, status, school_year, title, history_json, calendar_document_id
          FROM school_submissions
          WHERE {$schoolColumn} = :school_id AND type = :type
          ORDER BY COALESCE(updated_at, submitted_at) DESC, id DESC"
@@ -170,12 +170,21 @@ try {
         }
         $submission = findMatchingEndorsementSubmission($pdo, $schoolId, $privateSchoolId, $type, $schoolYear);
         $status = trim((string)($submission['status'] ?? ''));
+        $calendarLevels = [];
+        if ($submission && $type === 'school_calendar' && !empty($submission['calendar_document_id'])) {
+            $calStmt = $pdo->prepare('SELECT payload_json FROM school_calendar_documents WHERE id = :id LIMIT 1');
+            $calStmt->execute([':id' => (int)$submission['calendar_document_id']]);
+            $calPayload = json_decode((string)($calStmt->fetchColumn() ?: ''), true);
+            if (is_array($calPayload['levels'] ?? null)) $calendarLevels = array_values(array_unique(array_map('strval', $calPayload['levels'])));
+            elseif (!empty($calPayload['form']['f_dept'])) $calendarLevels = [(string)$calPayload['form']['f_dept']];
+        }
         jsonOut([
             'success' => true,
             'eligible' => true,
             'has_submission' => $submission !== null,
             'submission_id' => $submission ? (int)$submission['id'] : null,
             'status' => $status,
+            'levels' => $calendarLevels,
             'message' => $submission !== null
                 ? 'A matching school submission is available for endorsement.'
                 : 'No matching submission was found. You can still save this endorsement; it will appear in the summary report.',

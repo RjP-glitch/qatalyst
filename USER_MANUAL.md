@@ -421,6 +421,7 @@ Each school card has a **⋮** (actions) menu. Clicking it opens a small menu wh
 - Use the status tabs, search field, and document-type filter to find records, then open a record to view details.
 - Update document status and add remarks.
 - Preview files, print calendar previews, and download documents (including calendar DOCX when supported).
+- A unified school calendar package appears as one submission and lists all included levels. Its preview shows each level calendar, and its PDF export includes every level. The package shares one SDO review status and correction cycle.
 
 ![School Submissions page showing the status tabs, search and type filters, and a released tuition fee record](images/manual-school-submissions.png)
 

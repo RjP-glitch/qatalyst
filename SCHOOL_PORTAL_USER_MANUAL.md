@@ -30,10 +30,15 @@ After the SDO approves or releases an accepted tuition submission, its proposed 
 ## School Calendar Submission
 
 1. Open **School Calendar** and create a new calendar or continue a saved draft.
-2. Complete the school information, school year, opening and closing dates, calendar markings, remarks, and signatories.
-3. Use **Save & Continue** to save progress between sections. Review the calendar preview and confirm that the school-day total meets the builder's requirement before final submission.
-4. Choose **Final Submit** and confirm. Submitted calendars are read-only unless the SDO approves an edit request.
-5. If the calendar is returned for correction, follow the SDO feedback and resubmit it.
+2. For schools registered with multiple levels, the portal creates one package containing a calendar for each level. Use **Calendar level in this package** to choose the calendar you are editing.
+3. By default, the calendar picker is unified: all levels are selected to receive the same marked dates. Choose **Choose levels for this calendar…** below the level selector to change the targets. Select all other levels, only one or two levels, or none to keep the calendar on the current level only.
+4. In the Calendar Picker, mark the dates and notes for the current level, then choose **Save & Apply**. The current level and selected target levels receive the same marked dates, notes, and opening/closing date range. Levels you did not select keep their existing calendars. Copying replaces the selected levels' existing calendar markings and notes.
+5. Complete or review the remaining school information and signatories for each level. Use **Save & Continue** to save progress between builder sections. Each level included in the package must meet the 200–220 school-day requirement before submission.
+6. Choose **Final Submit** once and confirm the package. The SDO reviews the included calendars under one submission status. Submitted calendars are read-only unless the SDO approves an edit request.
+7. Export PDF from the builder to get all included calendars in one PDF. The JSON backup contains all level calendars. Supporting documents are attached to the package.
+8. If the SDO returns the package for correction, update the relevant level calendar and resubmit the package.
+
+Schools with one registered level continue to create a single calendar document. Existing per-level submissions remain available in the portal as separate historical records.
 
 ## Getting help
 

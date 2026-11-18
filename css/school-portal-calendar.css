@@ -2594,6 +2594,25 @@ body {
 	pointer-events: none
 }
 
+.cp-note-indicator {
+	position: absolute;
+	top: 5px;
+	right: 5px;
+	width: 20px;
+	height: 20px;
+	display: grid;
+	place-items: center;
+	border: 1px solid rgba(15, 23, 42, .14);
+	border-radius: 4px;
+	background: #fff;
+	color: #1e3a5f;
+	font-size: 12px;
+	line-height: 1;
+	z-index: 4;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, .12);
+	pointer-events: none
+}
+
 .cp-cell.wknd .cp-daynum {
 	color: #64748b
 }
@@ -2732,6 +2751,154 @@ body {
 	background: transparent;
 	color: inherit
 }
+
+.cal-copy-target-control {
+	margin-top: 8px;
+}
+
+.cal-copy-target-button {
+	width: 100%;
+	min-height: 34px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	padding: 7px 9px;
+	border: 1px solid #bfdbfe;
+	border-radius: 6px;
+	background: #eff6ff;
+	color: #1d4ed8;
+	font: inherit;
+	font-size: 11px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.cal-copy-target-button:hover {
+	background: #dbeafe;
+	border-color: #93c5fd;
+}
+
+.cal-copy-target-summary {
+	margin-top: 5px;
+	font-size: 10px;
+	line-height: 1.35;
+	color: #64748b;
+}
+
+.cal-copy-target-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 10040;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+	background: rgba(15, 23, 42, .52);
+}
+
+.cal-copy-target-modal {
+	width: min(430px, 100%);
+	max-height: min(620px, 90vh);
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	border: 1px solid #dbe3ef;
+	border-radius: 12px;
+	box-shadow: 0 18px 50px rgba(15, 23, 42, .24);
+	overflow: hidden;
+}
+
+.cal-copy-target-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 17px 18px 13px;
+	border-bottom: 1px solid #e5e7eb;
+}
+
+.cal-copy-target-head h3 {
+	margin: 0;
+	font-size: 16px;
+	color: #17345f;
+}
+
+.cal-copy-target-head h3 i { margin-right: 6px; color: #2563eb; }
+
+.cal-copy-target-head p {
+	margin: 5px 0 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: #64748b;
+}
+
+.cal-copy-target-close {
+	width: 30px;
+	height: 30px;
+	border: 0;
+	border-radius: 5px;
+	background: transparent;
+	color: #64748b;
+	font-size: 16px;
+	cursor: pointer;
+}
+
+.cal-copy-target-close:hover { background: #f1f5f9; color: #1e293b; }
+
+.cal-copy-target-list {
+	padding: 10px 18px;
+	overflow-y: auto;
+}
+
+.cal-copy-target-option {
+	min-height: 38px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 7px 8px;
+	border-bottom: 1px solid #f1f5f9;
+	font-size: 13px;
+	color: #1e293b;
+	cursor: pointer;
+}
+
+.cal-copy-target-option input { accent-color: #2563eb; }
+.cal-copy-target-option span { display: flex; flex-direction: column; gap: 2px; }
+.cal-copy-target-option small { font-size: 10.5px; color: #64748b; }
+.cal-copy-target-all { background: #f8fafc; }
+
+.cal-copy-target-note {
+	margin: 0 18px;
+	padding: 11px 12px;
+	border: 1px solid #fde68a;
+	border-radius: 6px;
+	background: #fffbeb;
+	font-size: 11px;
+	line-height: 1.5;
+	color: #854d0e;
+}
+
+.cal-copy-target-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 14px 18px 16px;
+}
+
+.cal-copy-target-actions button {
+	min-height: 34px;
+	padding: 7px 12px;
+	border-radius: 6px;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.cal-copy-target-cancel { border: 1px solid #d1d5db; background: #fff; color: #475569; }
+.cal-copy-target-apply { border: 1px solid #2563eb; background: #2563eb; color: #fff; }
+.cal-copy-target-apply:hover { background: #1d4ed8; }
 
 .cp-total-card-schooldays {
 	margin-top: 9px;

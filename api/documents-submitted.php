@@ -252,6 +252,7 @@ function actionList(PDO $pdo): void
         $r['cal_closing']  = null;
         $r['cal_days']     = null;
         $r['cal_level']    = null;
+        $r['cal_levels']   = [];
         $r['school_address'] = null;
         $r['tuition_levels'] = [];
         $r['baseline_review_required'] = false;
@@ -260,14 +261,36 @@ function actionList(PDO $pdo): void
         if (!empty($r['cal_payload_json'])) {
             $calPayload = json_decode((string)$r['cal_payload_json'], true);
             if (is_array($calPayload)) {
+                $packageCalendars = is_array($calPayload['calendars'] ?? null) ? $calPayload['calendars'] : [];
+                $r['cal_levels'] = is_array($calPayload['levels'] ?? null)
+                    ? array_values(array_unique(array_filter(array_map('strval', $calPayload['levels']))))
+                    : [];
+                if (!empty($calPayload['calendars']) && is_array($calPayload['calendars'])) {
+                    $activeLevel = (string)($calPayload['active_level'] ?? ($r['cal_levels'][0] ?? ''));
+                    $calPayload = $calPayload['calendars'][$activeLevel] ?? reset($calPayload['calendars']) ?: [];
+                }
                 $form = is_array($calPayload['form'] ?? null) ? $calPayload['form'] : [];
                 $r['cal_opening']   = isset($form['f_opening'])     && $form['f_opening']     !== '' ? (string)$form['f_opening']     : null;
                 $r['cal_closing']   = isset($form['f_closing'])     && $form['f_closing']     !== '' ? (string)$form['f_closing']     : null;
-                $r['cal_level']     = isset($form['f_dept'])        && $form['f_dept']        !== '' ? (string)$form['f_dept']        : null;
+                $r['cal_level']     = $r['cal_levels'] ? implode(' + ', $r['cal_levels']) : (isset($form['f_dept']) && $form['f_dept'] !== '' ? (string)$form['f_dept'] : null);
                 $r['school_address']= isset($form['f_chk_address']) && $form['f_chk_address'] !== '' ? (string)$form['f_chk_address'] : null;
                 $daysByMonth = dsComputeSchoolDaysByMonth($calPayload);
                 $totalDays   = array_sum(array_map(static fn(array $m): int => (int)($m['days'] ?? 0), $daysByMonth));
                 $r['cal_days'] = $totalDays > 0 ? (string)$totalDays : null;
+                if ($packageCalendars) {
+                    $levelDayCounts = [];
+                    foreach ($packageCalendars as $levelPayload) {
+                        if (!is_array($levelPayload)) continue;
+                        $months = dsComputeSchoolDaysByMonth($levelPayload);
+                        $levelDayCounts[] = array_sum(array_map(static fn(array $m): int => (int)($m['days'] ?? 0), $months));
+                    }
+                    $levelDayCounts = array_values(array_filter($levelDayCounts, static fn(int $n): bool => $n > 0));
+                    if ($levelDayCounts) {
+                        $r['cal_days'] = count(array_unique($levelDayCounts)) === 1
+                            ? (string)$levelDayCounts[0]
+                            : min($levelDayCounts) . '–' . max($levelDayCounts) . ' across levels';
+                    }
+                }
             }
         }
 
@@ -355,6 +378,24 @@ function actionPreview(PDO $pdo): void
         $payload = json_decode((string)$row['payload_json'], true);
         if (is_array($payload)) {
             $summary['has_payload'] = true;
+            $summary['levels'] = is_array($payload['levels'] ?? null) ? array_values(array_unique(array_map('strval', $payload['levels']))) : [];
+            if (!empty($payload['calendars']) && is_array($payload['calendars'])) {
+                $summary['calendar_summaries'] = [];
+                foreach ($payload['calendars'] as $level => $levelPayload) {
+                    if (!is_array($levelPayload)) continue;
+                    $levelForm = is_array($levelPayload['form'] ?? null) ? $levelPayload['form'] : [];
+                    $levelDays = array_sum(array_map(static fn(array $m): int => (int)($m['days'] ?? 0), dsComputeSchoolDaysByMonth($levelPayload)));
+                    $summary['calendar_summaries'][] = [
+                        'level' => (string)$level,
+                        'school_year' => trim((string)($levelForm['f_sy1'] ?? '') . '-' . (string)($levelForm['f_sy2'] ?? '')),
+                        'opening' => (string)($levelForm['f_opening'] ?? ''),
+                        'closing' => (string)($levelForm['f_closing'] ?? ''),
+                        'total_school_days' => $levelDays,
+                    ];
+                }
+                $activeLevel = (string)($payload['active_level'] ?? ($summary['levels'][0] ?? ''));
+                $payload = $payload['calendars'][$activeLevel] ?? (reset($payload['calendars']) ?: []);
+            }
             $form = is_array($payload['form'] ?? null) ? $payload['form'] : [];
 
             $summary['fields'] = [
@@ -616,8 +657,6 @@ function actionDownload(PDO $pdo): void
  
     $tmpLogoForPdf = null;
     $row['school_logo'] = dsPrepareSchoolLogoForTcpdf((string)($row['school_logo'] ?? ''), $tmpLogoForPdf);
-    $html = buildCalendarDocHtml($row, $payload);
- 
     $pdf = new TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false);
     $pdf->SetCreator('QATALYST');
     $pdf->SetAuthor('QATALYST');
@@ -626,8 +665,20 @@ function actionDownload(PDO $pdo): void
     $pdf->setPrintFooter(false);
     $pdf->SetMargins(13, 13, 13);
     $pdf->setCellHeightRatio(1.25);
-    $pdf->AddPage();
-    $pdf->writeHTML($html, true, false, true, false, '');
+    $calendarPayloads = [];
+    if (is_array($payload['calendars'] ?? null) && $payload['calendars']) {
+        foreach ($payload['levels'] ?? array_keys($payload['calendars']) as $level) {
+            $levelPayload = $payload['calendars'][(string)$level] ?? null;
+            if (!is_array($levelPayload)) continue;
+            if (!empty($payload['logoDataUrl']) && empty($levelPayload['logoDataUrl'])) $levelPayload['logoDataUrl'] = $payload['logoDataUrl'];
+            $calendarPayloads[] = $levelPayload;
+        }
+    }
+    if (!$calendarPayloads) $calendarPayloads[] = $payload;
+    foreach ($calendarPayloads as $index => $calendarPayload) {
+        if ($index > 0) $pdf->AddPage();
+        $pdf->writeHTML(buildCalendarDocHtml($row, $calendarPayload), true, false, true, false, '');
+    }
     $pdf->Output($base . '-calendar.pdf', $preview ? 'I' : 'D');
  
     if ($tmpLogoForPdf !== null && file_exists($tmpLogoForPdf)) { @unlink($tmpLogoForPdf); }
@@ -2370,6 +2421,8 @@ function buildCalendarDocHtml(array $row, array $payload): string
 {
     $d = dsExtractCalendarData($row, $payload);
     $e = static fn(string $v): string => dsEscHtml($v);
+    $deptTitle = trim((string)($d['dept'] ?? 'School'));
+    $deptShort = preg_replace('/\s+School$/i', '', $deptTitle) ?: $deptTitle;
 
     $monthNames = ['January','February','March','April','May','June',
                    'July','August','September','October','November','December'];
@@ -2532,7 +2585,7 @@ function buildCalendarDocHtml(array $row, array $payload): string
     <div class="page">
       ' . $lh() . '
       <div class="cover-center">
-        <div class="cover-big">Elementary</div>
+        <div class="cover-big">' . $e($deptShort) . '</div>
         <div class="cover-big">School Calendar</div>
         <div class="cover-italic"><em>S.Y. ' . $e($d['syDash']) . '</em></div>
       </div>
@@ -2608,7 +2661,7 @@ function buildCalendarDocHtml(array $row, array $payload): string
     $pages .= '
     <div class="page">
       ' . $lh() . '
-      <div class="tbl-title">ELEMENTARY SCHOOL CALENDAR<br>FOR SCHOOL YEAR ' . $e($d['syDash']) . '</div>
+      <div class="tbl-title">' . strtoupper($e($deptTitle)) . ' CALENDAR<br>FOR SCHOOL YEAR ' . $e($d['syDash']) . '</div>
       <table class="summary-tbl">
         <thead><tr><th style="width:65%;">MONTH</th><th>SCHOOL DAYS</th></tr></thead>
         <tbody>' . $summaryRows . '</tbody>
