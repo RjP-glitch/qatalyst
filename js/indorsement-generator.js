@@ -218,9 +218,50 @@ const _indLevelOptions = [
 ══════════════════════════════════════════════════════ */
 
 function _indGetSelectedLevelValues() {
-    const sel = document.getElementById('ind_levelSelect');
-    if (!sel) return [];
-    return Array.from(sel.options).filter(o => o.selected).map(o => o.value).filter(Boolean);
+    const container = document.getElementById('ind_levelOptions');
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('.ind-level-checkbox input:checked'))
+        .map(input => input.value)
+        .filter(Boolean);
+}
+
+function _indGetSelectedLevelLabels() {
+    return _indGetSelectedLevelValues()
+        .map(value => _indLevelOptions.find(option => option.value === value)?.label)
+        .filter(Boolean);
+}
+
+function _indApplySchoolLevels(rawLevels) {
+    const container = document.getElementById('ind_levelOptions');
+    if (!container) return;
+
+    let levels = rawLevels;
+    if (typeof levels === 'string') {
+        const raw = levels.trim();
+        if (!raw) levels = [];
+        else {
+            try { levels = JSON.parse(raw); }
+            catch (_) { levels = [raw]; }
+        }
+    }
+    if (!Array.isArray(levels)) levels = levels ? [levels] : [];
+
+    const valueByAlias = {
+        pre: 'pre_elem', pre_elem: 'pre_elem', 'pre-elementary': 'pre_elem', 'pre-elementary course': 'pre_elem',
+        preschool: 'pre_elem', 'pre-school': 'pre_elem', kindergarten: 'pre_elem', kinder: 'pre_elem', kg: 'pre_elem',
+        elem: 'elem', elementary: 'elem', 'elementary course': 'elem', 'elementary school': 'elem',
+        jhs: 'jhs', 'junior high': 'jhs', 'junior high school': 'jhs', 'junior high school course': 'jhs',
+        shs: 'shs', 'senior high': 'shs', 'senior high school': 'shs', 'senior high school course': 'shs',
+    };
+    const offered = new Set(levels.map(level => {
+        const key = String(level || '').trim().toLowerCase();
+        return valueByAlias[key] || '';
+    }).filter(Boolean));
+
+    container.querySelectorAll('.ind-level-checkbox input').forEach(input => {
+        input.checked = offered.has(input.value);
+    });
+    _indUpdateLevelFromSelect();
 }
 
 function _indComposeLevelTextFromValues(values) {
@@ -247,14 +288,14 @@ function _indUpdateLevelFromSelect() {
 }
 
 function _indSetLevelSelectionFromText(levelText) {
-    const sel = document.getElementById('ind_levelSelect');
-    if (!sel) return;
+    const container = document.getElementById('ind_levelOptions');
+    if (!container) return;
     const txt = String(levelText || '').toLowerCase();
-    Array.from(sel.options).forEach(o => {
-        const opt = _indLevelOptions.find(x => x.value === o.value);
+    Array.from(container.querySelectorAll('.ind-level-checkbox input')).forEach(input => {
+        const opt = _indLevelOptions.find(x => x.value === input.value);
         const label      = (opt?.label || '').toLowerCase();
         const shortLabel = (opt?.shortLabel || '').toLowerCase();
-        o.selected = !!txt && (txt.includes(label) || (shortLabel && txt.includes(shortLabel)));
+        input.checked = !!txt && (txt.includes(label) || (shortLabel && txt.includes(shortLabel)));
     });
     _indUpdateLevelFromSelect();
 }
@@ -434,6 +475,7 @@ function _indSelectSchool(id) {
     _indSetVal('ind_schoolName', (s.name || '').toUpperCase());
     _indSetVal('ind_address', s.address || '');
     _indSetVal('ind_schoolSearch', s.name || '');
+    _indApplySchoolLevels(s.levels);
     _indHideSchoolDropdown();
     _indUpdatePreview();
     _indSubmissionEligibility = null;
@@ -655,9 +697,10 @@ function _indComposeParagraph(schoolName, address, sy, totalDays, startDate, end
     };
 }
 
-function _indComposeParagraphTuition(schoolName, address, sy) {
+function _indComposeParagraphTuition(schoolName, address, sy, level = '') {
     const base       = 'Respectfully forwarded to the Regional Director, DepEd Region III, Government Center, Maimpis, City of San Fernando, Pampanga (Attention: Quality Assurance Division- Focal Person In-Charge of Private Schools), the herein request of the School Head of ';
-    const afterSchool = ', ' + address + ', this Schools Division, for approval of the proposed Tuition and Miscellaneous Fee Increase for School Year ' + (sy || '____-____') + ', recommending favorable action.';
+    const levelPart  = level ? ' for ' + level : '';
+    const afterSchool = ', ' + address + ', this Schools Division, for approval of the proposed Tuition and Miscellaneous Fee Increase' + levelPart + ' for School Year ' + (sy || '____-____') + ', recommending favorable action.';
     return { rich: { before: base, schoolBold: schoolName, afterSchool, daysBold: '' } };
 }
 
@@ -707,8 +750,7 @@ async function openIndorsementModal(prefill) {
         if (el) { el.value = ''; el.readOnly = false; el.disabled = false; el.style.background = ''; }
     });
 
-    const levelSelect = document.getElementById('ind_levelSelect');
-    if (levelSelect) Array.from(levelSelect.options).forEach(opt => { opt.selected = false; });
+    document.querySelectorAll('#ind_levelOptions .ind-level-checkbox input').forEach(input => { input.checked = false; });
 
     _indPopulateSchoolYearOptions(prefill?.sy || '');
 
@@ -813,6 +855,7 @@ async function openIndorsementModal(prefill) {
             if (!prefill.sy && match.school_year) {
                 _indSetVal('ind_sy', _indNormalizeSY(match.school_year));
             }
+            if (!(prefill.level || prefill.course_level)) _indApplySchoolLevels(match.levels);
             _indUpdatePreview();
         } else if (!prefill.address) {
             needsSchoolSearch = true;
@@ -950,7 +993,7 @@ function _indParseManualPreview(text) {
 function _indAttachPreviewListeners() {
     if (_indPreviewBound) return;
     ['ind_schoolName', 'ind_address', 'ind_sy', 'ind_days', 'ind_startDate', 'ind_endDate',
-        'ind_letterDate', 'ind_sigName', 'ind_sigPosition', 'ind_level', 'ind_levelSelect'].forEach(id => {
+        'ind_letterDate', 'ind_sigName', 'ind_sigPosition', 'ind_level'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('input',  _indUpdatePreview);
@@ -1015,7 +1058,7 @@ function _indUpdatePreview() {
         const { rich } = _indComposeParagraphSchoolPermit(schoolName, address, sy, level);
         bodyHTML = rich.before + `<strong>${rich.schoolBold}</strong>` + rich.afterSchool + `<strong>${rich.noIncreaseBold}</strong>` + rich.afterBold;
     } else if (_indCurrentType === 'tuition_increase') {
-        const { rich } = _indComposeParagraphTuition(schoolName, address, sy);
+        const { rich } = _indComposeParagraphTuition(schoolName, address, sy, document.getElementById('ind_level')?.value || '');
         bodyHTML = rich.before + `<strong>${rich.schoolBold}</strong>` + rich.afterSchool;
     } else {
         // school_calendar — FIX: uses updated _indComposeParagraph (no levelText arg)
@@ -1024,7 +1067,7 @@ function _indUpdatePreview() {
         const rawEnd    =  document.getElementById('ind_endDate')?.value   || '';
         const startFmt  = _indFormatDate(rawStart) || '';
         const endFmt    = _indFormatDate(rawEnd)   || '';
-        const { rich }  = _indComposeParagraph(schoolName, address, sy, totalDays, startFmt, endFmt, _indCurrentCalendarLevels);
+        const { rich }  = _indComposeParagraph(schoolName, address, sy, totalDays, startFmt, endFmt, _indGetSelectedLevelLabels());
         bodyHTML =
             rich.before +
             `<strong>${rich.schoolBold}</strong>` +
@@ -1335,7 +1378,7 @@ async function generateStandaloneIndorsement() {
         fileLabel = 'SchoolPermit';
 
     } else if (_indCurrentType === 'tuition_increase') {
-        rich      = _indComposeParagraphTuition(schoolName, address, sy).rich;
+        rich      = _indComposeParagraphTuition(schoolName, address, sy, document.getElementById('ind_level')?.value || '').rich;
         fileLabel = 'TuitionIncrease';
 
     } else {
@@ -1345,7 +1388,7 @@ async function generateStandaloneIndorsement() {
         const rawEnd    =  document.getElementById('ind_endDate')?.value   || '';
         const startFmt  = _indFormatDate(rawStart) || '';
         const endFmt    = _indFormatDate(rawEnd)   || '';
-        rich      = _indComposeParagraph(schoolName, address, sy, totalDays, startFmt, endFmt, _indCurrentCalendarLevels).rich;
+        rich      = _indComposeParagraph(schoolName, address, sy, totalDays, startFmt, endFmt, _indGetSelectedLevelLabels()).rich;
         fileLabel = 'SchoolCalendar';
     }
 

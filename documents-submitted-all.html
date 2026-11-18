@@ -907,6 +907,27 @@
         }
         .ind-input:focus { outline: none; border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(147,197,253,.35); }
 
+        .ind-level-checkboxes {
+            display: grid;
+            gap: 4px;
+            padding: 6px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .ind-level-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            color: #334155;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .ind-level-checkbox:hover { background: #f8fafc; }
+        .ind-level-checkbox input { width: 15px; height: 15px; margin: 0; accent-color: #2563eb; flex: 0 0 auto; }
+
         #ind_preview {
             flex: 1;
             min-height: 0;
@@ -1025,14 +1046,14 @@
                         <!-- Level -->
                         <div id="ind_levelRow">
                             <label class="ind-label">LEVEL <span style="color:#ef4444;">*</span></label>
-                            <select id="ind_levelSelect" multiple class="ind-input" style="min-height:110px;" onchange="indClearMsg();_indUpdateLevelFromSelect()">
-                                <option value="pre_elem">Pre-Elementary Course</option>
-                                <option value="elem">Elementary Course</option>
-                                <option value="jhs">Junior High School Course</option>
-                                <option value="shs">Senior High School Course</option>
-                            </select>
+                            <div id="ind_levelOptions" class="ind-level-checkboxes" role="group" aria-label="Select school levels">
+                                <label class="ind-level-checkbox"><input type="checkbox" value="pre_elem" onchange="indClearMsg();_indUpdateLevelFromSelect()"><span>Pre-Elementary Course</span></label>
+                                <label class="ind-level-checkbox"><input type="checkbox" value="elem" onchange="indClearMsg();_indUpdateLevelFromSelect()"><span>Elementary Course</span></label>
+                                <label class="ind-level-checkbox"><input type="checkbox" value="jhs" onchange="indClearMsg();_indUpdateLevelFromSelect()"><span>Junior High School Course</span></label>
+                                <label class="ind-level-checkbox"><input type="checkbox" value="shs" onchange="indClearMsg();_indUpdateLevelFromSelect()"><span>Senior High School Course</span></label>
+                            </div>
                             <input id="ind_level" type="hidden" />
-                            <p style="font-size:11px;color:var(--color-text-secondary);margin:5px 0 0;">Ctrl/Cmd+click to select multiple.</p>
+                            <p style="font-size:11px;color:var(--color-text-secondary);margin:5px 0 0;">Check every level covered by this indorsement.</p>
                         </div>
 
                         <!-- Address -->
@@ -1157,8 +1178,8 @@
 
     <script src="js/config.js?v3"></script>
     <script src="js/permissions.js?v6"></script>
-    <script src="js/indorsement-generator.js?v11"></script>
-    <script src="js/documents-submitted-all.js?v42"></script>
+    <script src="js/indorsement-generator.js?v14"></script>
+    <script src="js/documents-submitted-all.js?v43"></script>
 
     <!-- Tab switcher for mobile indorsement modal -->
     <script>

@@ -3468,6 +3468,29 @@ hr {
     border-color: #6366f1;
 }
 
+.ind-level-checkboxes {
+    display: grid;
+    gap: 4px;
+    padding: 6px;
+    border: 1px solid var(--color-border-tertiary, #e5e7eb);
+    border-radius: 8px;
+    background: var(--color-background-primary, #fff);
+}
+
+.ind-level-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    color: var(--color-text-primary, #334155);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.ind-level-checkbox:hover { background: #f8fafc; }
+.ind-level-checkbox input { width: 15px; height: 15px; margin: 0; accent-color: #2563eb; flex: 0 0 auto; }
+
 /* Preview box */
 #ind_preview {
     background: #fff;

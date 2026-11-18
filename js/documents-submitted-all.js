@@ -1053,6 +1053,10 @@ const ADS = (() => {
         printHost.id        = 'adsPrintHost';
         printHost.className = 'ads-print-target';
         printHost.innerHTML = sourceHost.innerHTML;
+        // Package-level headings sit outside each calendar's first paper.
+        // Printing them separately can create a heading-only first sheet;
+        // the cover page already identifies the level.
+        printHost.querySelectorAll('.ads-calendar-package-level > h3').forEach((heading) => heading.remove());
         document.body.appendChild(printHost);
 
         document.body.dataset.printing = '1';

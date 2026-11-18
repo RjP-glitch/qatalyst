@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="css/notifications.css?v2">
-    <link rel="stylesheet" href="css/checklist.css?v8" />
+    <link rel="stylesheet" href="css/checklist.css?v9" />
     <!-- PDF.js for page thumbnail rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
@@ -787,16 +787,15 @@
                         <!-- Level -->
                         <div id="ind_levelRow">
                             <label class="ind-label">LEVEL <span style="color:#ef4444;">*</span></label>
-                            <select id="ind_levelSelect" multiple class="ind-input" style="min-height:110px;"
-                                onchange="indClearMsg();_indUpdateLevelFromSelect()">
-                                <option value="pre_elem">Pre-Elementary Course</option>
-                                <option value="elem">Elementary Course</option>
-                                <option value="jhs">Junior High School Course</option>
-                                <option value="shs">Senior High School Course</option>
-                            </select>
+                            <div id="ind_levelOptions" class="ind-level-checkboxes" role="group" aria-label="Select school levels">
+                                <label class="ind-level-checkbox"><input type="checkbox" value="pre_elem" onchange="indClearMsg();_indUpdateLevelFromSelect()"><span>Pre-Elementary Course</span></label>
+                                <label class="ind-level-checkbox"><input type="checkbox" value="elem" onchange="indClearMsg();_indUpdateLevelFromSelect()"><span>Elementary Course</span></label>
+                                <label class="ind-level-checkbox"><input type="checkbox" value="jhs" onchange="indClearMsg();_indUpdateLevelFromSelect()"><span>Junior High School Course</span></label>
+                                <label class="ind-level-checkbox"><input type="checkbox" value="shs" onchange="indClearMsg();_indUpdateLevelFromSelect()"><span>Senior High School Course</span></label>
+                            </div>
                             <input id="ind_level" type="hidden" />
                             <p style="font-size:11px;color:var(--color-text-secondary);margin:5px 0 0;">
-                                Ctrl/Cmd+click to select multiple.
+                                Check every level covered by this indorsement.
                             </p>
                         </div>
 
@@ -1144,7 +1143,7 @@
     <script src="js/checklist-generator-modal.js?v5"></script>
     <script src="js/checklist.js?v11"></script>
     <script src="js/calendar-image-scan.js"></script>
-    <script src="js/indorsement-generator.js?v25"></script>
+    <script src="js/indorsement-generator.js?v27"></script>
 
     <!-- Show/hide the calendar hint when the type button is toggled -->
     <script>
