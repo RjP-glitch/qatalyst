@@ -207,10 +207,11 @@ function _indOrdinal(n) {
 }
 
 const _indLevelOptions = [
-    { value: 'pre_elem', label: 'Pre-Elementary Course', shortLabel: 'Pre-Elementary' },
-    { value: 'elem',     label: 'Elementary Course',     shortLabel: 'Elementary' },
-    { value: 'jhs',      label: 'Junior High School Course', shortLabel: 'Junior High School' },
-    { value: 'shs',      label: 'Senior High School Course', shortLabel: 'Senior High School' },
+    { value: 'preschool',   label: 'Preschool Course',   shortLabel: 'Preschool' },
+    { value: 'kindergarten', label: 'Kindergarten Course', shortLabel: 'Kindergarten' },
+    { value: 'elem',        label: 'Elementary Course',  shortLabel: 'Elementary' },
+    { value: 'jhs',         label: 'Junior High School Course', shortLabel: 'Junior High School' },
+    { value: 'shs',         label: 'Senior High School Course', shortLabel: 'Senior High School' },
 ];
 
 /* ══════════════════════════════════════════════════════
@@ -246,17 +247,21 @@ function _indApplySchoolLevels(rawLevels) {
     }
     if (!Array.isArray(levels)) levels = levels ? [levels] : [];
 
-    const valueByAlias = {
-        pre: 'pre_elem', pre_elem: 'pre_elem', 'pre-elementary': 'pre_elem', 'pre-elementary course': 'pre_elem',
-        preschool: 'pre_elem', 'pre-school': 'pre_elem', kindergarten: 'pre_elem', kinder: 'pre_elem', kg: 'pre_elem',
-        elem: 'elem', elementary: 'elem', 'elementary course': 'elem', 'elementary school': 'elem',
-        jhs: 'jhs', 'junior high': 'jhs', 'junior high school': 'jhs', 'junior high school course': 'jhs',
-        shs: 'shs', 'senior high': 'shs', 'senior high school': 'shs', 'senior high school course': 'shs',
+    const valuesByAlias = {
+        // Legacy `pre` records do not distinguish the two pre-elementary levels.
+        // Match the calendar's handling by checking both; explicit values stay specific.
+        pre: ['preschool', 'kindergarten'], pre_elem: ['preschool', 'kindergarten'],
+        'pre-elementary': ['preschool', 'kindergarten'], 'pre-elementary course': ['preschool', 'kindergarten'],
+        preschool: ['preschool'], 'pre-school': ['preschool'], 'preschool course': ['preschool'],
+        kindergarten: ['kindergarten'], kinder: ['kindergarten'], kg: ['kindergarten'], 'kindergarten course': ['kindergarten'],
+        elem: ['elem'], elementary: ['elem'], 'elementary course': ['elem'], 'elementary school': ['elem'],
+        jhs: ['jhs'], 'junior high': ['jhs'], 'junior high school': ['jhs'], 'junior high school course': ['jhs'],
+        shs: ['shs'], 'senior high': ['shs'], 'senior high school': ['shs'], 'senior high school course': ['shs'],
     };
-    const offered = new Set(levels.map(level => {
+    const offered = new Set(levels.flatMap(level => {
         const key = String(level || '').trim().toLowerCase();
-        return valueByAlias[key] || '';
-    }).filter(Boolean));
+        return valuesByAlias[key] || [];
+    }));
 
     container.querySelectorAll('.ind-level-checkbox input').forEach(input => {
         input.checked = offered.has(input.value);
@@ -291,11 +296,13 @@ function _indSetLevelSelectionFromText(levelText) {
     const container = document.getElementById('ind_levelOptions');
     if (!container) return;
     const txt = String(levelText || '').toLowerCase();
+    const legacyPreElem = txt.includes('pre-elementary');
     Array.from(container.querySelectorAll('.ind-level-checkbox input')).forEach(input => {
         const opt = _indLevelOptions.find(x => x.value === input.value);
         const label      = (opt?.label || '').toLowerCase();
         const shortLabel = (opt?.shortLabel || '').toLowerCase();
-        input.checked = !!txt && (txt.includes(label) || (shortLabel && txt.includes(shortLabel)));
+        input.checked = legacyPreElem && ['preschool', 'kindergarten'].includes(input.value)
+            || (!!txt && (txt.includes(label) || (shortLabel && txt.includes(shortLabel))));
     });
     _indUpdateLevelFromSelect();
 }
