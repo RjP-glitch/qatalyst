@@ -1696,15 +1696,13 @@ body {
     margin: 0 auto;
 }
 
-/* Paper
-   NOTE: min-height is 950px (not the A4 1123px this rule used to say) —
-   school-portal-tuition.html's page-local style overrides this to 950px
-   for every page actually shown to the school, so 950px is what any other
-   consumer of this stylesheet (e.g. the admin preview) needs to match. */
+/* Paper uses an 8.5 × 11 in Letter canvas at 96 CSS px per inch. Keeping
+   preview and PDF capture at the same dimensions prevents the exported page
+   from being vertically compressed and centered inside a larger sheet. */
 .paper {
     background: #fff;
-    width: min(794px, 100%);
-    min-height: 950px;
+    width: min(816px, 100%);
+    min-height: 1056px;
     margin: 0 auto 28px;
     box-shadow: 0 3px 18px rgba(0,0,0,.1);
     border: 1px solid #e5e7eb;

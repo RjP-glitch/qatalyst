@@ -3628,11 +3628,12 @@ async function buildTuitionPreviewPdf(options = {}) {
 
         host = document.createElement('div');
         host.id = 'tfPdfCaptureHost';
-        host.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;z-index:-1;opacity:0;background:#fff;display:flex;flex-direction:column;gap:0;pointer-events:none;';
+        // Letter page at 96 CSS px/in, matching 8.5 × 11 in in the PDF.
+        host.style.cssText = 'position:fixed;left:-10000px;top:0;width:816px;z-index:-1;opacity:0;background:#fff;display:flex;flex-direction:column;gap:0;pointer-events:none;';
         sourcePages.forEach((source) => {
             const page = source.cloneNode(true);
             page.classList.remove('tf-pg-hidden', 'tf-hidden');
-            page.style.cssText += ';display:block!important;visibility:visible!important;opacity:1!important;width:794px!important;min-height:950px!important;height:auto!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;';
+            page.style.cssText += ';display:block!important;visibility:visible!important;opacity:1!important;width:816px!important;min-height:1056px!important;height:auto!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;';
             page.querySelectorAll('.tf-pg-hidden, .tf-hidden').forEach(el => {
                 el.classList.remove('tf-pg-hidden', 'tf-hidden');
                 el.style.removeProperty('display');
@@ -3659,8 +3660,8 @@ async function buildTuitionPreviewPdf(options = {}) {
                 allowTaint: true,
                 backgroundColor: '#ffffff',
                 logging: false,
-                width: 794,
-                windowWidth: Math.max(window.innerWidth, 794),
+                width: 816,
+                windowWidth: Math.max(window.innerWidth, 816),
                 onclone: clonedDocument => {
                     const clonedHost = clonedDocument.getElementById('tfPdfCaptureHost');
                     if (clonedHost) {

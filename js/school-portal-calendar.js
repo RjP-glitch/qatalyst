@@ -2301,8 +2301,15 @@ async function exportCalendarPackagePDF(options = {}) {
     const returnBlob = options.returnBlob === true;
     if (typeof closeTopBarMenu === 'function') closeTopBarMenu();
     const packagePayload = buildCalendarSavePayload();
+    const requestedLevels = Array.isArray(options.levels) ? [...new Set(options.levels.map(String))] : null;
+    const exportLevels = requestedLevels
+        ? packagePayload.levels.filter(level => requestedLevels.includes(level))
+        : packagePayload.levels;
+    if (!exportLevels.length) throw new Error('Select at least one calendar level to export.');
     const restorePayload = buildSingleCalendarPayload();
-    setCalendarPdfLoading(true, 'Preparing all level calendars…');
+    setCalendarPdfLoading(true, requestedLevels?.length === 1
+        ? `Preparing ${exportLevels[0]} calendar…`
+        : `Preparing all ${exportLevels.length} level calendars…`);
     try {
         if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
             const script = document.createElement('script');
@@ -2314,7 +2321,7 @@ async function exportCalendarPackagePDF(options = {}) {
         const pdf = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
         const PW = 215.9, PH = 279.4, SCALE = 2;
         let pageCount = 0;
-        for (const level of packagePayload.levels) {
+        for (const level of exportLevels) {
             const profile = packagePayload.calendars[level];
             if (!profile) continue;
             hydrateSingleCalendarFromPayload(profile);
@@ -2345,7 +2352,10 @@ async function exportCalendarPackagePDF(options = {}) {
             }
         }
         if (!pageCount) throw new Error('No calendar pages were available to export.');
-        const filename = (buildCalendarDocumentTitle() || 'school-calendar') + '.pdf';
+        const baseName = (buildCalendarDocumentTitle() || 'school-calendar').replace(/[\\/:*?"<>|]+/g, '-');
+        const filename = (requestedLevels?.length === 1
+            ? `${baseName} - ${exportLevels[0].replace(/[\\/:*?"<>|]+/g, '-')}`
+            : baseName) + '.pdf';
         if (returnBlob) return { blob: pdf.output('blob'), filename };
         pdf.save(filename);
     } catch (err) {
@@ -4002,6 +4012,25 @@ function hydrateCalendarFromPayload(payload, documentId = null) {
     }
     clearCalendarPackageState();
     hydrateSingleCalendarFromPayload(payload, documentId);
+}
+
+function getCalendarPackageViewInfo() {
+    return calendarPackageMode && calendarPackageLevels.length > 1
+        ? { levels: [...calendarPackageLevels], active_level: calendarPackageActiveLevel }
+        : null;
+}
+
+function setCalendarPackageViewLevel(level) {
+    const selected = String(level || '').trim();
+    if (!calendarPackageMode || !calendarPackageLevels.includes(selected)) return false;
+    const profile = calendarPackageCalendars[selected];
+    if (!profile) return false;
+    calendarPackageActiveLevel = selected;
+    hydrateSingleCalendarFromPayload({
+        ...cloneCalendarProfile(profile),
+        form: { ...(profile.form || {}), ...calendarPackageShared, f_dept: selected },
+    }, currentCalendarDocumentId);
+    return true;
 }
 
 function hydrateSingleCalendarFromPayload(payload, documentId = null) {
