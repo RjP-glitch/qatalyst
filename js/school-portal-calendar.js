@@ -1868,15 +1868,40 @@ async function confirmFinalSubmit() {
     const agreed = document.getElementById('csmAgreeCheck')?.checked;
     if (!agreed) { showToast('Please check the confirmation box first.', 'fa-triangle-exclamation'); return; }
     const btn = document.querySelector('.csm-btn-primary');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting…'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing submitted PDF…'; }
     try {
+        const payload = buildCalendarSavePayload();
+        const pdfExport = await exportCalendarPDF({ returnBlob: true });
+        if (!pdfExport?.blob || !pdfExport.filename) throw new Error('Could not prepare the submitted calendar PDF.');
+
+        // Save the current payload as a draft first so the generated PDF can
+        // be attached to its document before it becomes a final submission.
+        const draftRes = await fetch(CALENDAR_API, {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ document_id: currentCalendarDocumentId, title: buildCalendarDocumentTitle(), status: 'draft', payload })
+        });
+        const draftJson = await draftRes.json();
+        if (!draftRes.ok || !draftJson.success) throw new Error(draftJson.message || 'Could not save the calendar before generating its submitted PDF.');
+        currentCalendarDocumentId = draftJson.data?.document_id ?? currentCalendarDocumentId;
+        if (!currentCalendarDocumentId) throw new Error('The calendar was saved, but no document ID was returned for its PDF.');
+
+        const pdfForm = new FormData();
+        pdfForm.append('action', 'upload_calendar_export');
+        pdfForm.append('calendar_document_id', String(currentCalendarDocumentId));
+        pdfForm.append('file', pdfExport.blob, pdfExport.filename);
+        const uploadRes = await fetch(CALENDAR_API, { method: 'POST', credentials: 'include', body: pdfForm });
+        const uploadJson = await uploadRes.json();
+        if (!uploadRes.ok || !uploadJson.success) throw new Error(uploadJson.message || 'The submitted PDF could not be stored. Please try again.');
+
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting…';
         const res = await fetch(CALENDAR_API, {
             method: 'POST', credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ document_id: currentCalendarDocumentId, title: buildCalendarDocumentTitle(), status: 'submitted', payload: buildCalendarSavePayload() })
+            body: JSON.stringify({ document_id: currentCalendarDocumentId, title: buildCalendarDocumentTitle(), status: 'submitted', payload })
         });
         const json = await res.json();
-        if (!json.success) throw new Error(json.message || 'Submission failed.');
+        if (!res.ok || !json.success) throw new Error(json.message || 'Submission failed.');
         currentCalendarDocumentId = json.data?.document_id ?? currentCalendarDocumentId;
         closeFinalSubmitDialog();
         hideReturnedBanner();
@@ -2162,8 +2187,9 @@ function setCalendarPdfLoading(visible, message = 'Preparing your PDF…') {
     if (label) label.textContent = message;
 }
 
-async function exportCalendarPDF() {
-    if (calendarPackageMode) return exportCalendarPackagePDF();
+async function exportCalendarPDF(options = {}) {
+    const returnBlob = options.returnBlob === true;
+    if (calendarPackageMode) return exportCalendarPackagePDF(options);
     if (typeof closeTopBarMenu === 'function') closeTopBarMenu();
     if (typeof ensureExportSourceBadges === 'function') ensureExportSourceBadges();
 
@@ -2184,6 +2210,7 @@ async function exportCalendarPDF() {
 
         if (typeof html2canvas === 'undefined' || typeof JsPDF === 'undefined') {
             setCalendarPdfLoading(false);
+            if (returnBlob) throw new Error('The PDF exporter is unavailable. Refresh the page and try submitting again.');
             window.print();
             return;
         }
@@ -2191,6 +2218,7 @@ async function exportCalendarPDF() {
         const allPapers = Array.from(document.querySelectorAll('.doc-page .paper'));
         if (!allPapers.length) {
             setCalendarPdfLoading(false);
+            if (returnBlob) throw new Error('No calendar pages are available to export.');
             window.print();
             return;
         }
@@ -2257,9 +2285,11 @@ async function exportCalendarPDF() {
 
         const filename = (buildCalendarDocumentTitle && buildCalendarDocumentTitle()) || 'school-calendar';
         setCalendarPdfLoading(true, 'Saving the PDF…');
+        if (returnBlob) return { blob: pdf.output('blob'), filename: filename + '.pdf' };
         pdf.save(filename + '.pdf');
     } catch (err) {
         console.error('Calendar PDF export failed:', err);
+        if (returnBlob) throw err;
         showToast('PDF export failed: ' + (err.message || 'Please try again.'), 'fa-circle-xmark');
     } finally {
         pagesToRestore.forEach((p, i) => { p.style.display = prevDisplay[i]; });
@@ -2267,7 +2297,8 @@ async function exportCalendarPDF() {
     }
 }
 
-async function exportCalendarPackagePDF() {
+async function exportCalendarPackagePDF(options = {}) {
+    const returnBlob = options.returnBlob === true;
     if (typeof closeTopBarMenu === 'function') closeTopBarMenu();
     const packagePayload = buildCalendarSavePayload();
     const restorePayload = buildSingleCalendarPayload();
@@ -2314,9 +2345,12 @@ async function exportCalendarPackagePDF() {
             }
         }
         if (!pageCount) throw new Error('No calendar pages were available to export.');
-        pdf.save((buildCalendarDocumentTitle() || 'school-calendar') + '.pdf');
+        const filename = (buildCalendarDocumentTitle() || 'school-calendar') + '.pdf';
+        if (returnBlob) return { blob: pdf.output('blob'), filename };
+        pdf.save(filename);
     } catch (err) {
         console.error('Calendar package PDF export failed:', err);
+        if (returnBlob) throw err;
         showToast('Package PDF export failed: ' + (err.message || 'Please try again.'), 'fa-circle-xmark');
     } finally {
         hydrateSingleCalendarFromPayload(restorePayload);

@@ -32,6 +32,12 @@ config/secrets.php
 # Uploaded records and generated outputs
 /api/uploads/*
 !/api/uploads/.htaccess
+!/api/uploads/calendar-exports/
+/api/uploads/calendar-exports/*
+!/api/uploads/calendar-exports/.htaccess
+!/api/uploads/tuition-exports/
+/api/uploads/tuition-exports/*
+!/api/uploads/tuition-exports/.htaccess
 /uploads/
 /logs/
 /deployment/

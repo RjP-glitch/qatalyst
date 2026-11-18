@@ -1358,21 +1358,165 @@ function handleDocumentsDelete(PDO $pdo, int $userId, ?int $documentIdFromQuery,
         jsonError('Missing or invalid document_id.', 422);
     }
 
-    $delete = $pdo->prepare(
-        "DELETE FROM school_calendar_documents
-         WHERE id = :id AND user_id = :user_id
-         LIMIT 1"
+    $docStmt = $pdo->prepare(
+        "SELECT id, user_id, status, edit_request_status
+           FROM school_calendar_documents
+          WHERE id = :id AND user_id = :user_id
+          LIMIT 1"
     );
-    $delete->execute([
-        ':id' => $documentId,
-        ':user_id' => $userId,
-    ]);
-
-    if ($delete->rowCount() === 0) {
+    $docStmt->execute([':id' => $documentId, ':user_id' => $userId]);
+    $calendarDoc = $docStmt->fetch(PDO::FETCH_ASSOC);
+    if (!$calendarDoc) {
         jsonError('Document not found or access denied.', 404);
     }
 
-    jsonSuccess(['document_id' => $documentId], 'Calendar document deleted successfully.');
+    $submission = null;
+    if (tableHasColumn($pdo, 'school_submissions', 'calendar_document_id')) {
+        $submissionStmt = $pdo->prepare(
+            "SELECT id, status, history_json
+               FROM school_submissions
+              WHERE calendar_document_id = :document_id"
+              . (tableHasColumn($pdo, 'school_submissions', 'type') ? " AND type = 'calendar'" : '') .
+            " ORDER BY id DESC LIMIT 1"
+        );
+        $submissionStmt->execute([':document_id' => $documentId]);
+        $submission = $submissionStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    $statusKey = normalizeSubmissionStatusKey((string)($submission['status'] ?? ''));
+    $isReturned = in_array($statusKey, [
+        'rejected', 'returned', 'returned for correction', 'returned for revision',
+        'returned_for_correction', 'returned-for-correction',
+    ], true) || in_array(normalizeSubmissionStatusKey((string)($calendarDoc['status'] ?? '')), [
+        'rejected', 'returned', 'returned for correction', 'returned for revision',
+    ], true) || strtolower((string)($calendarDoc['edit_request_status'] ?? '')) === 'approved';
+    $isDraft = normalizeSubmissionStatusKey((string)($calendarDoc['status'] ?? '')) === 'draft';
+    if ($submission && !$isReturned) {
+        jsonError('Only draft or returned calendars can be deleted.', 409);
+    }
+    if (!$submission && !$isDraft && !$isReturned) {
+        jsonError('Only draft or returned calendars can be deleted.', 409);
+    }
+
+    // Ensure an ENUM-backed status column can store the new withdrawal state before updating it.
+    if ($submission && !ensureSchoolSubmissionWithdrawnStatus($pdo)) {
+        jsonError('The submission status could not be updated to withdrawn. Please contact support before deleting this calendar.', 500);
+    }
+    // These helpers may create their tables; do that before the transaction because MySQL DDL commits implicitly.
+    try { ensureSupportingUploadsTable($pdo); } catch (Throwable $e) {
+        error_log('Could not prepare calendar supporting upload cleanup: ' . $e->getMessage());
+    }
+    try { ensureCalendarExportsTable($pdo); } catch (Throwable $e) {
+        error_log('Could not prepare calendar export cleanup: ' . $e->getMessage());
+    }
+
+    $supportingFiles = [];
+    $exportFiles = [];
+    try {
+        $pdo->beginTransaction();
+
+        if ($submission) {
+            $history = json_decode((string)($submission['history_json'] ?? '[]'), true);
+            if (!is_array($history)) $history = [];
+            $schoolName = 'School user';
+            try {
+                $nameStmt = $pdo->prepare('SELECT full_name FROM users WHERE id = :id LIMIT 1');
+                $nameStmt->execute([':id' => $userId]);
+                $schoolName = trim((string)($nameStmt->fetchColumn() ?: 'School user'));
+            } catch (Throwable $ignored) {}
+
+            $history[] = [
+                'event' => 'withdrawn',
+                'status' => 'Withdrawn by School',
+                'by' => $schoolName,
+                'created_at' => date('Y-m-d H:i:s'),
+                'note' => 'The school withdrew this returned calendar by deleting it.',
+            ];
+            $set = ['status = :status'];
+            $params = [':status' => 'withdrawn', ':id' => (int)$submission['id']];
+            if (tableHasColumn($pdo, 'school_submissions', 'history_json')) {
+                $set[] = 'history_json = :history_json';
+                $params[':history_json'] = json_encode($history, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+            if (tableHasColumn($pdo, 'school_submissions', 'remarks')) {
+                $set[] = 'remarks = :remarks';
+                $params[':remarks'] = 'Withdrawn by school after return for correction.';
+            }
+            if (tableHasColumn($pdo, 'school_submissions', 'updated_at')) $set[] = 'updated_at = NOW()';
+            $pdo->prepare('UPDATE school_submissions SET ' . implode(', ', $set) . ' WHERE id = :id')->execute($params);
+        }
+
+        // Keep the SDO submission and its history, while removing the builder record.
+        $delete = $pdo->prepare(
+            "DELETE FROM school_calendar_documents
+             WHERE id = :id AND user_id = :user_id
+             LIMIT 1"
+        );
+        $delete->execute([':id' => $documentId, ':user_id' => $userId]);
+        if ($delete->rowCount() === 0) throw new RuntimeException('Calendar document disappeared during deletion.');
+
+        // Remove supporting-upload metadata/files associated with this calendar.
+        try {
+            $uploadStmt = $pdo->prepare('SELECT stored_filename FROM school_calendar_supporting_uploads WHERE calendar_document_id = :id');
+            $uploadStmt->execute([':id' => $documentId]);
+            $supportingFiles = $uploadStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            $pdo->prepare('DELETE FROM school_calendar_supporting_uploads WHERE calendar_document_id = :id')->execute([':id' => $documentId]);
+        } catch (Throwable $e) {
+            error_log('Calendar supporting upload cleanup failed for document ' . $documentId . ': ' . $e->getMessage());
+        }
+
+        // Remove the canonical export artifact with its owning calendar.
+        try {
+            $exportStmt = $pdo->prepare('SELECT stored_filename FROM school_calendar_exports WHERE calendar_document_id = :id');
+            $exportStmt->execute([':id' => $documentId]);
+            $exportFiles = $exportStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            $pdo->prepare('DELETE FROM school_calendar_exports WHERE calendar_document_id = :id')->execute([':id' => $documentId]);
+        } catch (Throwable $e) {
+            error_log('Calendar export cleanup failed for document ' . $documentId . ': ' . $e->getMessage());
+        }
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log('Calendar document deletion failed for document ' . $documentId . ': ' . $e->getMessage());
+        jsonError('Could not delete the calendar document.', 500);
+    }
+
+    foreach ($supportingFiles as $filename) {
+        $path = supportingUploadsDir() . '/' . basename((string)$filename);
+        if (is_file($path)) @unlink($path);
+    }
+    foreach ($exportFiles as $filename) {
+        $path = calendarExportsDir() . '/' . basename((string)$filename);
+        if (is_file($path)) @unlink($path);
+    }
+
+    jsonSuccess(['document_id' => $documentId], $submission
+        ? 'Calendar withdrawn and deleted. The SDO history was retained.'
+        : 'Calendar document deleted successfully.');
+}
+
+function ensureSchoolSubmissionWithdrawnStatus(PDO $pdo): bool
+{
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM `school_submissions` LIKE 'status'");
+        $column = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : false;
+        $type = (string)($column['Type'] ?? '');
+        if (!preg_match('/^enum\((.*)\)$/i', $type, $match)) return true;
+
+        $values = str_getcsv($match[1], ',', "'");
+        if (in_array('withdrawn', array_map('strtolower', $values), true)) return true;
+        $values[] = 'withdrawn';
+        $enum = implode(',', array_map(static fn($value) => $pdo->quote((string)$value), $values));
+        $nullSql = strtoupper((string)($column['Null'] ?? 'NO')) === 'YES' ? 'NULL' : 'NOT NULL';
+        $default = $column['Default'] ?? null;
+        $defaultSql = $default === null ? '' : ' DEFAULT ' . $pdo->quote((string)$default);
+        $pdo->exec("ALTER TABLE `school_submissions` MODIFY `status` ENUM({$enum}) {$nullSql}{$defaultSql}");
+        return true;
+    } catch (Throwable $e) {
+        error_log('Could not extend school_submissions.status for withdrawals: ' . $e->getMessage());
+        return false;
+    }
 }
 
 function handleSave(PDO $pdo, array $user, array $jsonBody, bool $hasActiveTabCol): void
@@ -1538,7 +1682,12 @@ function handleSave(PDO $pdo, array $user, array $jsonBody, bool $hasActiveTabCo
         }
 
         if ($stmt->rowCount() === 0) {
-            jsonError('Document not found or access denied.', 404);
+            // MySQL reports zero affected rows for an idempotent draft save.
+            // Confirm the owned row still exists instead of treating that as
+            // a missing document (final submission immediately follows this).
+            $existsStmt = $pdo->prepare('SELECT 1 FROM school_calendar_documents WHERE id = :id AND user_id = :uid LIMIT 1');
+            $existsStmt->execute([':id' => $documentId, ':uid' => $userId]);
+            if (!$existsStmt->fetchColumn()) jsonError('Document not found or access denied.', 404);
         }
 
         if ($status === 'submitted') {
@@ -1895,6 +2044,143 @@ function supportingUploadsDir(): string
     return $dir;
 }
 
+function ensureCalendarExportsTable(PDO $pdo): void
+{
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS school_calendar_exports (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            calendar_document_id INT(11) NOT NULL,
+            original_filename VARCHAR(255) NOT NULL,
+            stored_filename VARCHAR(255) NOT NULL,
+            file_size INT(11) NOT NULL DEFAULT 0,
+            sha256 CHAR(64) DEFAULT NULL,
+            uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uniq_sce_calendar_document (calendar_document_id),
+            KEY idx_sce_document_id (calendar_document_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+}
+
+function calendarExportsDir(): string
+{
+    $dir = dirname(__DIR__) . '/api/uploads/calendar-exports';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    return $dir;
+}
+
+function handleUploadCalendarExport(PDO $pdo, array $user): void
+{
+    ensureCalendarExportsTable($pdo);
+    $documentId = isset($_POST['calendar_document_id']) && is_numeric($_POST['calendar_document_id'])
+        ? (int)$_POST['calendar_document_id'] : 0;
+    if (!$documentId) jsonError('calendar_document_id is required.', 422);
+
+    assertOwnsCalendarDocument($pdo, (int)$user['id'], $documentId);
+    $statusStmt = $pdo->prepare('SELECT status FROM school_calendar_documents WHERE id = :id LIMIT 1');
+    $statusStmt->execute([':id' => $documentId]);
+    if (strtolower(trim((string)$statusStmt->fetchColumn())) !== 'draft') {
+        jsonError('The calendar PDF can only be updated while the calendar is a draft.', 423);
+    }
+
+    if (empty($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'] ?? '')) {
+        jsonError('No PDF file was uploaded.', 422);
+    }
+    $file = $_FILES['file'];
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        jsonError('PDF upload failed (error code ' . (int)$file['error'] . ').', 422);
+    }
+    if ((int)$file['size'] > 15 * 1024 * 1024) {
+        jsonError('The generated calendar PDF is too large. Maximum size is 15MB.', 422);
+    }
+
+    $signature = file_get_contents($file['tmp_name'], false, null, 0, 5);
+    if ($signature !== '%PDF-') jsonError('The uploaded calendar export is not a valid PDF.', 422);
+
+    $originalFilename = basename((string)($file['name'] ?? 'school-calendar.pdf'));
+    $originalFilename = preg_replace('/[^A-Za-z0-9._() -]+/', '_', $originalFilename) ?: 'school-calendar.pdf';
+    if (strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION)) !== 'pdf') $originalFilename .= '.pdf';
+
+    $storedFilename = $documentId . '_' . bin2hex(random_bytes(12)) . '.pdf';
+    $directory = calendarExportsDir();
+    $destination = $directory . '/' . $storedFilename;
+    if (!move_uploaded_file($file['tmp_name'], $destination)) {
+        jsonError('Could not save the generated calendar PDF.', 500);
+    }
+
+    $oldStmt = $pdo->prepare('SELECT stored_filename FROM school_calendar_exports WHERE calendar_document_id = :id LIMIT 1');
+    $oldStmt->execute([':id' => $documentId]);
+    $oldFilename = $oldStmt->fetchColumn();
+    try {
+        $stmt = $pdo->prepare(
+            "INSERT INTO school_calendar_exports
+                (calendar_document_id, original_filename, stored_filename, file_size, sha256)
+             VALUES (:did, :original, :stored, :size, :sha)
+             ON DUPLICATE KEY UPDATE
+                original_filename = VALUES(original_filename),
+                stored_filename = VALUES(stored_filename),
+                file_size = VALUES(file_size),
+                sha256 = VALUES(sha256),
+                uploaded_at = CURRENT_TIMESTAMP"
+        );
+        $stmt->execute([
+            ':did' => $documentId,
+            ':original' => $originalFilename,
+            ':stored' => $storedFilename,
+            ':size' => (int)$file['size'],
+            ':sha' => hash_file('sha256', $destination),
+        ]);
+    } catch (Throwable $e) {
+        @unlink($destination);
+        throw $e;
+    }
+
+    if ($oldFilename && $oldFilename !== $storedFilename) {
+        $oldPath = $directory . '/' . basename((string)$oldFilename);
+        if (is_file($oldPath)) @unlink($oldPath);
+    }
+
+    jsonSuccess([
+        'calendar_document_id' => $documentId,
+        'original_filename' => $originalFilename,
+        'file_size' => (int)$file['size'],
+        'sha256' => hash_file('sha256', $destination),
+    ], 'Submitted calendar PDF saved.');
+}
+
+function handleDownloadCalendarExport(PDO $pdo, array $user): void
+{
+    ensureCalendarExportsTable($pdo);
+    $documentId = isset($_GET['calendar_document_id']) && is_numeric($_GET['calendar_document_id'])
+        ? (int)$_GET['calendar_document_id'] : 0;
+    if (!$documentId) jsonError('calendar_document_id is required.', 422);
+    assertOwnsCalendarDocument($pdo, (int)$user['id'], $documentId);
+
+    $stmt = $pdo->prepare(
+        'SELECT original_filename, stored_filename
+           FROM school_calendar_exports
+          WHERE calendar_document_id = :id LIMIT 1'
+    );
+    $stmt->execute([':id' => $documentId]);
+    $export = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$export) jsonError('Submitted calendar PDF is not available.', 404);
+
+    $storedFilename = basename((string)($export['stored_filename'] ?? ''));
+    $path = calendarExportsDir() . '/' . $storedFilename;
+    if ($storedFilename === '' || !is_file($path)) jsonError('Submitted calendar PDF is missing from storage.', 404);
+
+    $filename = str_replace(["\r", "\n", '"'], '', basename((string)($export['original_filename'] ?? 'school-calendar.pdf')));
+    if ($filename === '') $filename = 'school-calendar.pdf';
+    $download = isset($_GET['download']) && (string)$_GET['download'] === '1';
+    if (ob_get_level()) ob_end_clean();
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: ' . ($download ? 'attachment' : 'inline') . '; filename="' . $filename . '"');
+    header('Content-Length: ' . filesize($path));
+    header('Cache-Control: private, no-store');
+    readfile($path);
+    exit;
+}
+
 /**
  * POST action=upload_supporting_document (multipart/form-data)
  * Fields: calendar_document_id, slug, file
@@ -2154,6 +2440,9 @@ try {
         if ($action === 'download_supporting_upload') {
             handleDownloadSupportingUpload($pdo, $user);
         }
+        if ($action === 'download_calendar_export') {
+            handleDownloadCalendarExport($pdo, $user);
+        }
         handleDocumentsGet($pdo, $userId, $hasActiveTabCol);
     }
 
@@ -2169,6 +2458,9 @@ try {
     // $_FILES are used instead).
     if ($action === 'upload_supporting_document') {
         handleUploadSupportingDocument($pdo, $user);
+    }
+    if ($action === 'upload_calendar_export') {
+        handleUploadCalendarExport($pdo, $user);
     }
 
     if (!is_array($jsonBody) || empty($jsonBody)) {

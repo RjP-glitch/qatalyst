@@ -730,7 +730,7 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/school-portal-permissions.js"></script>
-<script src="js/school-portal-calendar.js?v32"></script>
+<script src="js/school-portal-calendar.js?v42"></script>
 
 <script>
 /* ══════════════════════════════════════════════════════════════════
@@ -841,6 +841,35 @@
     /* ── Export button loading states ──
        Functions are resolved at click time (not setup time) so there is no
        race condition with school-portal-calendar.js finishing its parse. */
+    window.downloadSubmittedCalendarPDF = async function () {
+        var id = new URLSearchParams(window.location.search).get('document_id');
+        var apiBase = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '';
+        if (id && apiBase) {
+            try {
+                var url = apiBase + '/school-portal-calendar.php?action=download_calendar_export&calendar_document_id=' + encodeURIComponent(id) + '&download=1';
+                var res = await fetch(url, { credentials: 'include' });
+                var contentType = res.headers.get('Content-Type') || '';
+                if (res.ok && contentType.toLowerCase().includes('application/pdf')) {
+                    var blobUrl = URL.createObjectURL(await res.blob());
+                    var anchor = document.createElement('a');
+                    var disposition = res.headers.get('Content-Disposition') || '';
+                    anchor.href = blobUrl;
+                    anchor.download = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'school-calendar.pdf';
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    anchor.remove();
+                    setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 5000);
+                    return;
+                }
+            } catch (err) { console.warn('Stored calendar PDF unavailable; regenerating from the saved data.', err); }
+        }
+
+        // Older submissions predate stored PDF artifacts, so retain their
+        // existing export behavior as a backward-compatible fallback.
+        if (typeof window.exportCalendarPDF === 'function') await window.exportCalendarPDF();
+        else throw new Error('Calendar PDF export is not available.');
+    };
+
     function wrapExportBtn(btnId, fnName) {
         var btn = document.getElementById(btnId);
         if (!btn) return;
@@ -964,7 +993,7 @@
 
     /* Run after current event loop tick so all JS is settled */
     setTimeout(function () {
-        wrapExportBtn('btnExportPdf',  'exportCalendarPDF');
+        wrapExportBtn('btnExportPdf',  'downloadSubmittedCalendarPDF');
         loadAndRender();
     }, 50);
 

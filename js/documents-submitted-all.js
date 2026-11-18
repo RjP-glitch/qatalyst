@@ -786,6 +786,7 @@ const ADS = (() => {
             status_update: { color: '#378ADD', label: (e) => `Status updated \u2192 ${e.status || ''}` },
             edit_request:  { color: '#7F77DD', label: ()    => 'Edit requested' },
             edit_approved: { color: '#639922', label: ()    => 'Edit approved' },
+            withdrawn:     { color: '#D85A30', label: ()    => 'Withdrawn by school' },
             submitted:     { color: '#888780', label: ()    => 'Document submitted' },
         };
 
@@ -834,6 +835,10 @@ const ADS = (() => {
                     <span class="ads-hist-legend-item">
                         <span class="ads-hist-dot" style="background:#639922;flex-shrink:0;"></span>
                         Edit approved
+                    </span>
+                    <span class="ads-hist-legend-item">
+                        <span class="ads-hist-dot" style="background:#D85A30;flex-shrink:0;"></span>
+                        Withdrawn by school
                     </span>
                 </div>
             </div>`;
@@ -988,9 +993,57 @@ const ADS = (() => {
         const t = String(type || '').toLowerCase();
 
         if (t === 'calendar') {
-            if (format === 'pdf') { printCalendarPreview(id); return; }
+            if (format === 'pdf') {
+                try {
+                    const url = apiUrl(`/documents-submitted.php?action=download&id=${encodeURIComponent(id)}&format=pdf`);
+                    const res = await fetch(url, { credentials: 'include' });
+                    const contentType = res.headers.get('Content-Type') || '';
+                    if (!res.ok || contentType.toLowerCase().includes('application/json')) {
+                        const message = contentType.toLowerCase().includes('application/json')
+                            ? (await res.json()).message
+                            : `HTTP ${res.status}`;
+                        alert('Download failed: ' + (message || 'Could not download the calendar PDF.'));
+                        return;
+                    }
+                    const blob = await res.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const anchor = document.createElement('a');
+                    const disposition = res.headers.get('Content-Disposition') || '';
+                    const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `school-calendar-${id}.pdf`;
+                    anchor.href = blobUrl;
+                    anchor.download = filename;
+                    anchor.rel = 'noopener';
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    anchor.remove();
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+                } catch (err) { alert('Download failed: ' + err.message); }
+                return;
+            }
         }
-        if ((t === 'tuition' || t === 'no_tuition') && format === 'pdf') { printTuitionPreview(id); return; }
+        if ((t === 'tuition' || t === 'no_tuition') && format === 'pdf') {
+            try {
+                const url = apiUrl(`/documents-submitted.php?action=download&id=${encodeURIComponent(id)}&format=pdf`);
+                const res = await fetch(url, { credentials: 'include' });
+                const contentType = (res.headers.get('Content-Type') || '').toLowerCase();
+                if (!res.ok || !contentType.includes('application/pdf')) {
+                    const message = contentType.includes('application/json') ? (await res.json()).message : `HTTP ${res.status}`;
+                    alert('Download failed: ' + (message || 'Could not download the tuition PDF.'));
+                    return;
+                }
+                const blobUrl = URL.createObjectURL(await res.blob());
+                const anchor = document.createElement('a');
+                const disposition = res.headers.get('Content-Disposition') || '';
+                anchor.href = blobUrl;
+                anchor.download = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `tuition-fee-${id}.pdf`;
+                anchor.rel = 'noopener';
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+            } catch (err) { alert('Download failed: ' + err.message); }
+            return;
+        }
 
         if (!filePath) return;
         try {
@@ -1030,6 +1083,24 @@ const ADS = (() => {
         setSubmissionPdfLoading(true, 'Loading submitted calendar…');
         const originalDocumentTitle = document.title;
         try {
+        // New submissions carry the exact PDF produced in the school portal.
+        // Open that artifact for print/save so the SDO never re-renders it.
+        const pdfWindow = window.open('about:blank', '_blank');
+        try {
+            const pdfUrl = apiUrl(`/documents-submitted.php?action=download&id=${encodeURIComponent(id)}&format=pdf&preview=1`);
+            const pdfResponse = await fetch(pdfUrl, { credentials: 'include' });
+            const pdfType = pdfResponse.headers.get('Content-Type') || '';
+            if (pdfResponse.ok && pdfType.toLowerCase().includes('application/pdf')) {
+                if (pdfWindow) pdfWindow.location.replace(pdfUrl);
+                else window.location.assign(pdfUrl);
+                setSubmissionPdfLoading(false);
+                return;
+            }
+        } catch (_) { /* legacy submissions continue through the HTML print view */ }
+        if (pdfWindow) {
+            try { pdfWindow.close(); } catch (_) { /* ignore a blocked/closed tab */ }
+        }
+
         ensureCalendarPreviewStyles();
         if (Number(detailRecordId) !== Number(id)) openDetailModal(id);
         await loadCalendarPreviewHtml(id, { silent: true });
@@ -1106,50 +1177,27 @@ const ADS = (() => {
     }
 
     async function printTuitionPreview(id) {
-        ensureTuitionPreviewStyles();
-        if (Number(detailRecordId) !== Number(id)) openDetailModal(id);
-        await loadTuitionPreviewHtml(id, { silent: true });
-
-        const sourceHost = document.getElementById('adsTuitionPreviewHost');
-        if (!sourceHost || sourceHost.dataset.loaded !== '1') { alert('Preview is not ready yet. Please try again.'); return; }
-
-        const existingHost = document.getElementById('adsPrintHost');
-        if (existingHost) existingHost.remove();
-
-        const printHost = document.createElement('div');
-        printHost.id        = 'adsPrintHost';
-        printHost.className = 'ads-print-target ads-print-target-tuition';
-        printHost.innerHTML = sourceHost.innerHTML;
-        document.body.appendChild(printHost);
-
-        document.body.dataset.printing = '1';
-
-        // Skip visually-empty pages the same way the calendar print flow does:
-        // strip the letterhead/official-header chrome from a clone and check
-        // whether anything is left. A page with only a header and no fee rows
-        // (e.g. a level that was never enabled) shouldn't print a blank sheet.
-        const skipped = [];
-        printHost.querySelectorAll('.paper').forEach((paper) => {
-            const clone = paper.cloneNode(true);
-            const header = clone.querySelector('.tf-official-header');
-            if (header) header.remove();
-            if (!(clone.textContent || '').replace(/\s+/g, '')) {
-                paper.style.setProperty('display', 'none', 'important');
-                skipped.push(paper);
+        setSubmissionPdfLoading(true, 'Loading submitted tuition PDF…');
+        const pdfWindow = window.open('about:blank', '_blank');
+        try {
+            const url = apiUrl(`/documents-submitted.php?action=download&id=${encodeURIComponent(id)}&format=pdf&preview=1`);
+            const response = await fetch(url, { credentials: 'include' });
+            const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
+            if (!response.ok || !contentType.includes('application/pdf')) {
+                let message = `Could not open the tuition PDF (HTTP ${response.status}).`;
+                if (contentType.includes('application/json')) {
+                    try { message = (await response.json()).message || message; } catch (_) {}
+                }
+                throw new Error(message);
             }
-        });
-
-        window.print();
-
-        const restore = () => {
-            skipped.forEach((p) => p.style.removeProperty('display'));
-            if (printHost.parentNode) printHost.parentNode.removeChild(printHost);
-            delete document.body.dataset.printing;
-            window.removeEventListener('afterprint', restore);
-        };
-
-        window.addEventListener('afterprint', restore);
-        setTimeout(restore, 2000);
+            if (pdfWindow) pdfWindow.location.replace(url);
+            else window.location.assign(url);
+        } catch (err) {
+            if (pdfWindow) { try { pdfWindow.close(); } catch (_) {} }
+            alert(err.message || 'Could not open the tuition PDF.');
+        } finally {
+            setSubmissionPdfLoading(false);
+        }
     }
 
     /* ─────────────────────────────────────────────────────────────────

@@ -286,6 +286,111 @@ function tuitionSupportingUploadsDir(): string
     return $dir;
 }
 
+function ensureTuitionExportsTable(PDO $pdo): void
+{
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS school_tuition_exports (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            tuition_document_id INT(11) NOT NULL,
+            original_filename VARCHAR(255) NOT NULL,
+            stored_filename VARCHAR(255) NOT NULL,
+            file_size INT(11) NOT NULL DEFAULT 0,
+            sha256 CHAR(64) DEFAULT NULL,
+            uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uniq_ste_tuition_document (tuition_document_id),
+            KEY idx_ste_document_id (tuition_document_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+}
+
+function tuitionExportsDir(): string
+{
+    $dir = dirname(__DIR__) . '/api/uploads/tuition-exports';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    return $dir;
+}
+
+function handleUploadTuitionExport(PDO $pdo, array $user): void
+{
+    ensureTuitionExportsTable($pdo);
+    $documentId = isset($_POST['id']) && is_numeric($_POST['id']) ? (int)$_POST['id'] : 0;
+    if (!$documentId) jsonError('Tuition document id is required.', 422);
+
+    assertOwnsTuitionDocument($pdo, (int)$user['id'], $documentId);
+    if (empty($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'] ?? '')) {
+        jsonError('No tuition PDF was uploaded.', 422);
+    }
+    $file = $_FILES['file'];
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) jsonError('PDF upload failed.', 422);
+    if ((int)$file['size'] > 20 * 1024 * 1024) jsonError('The tuition PDF is too large. Maximum size is 20MB.', 422);
+    if (file_get_contents($file['tmp_name'], false, null, 0, 5) !== '%PDF-') jsonError('The uploaded tuition export is not a valid PDF.', 422);
+
+    $original = basename((string)($file['name'] ?? 'tuition-fee.pdf'));
+    $original = preg_replace('/[^A-Za-z0-9._() -]+/', '_', $original) ?: 'tuition-fee.pdf';
+    if (strtolower(pathinfo($original, PATHINFO_EXTENSION)) !== 'pdf') $original .= '.pdf';
+    $stored = $documentId . '_' . bin2hex(random_bytes(12)) . '.pdf';
+    $directory = tuitionExportsDir();
+    $destination = $directory . '/' . $stored;
+    if (!move_uploaded_file($file['tmp_name'], $destination)) jsonError('Could not save the submitted tuition PDF.', 500);
+
+    $oldStmt = $pdo->prepare('SELECT stored_filename FROM school_tuition_exports WHERE tuition_document_id = :id LIMIT 1');
+    $oldStmt->execute([':id' => $documentId]);
+    $old = $oldStmt->fetchColumn();
+    try {
+        $save = $pdo->prepare(
+            "INSERT INTO school_tuition_exports
+                (tuition_document_id, original_filename, stored_filename, file_size, sha256)
+             VALUES (:id, :original, :stored, :size, :sha)
+             ON DUPLICATE KEY UPDATE original_filename = VALUES(original_filename),
+                stored_filename = VALUES(stored_filename), file_size = VALUES(file_size),
+                sha256 = VALUES(sha256), uploaded_at = CURRENT_TIMESTAMP"
+        );
+        $save->execute([
+            ':id' => $documentId,
+            ':original' => $original,
+            ':stored' => $stored,
+            ':size' => (int)$file['size'],
+            ':sha' => hash_file('sha256', $destination),
+        ]);
+    } catch (Throwable $e) {
+        @unlink($destination);
+        throw $e;
+    }
+    if ($old && $old !== $stored) {
+        $oldPath = $directory . '/' . basename((string)$old);
+        if (is_file($oldPath)) @unlink($oldPath);
+    }
+
+    jsonSuccess(['document_id' => $documentId, 'sha256' => hash_file('sha256', $destination)], 'Tuition PDF saved for this submission.');
+}
+
+function handleDownloadTuitionExport(PDO $pdo, array $user): void
+{
+    ensureTuitionExportsTable($pdo);
+    $documentId = isset($_GET['id']) && is_numeric($_GET['id']) ? (int)$_GET['id'] : 0;
+    if (!$documentId) jsonError('Tuition document id is required.', 422);
+    assertOwnsTuitionDocument($pdo, (int)$user['id'], $documentId);
+
+    $stmt = $pdo->prepare('SELECT original_filename, stored_filename FROM school_tuition_exports WHERE tuition_document_id = :id LIMIT 1');
+    $stmt->execute([':id' => $documentId]);
+    $export = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$export) jsonError('No saved tuition PDF is available.', 404);
+    $stored = basename((string)$export['stored_filename']);
+    $path = tuitionExportsDir() . '/' . $stored;
+    if ($stored === '' || !is_file($path)) jsonError('Saved tuition PDF is missing from storage.', 404);
+
+    $filename = str_replace(["\r", "\n", '"'], '', basename((string)$export['original_filename']));
+    if ($filename === '') $filename = 'tuition-fee.pdf';
+    if (ob_get_level()) ob_end_clean();
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Length: ' . filesize($path));
+    header('Cache-Control: private, no-store');
+    readfile($path);
+    exit;
+}
+
 function handleUploadSupportingDocument(PDO $pdo, array $user): void
 {
     ensureTuitionSupportingUploadsTable($pdo);
@@ -1155,7 +1260,7 @@ try {
     $body = [];
     $action = '';
     if ($method === 'POST') {
-        if (isset($_POST['action']) && in_array(strtolower(trim((string) $_POST['action'])), ['upload_supporting_document', 'delete_supporting_upload'], true)) {
+        if (isset($_POST['action']) && in_array(strtolower(trim((string) $_POST['action'])), ['upload_supporting_document', 'delete_supporting_upload', 'upload_export'], true)) {
             $action = strtolower(trim((string) $_POST['action']));
             $body = $_POST;
         } else {
@@ -1193,6 +1298,9 @@ try {
     } elseif ($method === 'GET' && $action === 'download_supporting_upload') {
         handleDownloadSupportingUpload($pdo, $user);
 
+    } elseif ($method === 'GET' && $action === 'download_export') {
+        handleDownloadTuitionExport($pdo, $user);
+
     } elseif ($method === 'GET' && $action === 'load') {
         $id = isset($_GET['id']) && is_numeric($_GET['id']) ? (int) $_GET['id'] : 0;
         if ($id <= 0) {
@@ -1212,6 +1320,9 @@ try {
 
     } elseif ($method === 'POST' && $action === 'upload_supporting_document') {
         handleUploadSupportingDocument($pdo, $user);
+
+    } elseif ($method === 'POST' && $action === 'upload_export') {
+        handleUploadTuitionExport($pdo, $user);
 
     } elseif ($method === 'POST' && $action === 'delete_supporting_upload') {
         handleDeleteSupportingUpload($pdo, $user, $body);
@@ -2178,8 +2289,22 @@ function handleDelete(PDO $pdo, int $userId, int $id): void
         jsonError('Cannot delete — only draft or returned documents can be deleted.', 409);
     }
 
+    try { ensureTuitionExportsTable($pdo); } catch (Throwable $e) {
+        error_log('school-portal-tuition.php DELETE export table check: ' . $e->getMessage());
+    }
+    $exportFilename = null;
+    try {
+        $exportStmt = $pdo->prepare('SELECT stored_filename FROM school_tuition_exports WHERE tuition_document_id = :id LIMIT 1');
+        $exportStmt->execute([':id' => $id]);
+        $exportFilename = $exportStmt->fetchColumn() ?: null;
+    } catch (Throwable $e) { /* older installations may not have the export table */ }
+
     try {
         $pdo->beginTransaction();
+
+        if ($exportFilename !== null) {
+            $pdo->prepare('DELETE FROM school_tuition_exports WHERE tuition_document_id = :id')->execute([':id' => $id]);
+        }
 
         // Remove the main document
         $pdo->prepare(
@@ -2210,6 +2335,11 @@ function handleDelete(PDO $pdo, int $userId, int $id): void
         $pdo->rollBack();
         error_log('school-portal-tuition.php DELETE error: ' . $e->getMessage());
         jsonError('Failed to delete tuition document.', 500);
+    }
+
+    if ($exportFilename !== null) {
+        $exportPath = tuitionExportsDir() . '/' . basename((string)$exportFilename);
+        if (is_file($exportPath)) @unlink($exportPath);
     }
 
     jsonSuccess(['document_id' => $id], 'Tuition document deleted successfully.');

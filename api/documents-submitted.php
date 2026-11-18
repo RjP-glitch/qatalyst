@@ -234,6 +234,7 @@ function actionList(PDO $pdo): void
             'approved'               => 'Approved',
             'rejected'               => 'Returned for Correction',
             'returned for correction'=> 'Returned for Correction',
+            'withdrawn'              => 'Withdrawn by School',
             'released to school'     => 'Released to School',
             'for endorsement'        => 'For Endorsement',
         ];
@@ -562,6 +563,10 @@ function actionDownload(PDO $pdo): void
     if (empty($row['calendar_document_id']) && $format === 'pdf') {
         respond(false, 'No calendar document is linked to this submission. Cannot export.', null, 422);
     }
+
+    if ($format === 'pdf' && !empty($row['calendar_document_id'])) {
+        dsOutputCanonicalCalendarPdf($pdo, (int)$row['calendar_document_id'], $preview);
+    }
  
     $payload = [];
     if (!empty($row['payload_json'])) {
@@ -685,6 +690,54 @@ function actionDownload(PDO $pdo): void
     exit;
 }
 
+/**
+ * Streams the PDF artifact attached by the school during final submission.
+ * Returning false means this is a legacy calendar without a stored export,
+ * so the existing server-side PDF fallback can still handle it.
+ */
+function dsOutputCanonicalCalendarPdf(PDO $pdo, int $calendarDocumentId, bool $preview): bool
+{
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS school_calendar_exports (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            calendar_document_id INT(11) NOT NULL,
+            original_filename VARCHAR(255) NOT NULL,
+            stored_filename VARCHAR(255) NOT NULL,
+            file_size INT(11) NOT NULL DEFAULT 0,
+            sha256 CHAR(64) DEFAULT NULL,
+            uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uniq_sce_calendar_document (calendar_document_id),
+            KEY idx_sce_document_id (calendar_document_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    $stmt = $pdo->prepare(
+        'SELECT original_filename, stored_filename, file_size
+           FROM school_calendar_exports
+          WHERE calendar_document_id = :id LIMIT 1'
+    );
+    $stmt->execute([':id' => $calendarDocumentId]);
+    $export = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$export) return false;
+
+    $storedFilename = basename((string)($export['stored_filename'] ?? ''));
+    $path = dirname(__DIR__) . '/api/uploads/calendar-exports/' . $storedFilename;
+    if ($storedFilename === '' || !is_file($path)) return false;
+
+    $filename = basename((string)($export['original_filename'] ?? 'school-calendar.pdf'));
+    $filename = str_replace(["\r", "\n", '"'], '', $filename);
+    if ($filename === '') $filename = 'school-calendar.pdf';
+
+    if (ob_get_level()) ob_end_clean();
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: ' . ($preview ? 'inline' : 'attachment') . '; filename="' . $filename . '"');
+    header('Content-Length: ' . filesize($path));
+    header('Cache-Control: private, no-store');
+    readfile($path);
+    exit;
+}
+
 // ────────────────────────────────────────────────────────────
 // actionDownloadTuition
 // Mirrors actionDownload's calendar logic, but for tuition fee
@@ -728,6 +781,10 @@ function actionDownloadTuition(PDO $pdo, int $id, string $format, bool $preview)
 
     if (!$tuitionDoc && $format === 'pdf') {
         respond(false, 'No tuition fee document is linked to this submission. Cannot export.', null, 422);
+    }
+
+    if ($format === 'pdf' && $tuitionDoc) {
+        dsOutputCanonicalTuitionPdf($pdo, (int)$tuitionDoc['id'], $preview);
     }
 
     $payload = [];
@@ -1952,6 +2009,46 @@ function dsFindTuitionDocument(PDO $pdo, array $submission): ?array
     }
 
     return null;
+}
+
+/** Streams the exact PDF stored by the school at final tuition submission. */
+function dsOutputCanonicalTuitionPdf(PDO $pdo, int $tuitionDocumentId, bool $preview): bool
+{
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS school_tuition_exports (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            tuition_document_id INT(11) NOT NULL,
+            original_filename VARCHAR(255) NOT NULL,
+            stored_filename VARCHAR(255) NOT NULL,
+            file_size INT(11) NOT NULL DEFAULT 0,
+            sha256 CHAR(64) DEFAULT NULL,
+            uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uniq_ste_tuition_document (tuition_document_id),
+            KEY idx_ste_document_id (tuition_document_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    $stmt = $pdo->prepare(
+        'SELECT original_filename, stored_filename FROM school_tuition_exports WHERE tuition_document_id = :id LIMIT 1'
+    );
+    $stmt->execute([':id' => $tuitionDocumentId]);
+    $export = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$export) return false;
+
+    $stored = basename((string)($export['stored_filename'] ?? ''));
+    $path = dirname(__DIR__) . '/api/uploads/tuition-exports/' . $stored;
+    if ($stored === '' || !is_file($path)) return false;
+
+    $filename = str_replace(["\r", "\n", '"'], '', basename((string)($export['original_filename'] ?? 'tuition-fee.pdf')));
+    if ($filename === '') $filename = 'tuition-fee.pdf';
+    if (ob_get_level()) ob_end_clean();
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: ' . ($preview ? 'inline' : 'attachment') . '; filename="' . $filename . '"');
+    header('Content-Length: ' . filesize($path));
+    header('Cache-Control: private, no-store');
+    readfile($path);
+    exit;
 }
 
 /**

@@ -656,10 +656,7 @@
             </div>
             <div class="banner-right">
                 <button class="banner-btn banner-btn-export" id="btnGeneratePDF" onclick="generatePDF()">
-                    <i class="fa-solid fa-file-pdf"></i> Generate PDF
-                </button>
-                <button class="banner-btn banner-btn-export" id="bannerExportWord" onclick="exportTuitionWord()">
-                    <i class="fa-solid fa-file-word"></i> Export Word
+                    <i class="fa-solid fa-file-pdf"></i> Export PDF
                 </button>
                 <button class="banner-btn banner-btn-ghost" id="btnViewDocs">
                     <i class="fa-solid fa-folder-open"></i> Documents
@@ -1585,12 +1582,8 @@
 <!-- ══ External JS ══ -->
 <script src="js/config.js"></script>
 <script src="js/school-portal-permissions.js"></script>
-<script src="js/school-portal-tuition.js?v11"></script>
-
-<!-- docx.js — needed by exportTuitionWord() below. The submitted view didn't
-     load this before, so clicking "Export Word" threw
-     "exportTuitionWord is not defined". -->
-<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="js/school-portal-tuition.js?v20"></script>
 
 <script>
 /* ══════════════════════════════════════════════════════════════════════

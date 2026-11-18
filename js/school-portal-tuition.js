@@ -3543,6 +3543,133 @@ function renderComplianceErrors(errors) {
         </div>`;
 }
 
+function setTuitionPdfLoading(visible, message = 'Rendering the tuition preview…') {
+    let overlay = document.getElementById('tfPdfLoading');
+    if (!visible) { overlay?.remove(); return; }
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'tfPdfLoading';
+        overlay.setAttribute('role', 'status');
+        overlay.setAttribute('aria-live', 'polite');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(10,31,61,.12);display:flex;align-items:center;justify-content:center;font-family:var(--font,Arial,sans-serif);';
+        overlay.innerHTML = '<div style="background:#fff;border-radius:14px;padding:18px 22px;box-shadow:0 12px 36px rgba(0,0,0,.22);display:flex;align-items:center;gap:12px;color:#0a1f3d;font-size:13px;font-weight:700"><i class="fa-solid fa-spinner fa-spin" style="font-size:18px;color:#2456a4"></i><span></span></div>';
+        document.body.appendChild(overlay);
+    }
+    const label = overlay.querySelector('span');
+    if (label) label.textContent = message;
+}
+
+async function buildTuitionPreviewPdf(options = {}) {
+    const returnBlob = options.returnBlob === true;
+    const preview = document.getElementById('tfPreviewPanel');
+    if (!preview) throw new Error('The tuition preview is not available.');
+
+    setTuitionPdfLoading(true, 'Preparing the preview pages…');
+    let host = null;
+    try {
+        if (!window.html2canvas) {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+            await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = () => reject(new Error('Could not load the preview renderer.')); document.head.appendChild(script); });
+        }
+        if (!window.jspdf?.jsPDF && !window.jsPDF) {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+            await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = () => reject(new Error('Could not load the PDF exporter.')); document.head.appendChild(script); });
+        }
+        const JsPDF = window.jspdf?.jsPDF || window.jsPDF;
+        if (!window.html2canvas || !JsPDF) throw new Error('The PDF exporter is unavailable. Refresh the page and try again.');
+
+        await document.fonts?.ready;
+        const levels = {
+            kinder: !!document.getElementById('chkKinder')?.checked,
+            elem: !!document.getElementById('chkElem')?.checked,
+            jhs: !!document.getElementById('chkJHS')?.checked,
+            shs: !!document.getElementById('chkSHS')?.checked,
+        };
+        const pageIds = [
+            ...(levels.kinder ? ['pvBreakKinder'] : []),
+            ...(levels.elem ? ['pvBreakElem'] : []),
+            ...(levels.jhs ? ['pvBreakJHS'] : []),
+            ...(levels.shs ? ['pvBreakSHS'] : []),
+            ...(levels.kinder || levels.elem || levels.jhs || levels.shs ? ['pvSupportingDocs'] : []),
+            ...(levels.kinder ? ['pvCompKinder'] : []),
+            ...(levels.elem ? ['pvCompElem'] : []),
+            ...(levels.jhs ? ['pvCompJHS'] : []),
+            ...(levels.shs ? ['pvSHSPage11', 'pvSHSPage12'] : []),
+        ];
+        const sourcePages = pageIds.map(id => document.getElementById(id)).filter(Boolean);
+        if (!sourcePages.length) throw new Error('No tuition preview pages are available to export.');
+
+        host = document.createElement('div');
+        host.id = 'tfPdfCaptureHost';
+        host.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;z-index:-1;opacity:0;background:#fff;display:flex;flex-direction:column;gap:0;pointer-events:none;';
+        sourcePages.forEach((source) => {
+            const page = source.cloneNode(true);
+            page.classList.remove('tf-pg-hidden', 'tf-hidden');
+            page.style.cssText += ';display:block!important;visibility:visible!important;opacity:1!important;width:794px!important;min-height:950px!important;height:auto!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;';
+            page.querySelectorAll('.tf-pg-hidden, .tf-hidden').forEach(el => {
+                el.classList.remove('tf-pg-hidden', 'tf-hidden');
+                el.style.removeProperty('display');
+                el.style.removeProperty('visibility');
+                el.style.removeProperty('opacity');
+            });
+            host.appendChild(page);
+        });
+        document.body.appendChild(host);
+        await Promise.all(Array.from(host.querySelectorAll('img')).map(img => img.decode?.().catch(() => {}) || Promise.resolve()));
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const pdf = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+        const pageW = 215.9, pageH = 279.4, scale = 2.5;
+        const paperNodes = Array.from(host.children);
+        let added = 0;
+        for (let index = 0; index < paperNodes.length; index++) {
+            const paper = paperNodes[index];
+            setTuitionPdfLoading(true, `Rendering preview page ${index + 1} of ${paperNodes.length}…`);
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            const canvas = await window.html2canvas(paper, {
+                scale,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                width: 794,
+                windowWidth: Math.max(window.innerWidth, 794),
+                onclone: clonedDocument => {
+                    const clonedHost = clonedDocument.getElementById('tfPdfCaptureHost');
+                    if (clonedHost) {
+                        clonedHost.style.left = '0';
+                        clonedHost.style.opacity = '1';
+                        clonedHost.style.zIndex = '999999';
+                    }
+                },
+            });
+            if (!canvas.width || !canvas.height) continue;
+            const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+            const drawW = canvas.width * ratio;
+            const drawH = canvas.height * ratio;
+            const x = (pageW - drawW) / 2;
+            const y = (pageH - drawH) / 2;
+            if (added > 0) pdf.addPage('letter', 'portrait');
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', x, y, drawW, drawH);
+            added++;
+        }
+        if (!added) throw new Error('The tuition preview pages could not be rendered.');
+
+        const school = (document.getElementById('tfSchoolName')?.value || 'School').trim().replace(/[\\/:*?"<>|]+/g, '-') || 'School';
+        const year = (document.getElementById('tfProposedSY')?.value || 'submission').trim().replace(/[\\/:*?"<>|]+/g, '-') || 'submission';
+        const filename = `TuitionFee_${school}_SY${year}.pdf`;
+        const blob = pdf.output('blob');
+        if (returnBlob) return { blob, filename };
+        pdf.save(filename);
+        return { blob, filename };
+    } finally {
+        host?.remove();
+        setTuitionPdfLoading(false);
+    }
+}
+
 async function confirmTuitionSubmit() {
     if (updateTuitionSubmissionGuard()) {
         showToast(_tuitionSubmissionBlockMessage || 'Submission is blocked until the fee schedule is verified.', 'circle-xmark');
@@ -3593,6 +3720,21 @@ async function confirmTuitionSubmit() {
     }
 
     try {
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing PDF…';
+        // Render the same page nodes the school sees in the preview, then store
+        // that PDF so the SDO receives the identical export bytes.
+        const { blob: submittedPdf, filename: pdfName } = await buildTuitionPreviewPdf({ returnBlob: true });
+        const exportForm = new FormData();
+        exportForm.append('action', 'upload_export');
+        exportForm.append('id', String(docId));
+        exportForm.append('file', submittedPdf, pdfName);
+        const exportRes = await fetch(TF_API, { method: 'POST', credentials: 'include', body: exportForm });
+        const exportResult = await exportRes.json();
+        if (!exportRes.ok || !exportResult.success) {
+            throw new Error(exportResult.message || 'Could not save the tuition PDF for SDO review.');
+        }
+
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting…';
         const res  = await fetch(TF_API, {
             method: 'POST', credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
@@ -3931,32 +4073,28 @@ async function generatePDF() {
     }
 
     try {
-        const res = await fetch(`${API_BASE}/school-portal-tuition-pdf.php?id=${docId}`, {
-            method: 'GET', credentials: 'include',
-        });
-
-        if (!res.ok) {
-            const ct = res.headers.get('Content-Type') || '';
-            if (ct.includes('application/json')) {
-                const err = await res.json();
-                showToast(err.message || 'PDF generation failed.', 'circle-xmark');
-            } else {
-                showToast(`Server error ${res.status} — check PHP error log.`, 'circle-xmark');
+        const { blob, filename } = await buildTuitionPreviewPdf({ returnBlob: true });
+        if ((window.__submittedTuitionView || _builderLocked) && docId) {
+            const exportForm = new FormData();
+            exportForm.append('action', 'upload_export');
+            exportForm.append('id', String(docId));
+            exportForm.append('file', blob, filename);
+            const saveRes = await fetch(TF_API, { method: 'POST', credentials: 'include', body: exportForm });
+            const saveResult = await saveRes.json();
+            if (!saveRes.ok || !saveResult.success) {
+                throw new Error(saveResult.message || 'Could not update the SDO copy with this PDF.');
             }
-            return;
         }
-
-        const blob = await res.blob();
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
         a.href     = url;
-        a.download = `TuitionFee_SY${val('tfProposedSY') || 'draft'}.pdf`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showToast('PDF downloaded.', 'circle-check');
+        showToast((window.__submittedTuitionView || _builderLocked) ? 'Submitted PDF refreshed and downloaded.' : 'PDF downloaded.', 'circle-check');
     } catch (e) {
         console.error('PDF generation error:', e);
         showToast('Network error — could not generate PDF.', 'circle-xmark');

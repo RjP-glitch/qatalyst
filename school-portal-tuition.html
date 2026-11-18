@@ -1566,29 +1566,22 @@
     }
 
     /* ── Export PDF ── */
-    function exportTuitionPDF() {
+    async function exportTuitionPDF() {
         closeTuitionTopBarMenu();
-        const preview = document.getElementById('tfPreviewPanel');
-        if (!preview) { showToast('Document preview is not available.', 'triangle-exclamation'); return; }
-
-        const existing = document.getElementById('tfPrintHost');
-        if (existing) existing.remove();
-        const host = document.createElement('div');
-        host.id = 'tfPrintHost';
-        host.innerHTML = preview.innerHTML;
-        document.body.appendChild(host);
-        document.body.classList.add('tf-printing');
-        window.addEventListener('afterprint', function restorePrint() {
-            document.body.classList.remove('tf-printing');
-            host.remove();
-        }, { once: true });
-        setTimeout(() => {
-            if (document.body.classList.contains('tf-printing')) {
-                document.body.classList.remove('tf-printing');
-                host.remove();
-            }
-        }, 30000);
-        window.print();
+        try {
+            const { blob, filename } = await buildTuitionPreviewPdf({ returnBlob: true });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+            showToast('PDF exported from the document preview.', 'circle-check');
+        } catch (err) {
+            showToast('PDF export failed: ' + (err.message || 'Please try again.'), 'circle-xmark');
+        }
     }
 
     /* ── Legacy Word builder (not exposed in the UI) ── */
@@ -2849,6 +2842,6 @@
 </script>
 <script src="js/config.js?v5"></script>
 <script src="js/school-portal-permissions.js"></script>
-<script src="js/school-portal-tuition.js?v17"></script>
+<script src="js/school-portal-tuition.js?v20"></script>
 </body>
 </html>
