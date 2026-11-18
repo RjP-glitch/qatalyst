@@ -1612,6 +1612,52 @@ function normalizeTuitionSchoolYear(string $schoolYear): string
     return preg_replace('/\s*[\x{2010}-\x{2015}\x{2212}-]\s*/u', '-', $schoolYear);
 }
 
+function tuitionSchoolYearStartYear(string $schoolYear): ?int
+{
+    $normalized = normalizeTuitionSchoolYear($schoolYear);
+    if (!preg_match('/^((?:19|20)\d{2})-((?:19|20)\d{2})$/', $normalized, $match)) return null;
+    $start = (int)$match[1];
+    return (int)$match[2] === $start + 1 ? $start : null;
+}
+
+function currentTuitionSchoolYearStartYear(): int
+{
+    $year = (int)date('Y');
+    return (int)date('n') >= 6 ? $year : $year - 1;
+}
+
+function hasPriorTuitionSubmission(PDO $pdo, array $doc): bool
+{
+    if (!tableHasColumn($pdo, 'school_submissions', 'type')) return false;
+    $conditions = [];
+    $params = [':type' => 'tuition'];
+    $documentId = (int)($doc['id'] ?? 0);
+    if ($documentId <= 0) return false;
+    if (tableHasColumn($pdo, 'school_submissions', 'file_path')) {
+        $conditions[] = 'file_path = :file_path';
+        $params[':file_path'] = 'school_tuition_documents:' . $documentId;
+    }
+    if (tableHasColumn($pdo, 'school_submissions', 'calendar_document_id')) {
+        $conditions[] = 'calendar_document_id = :document_id';
+        $params[':document_id'] = $documentId;
+    }
+    if (!$conditions && tableHasColumn($pdo, 'school_submissions', 'title') && tableHasColumn($pdo, 'school_submissions', 'user_id')) {
+        $conditions[] = 'user_id = :user_id AND title = :title';
+        $params[':user_id'] = (int)($doc['user_id'] ?? 0);
+        $params[':title'] = (string)($doc['title'] ?? '');
+    }
+    if (!$conditions) return false;
+
+    try {
+        $stmt = $pdo->prepare('SELECT 1 FROM school_submissions WHERE type = :type AND (' . implode(' OR ', $conditions) . ') LIMIT 1');
+        $stmt->execute($params);
+        return (bool)$stmt->fetchColumn();
+    } catch (Throwable $e) {
+        error_log('hasPriorTuitionSubmission lookup failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
 /** Return another submitted tuition document for this school/year, if any. */
 function findSubmittedTuitionForYear(PDO $pdo, int $privateSchoolId, string $proposedSY, ?int $excludeDocumentId = null): ?array
 {
@@ -1954,6 +2000,19 @@ function handleSubmit(PDO $pdo, array $user, ?int $privateSchoolId, int $id): vo
     // FIX #2: Block re-submission of already-submitted documents
     if ($doc['status'] === 'Pending Review') {
         jsonError('This document has already been submitted and is pending review.', 409);
+    }
+
+    $proposedYearStart = tuitionSchoolYearStartYear((string)($doc['proposed_sy'] ?? ''));
+    $currentYearStart = currentTuitionSchoolYearStartYear();
+    $isPastYear = $proposedYearStart !== null && $proposedYearStart < $currentYearStart;
+    $isCorrectionResubmission = hasPriorTuitionSubmission($pdo, $doc);
+    if ($isPastYear && !$isCorrectionResubmission) {
+        $currentSchoolYear = $currentYearStart . '-' . ($currentYearStart + 1);
+        jsonError(
+            'A new tuition submission cannot be filed for past school year SY ' . $doc['proposed_sy'] . '. The current school year is SY ' . $currentSchoolYear . '. Contact your SDO if this is a late filing that needs authorization.',
+            422,
+            ['past_school_year' => true, 'current_school_year' => $currentSchoolYear]
+        );
     }
 
     // FIX #1 & #3: Re-validate increase_pct and recompute payload on submit

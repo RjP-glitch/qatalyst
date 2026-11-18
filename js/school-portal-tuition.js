@@ -42,6 +42,20 @@ function hasSubmittedTuitionForYear(proposedSY, excludeDocumentId = null) {
         Number(item.id) !== Number(excludeDocumentId) && normalizeTuitionSY(item.proposed_sy) === targetSY
     );
 }
+function tuitionSchoolYearStart(value) {
+    const match = normalizeTuitionSY(value).match(/^((?:19|20)\d{2})-(?:19|20)\d{2}$/);
+    return match ? Number(match[1]) : null;
+}
+function isPastTuitionSchoolYear(value) {
+    const startYear = tuitionSchoolYearStart(value);
+    if (!startYear) return false;
+    const now = new Date();
+    const currentStartYear = now.getMonth() + 1 >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+    return startYear < currentStartYear;
+}
+function hasPriorTuitionSubmission(documentId) {
+    return !!documentId && submittedTuitionModes.some(item => Number(item.id) === Number(documentId));
+}
 function tuitionConflictMessage(mode, proposedSY) {
     return `A tuition document has already been submitted for SY ${proposedSY}. You can save a draft, but only one tuition document can be submitted for a school year.`;
 }
@@ -49,6 +63,8 @@ function updateTuitionSubmissionGuard() {
     const mode = tfMode === 'no-increase' ? 'no_increase' : tfMode;
     const proposedSY = val('tfProposedSY').trim();
     const conflict = hasSubmittedTuitionForYear(proposedSY, docId);
+    const pastYearBlocked = isPastTuitionSchoolYear(proposedSY) && !hasPriorTuitionSubmission(docId);
+    const pastYearMessage = `SY ${proposedSY} is already in the past. Contact your SDO before submitting a new tuition filing for a past school year.`;
     const currentSY = normalizeTuitionSY(val('tfCurrentSY'));
     const baselineBlocking = !!currentSY && !['found', 'missing'].includes(activeTuitionBaselineStatus);
     const baselineMessage = activeTuitionBaselineStatus === 'loading'
@@ -58,11 +74,11 @@ function updateTuitionSubmissionGuard() {
         : activeTuitionBaselineStatus === 'error'
         ? 'The prior approved fee schedule could not be verified. Please try again before submitting.'
         : 'No accepted fee schedule was found for the current school year. You may submit this schedule for SDO verification; the SDO must verify the current fees before approving it.';
-    const message = conflict ? tuitionConflictMessage(mode, proposedSY) : '';
+    const message = conflict ? tuitionConflictMessage(mode, proposedSY) : pastYearBlocked ? pastYearMessage : '';
     const notice = $('tfTuitionConflictNotice');
     if (notice) {
         notice.textContent = message;
-        notice.style.display = conflict ? 'block' : 'none';
+        notice.style.display = conflict || pastYearBlocked ? 'block' : 'none';
     }
     const baselineNotice = $('tfFeeBaselineNotice');
     if (baselineNotice) {
@@ -70,9 +86,9 @@ function updateTuitionSubmissionGuard() {
         baselineNotice.className = 'tf-baseline-notice' + (currentSY ? ` is-${activeTuitionBaselineStatus === 'found' ? 'ready' : activeTuitionBaselineStatus === 'loading' ? 'loading' : 'blocked'}` : '');
         baselineNotice.style.display = currentSY ? 'block' : 'none';
     }
-    const blockSubmit = conflict || baselineBlocking || !_reviewHasAnyFee;
-    const blockMessage = conflict ? message : baselineBlocking ? baselineMessage : (!_reviewHasAnyFee ? 'Please enter at least one fee before submitting.' : '');
-    _tuitionSubmissionBlockMessage = conflict ? message : baselineBlocking ? baselineMessage : '';
+    const blockSubmit = conflict || pastYearBlocked || baselineBlocking || !_reviewHasAnyFee;
+    const blockMessage = conflict || pastYearBlocked ? message : baselineBlocking ? baselineMessage : (!_reviewHasAnyFee ? 'Please enter at least one fee before submitting.' : '');
+    _tuitionSubmissionBlockMessage = conflict || pastYearBlocked ? message : baselineBlocking ? baselineMessage : '';
     ['btnSubmitReview', 'tfBtnFinalSubmitDrop'].forEach(id => {
         const button = $(id);
         if (!button) return;
@@ -84,7 +100,7 @@ function updateTuitionSubmissionGuard() {
         modalSubmit.disabled = blockSubmit;
         modalSubmit.title = blockMessage;
     }
-    return conflict || baselineBlocking;
+    return conflict || pastYearBlocked || baselineBlocking;
 }
 const DEFAULT_PRINCIPAL_POSITION = 'School Principal';
 const DEFAULT_REVIEWED_BY_POSITION = 'SDO, EPS In Charge';
@@ -263,7 +279,13 @@ function setTuitionYearValue(id, value) {
         const option = document.createElement('option');
         option.value = normalized;
         option.textContent = start === null ? raw : `S.Y. ${start}–${start + 1}`;
-        select.appendChild(option);
+        // Keep an already-saved historical school year selectable when opening
+        // an existing document, while keeping new-document choices forward-only.
+        const nextOption = [...select.options].find(existing => {
+            const existingStart = parseTuitionSYStart(existing.value);
+            return existingStart !== null && start !== null && existingStart > start;
+        });
+        select.insertBefore(option, nextOption || null);
     }
     select.value = normalized;
 }
@@ -274,7 +296,10 @@ function initTuitionYearChoosers() {
     ['tfCurrentSY', 'tfProposedSY'].forEach(id => {
         const select = $(id);
         if (!select || select.tagName !== 'SELECT') return;
-        for (let year = start - 15; year <= start + 20; year++) {
+        // New tuition filings should offer the current school year and future
+        // years only. setTuitionYearValue() adds a saved historical value when
+        // an older existing document is opened for review or correction.
+        for (let year = start; year <= start + 20; year++) {
             const value = `${year}-${year + 1}`;
             if ([...select.options].some(option => option.value === value)) continue;
             const option = document.createElement('option');
